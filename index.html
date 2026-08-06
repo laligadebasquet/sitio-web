@@ -124,6 +124,31 @@
     transition:background .15s ease;
   }
   .cta-btn:hover{background:var(--orange-dark);}
+  .portal-links{
+    display:flex;
+    gap:8px;
+  }
+  .portal-link-btn{
+    background:transparent;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.5px;
+    text-decoration:none;
+    text-transform:uppercase;
+    padding:8px 14px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.28);
+    white-space:nowrap;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .portal-link-btn:hover{
+    background:rgba(255,255,255,.1);
+    border-color:#fff;
+  }
+  @media (max-width:720px){
+    .portal-link-btn{font-size:10px;padding:7px 11px;}
+  }
   nav.tabs{
     max-width:1080px;
     margin:18px auto 0 auto;
@@ -1289,6 +1314,10 @@
     <div class="search-box">
       <span>🔍</span>
       <input type="text" id="teamSearch" placeholder="Busca tu equipo o tu nombre">
+    </div>
+    <div class="portal-links">
+      <a class="portal-link-btn" href="admin.html">Admin</a>
+      <a class="portal-link-btn" href="capitanes.html">Capitanes</a>
     </div>
   </div>
   <nav class="tabs">
@@ -2655,6 +2684,10 @@ function aplicarDeepLink(){
   if(view === "reglamento"){
     const cat = /femenil/i.test(params.get("cat") || "") ? "femenil" : "varonil";
     renderReglamento(cat);
+  }
+  if(view === "inscripcion"){
+    const tab = params.get("tab") === "jugador" ? "jugador" : "equipo";
+    renderInscripcion(tab);
   }
 }
 
