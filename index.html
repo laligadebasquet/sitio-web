@@ -1498,7 +1498,9 @@ const CONFIG = {
   // Categorías que se ofrecen en los formularios de inscripción.
   categorias: ["Varonil A", "Varonil B", "Femenil A", "Femenil B"],
   // Dirección del gimnasio/sede, se muestra en la pestaña Información > Dónde Estamos.
-  direccion: "Gimnasio Club Central Gante, San Pedro Garza García, N.L.",
+  direccion: "Gral Vicente Guerrero 300, Centro, 66200 San Pedro Garza García, N.L.",
+  // Link directo a Google Maps (más preciso que una búsqueda por texto).
+  direccionMapsUrl: "https://www.google.com/maps?um=1&ie=UTF-8&fb=1&gl=mx&sa=X&geocode=KRWKgTqElWKGMRp6QD2GCxkB&daddr=Gral+Vicente+Guerrero+300,+Centro,+66200+San+Pedro+Garza+Garc%C3%ADa,+N.L.",
   // Con esto en true, la página lee los datos EN VIVO del Google Sheet a
   // través del Web App de Apps Script (appsScriptUrl). No hace falta publicar
   // ninguna hoja en la web: el Web App corre con la cuenta del organizador.
@@ -1889,7 +1891,7 @@ function renderResultados(){
     const visibleItems = g.items.filter(m=>matchesSearch(m.local, m.visitante));
     if(visibleItems.length === 0) return;
     any = true;
-    html += `<div class="jornada-heading">Jornada ${g.jornada}<span class="line"></span></div>`;
+    html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
     html += '<div class="cards-grid">';
     visibleItems.forEach(m=>{
       const localWins = m.ptsLocal > m.ptsVisitante;
@@ -1942,13 +1944,13 @@ function renderProximos(){
 
   let html = `<div class="section-heading">Próximos Partidos<span class="line"></span></div>`;
   html += `<div class="jornada-nav">
-    <button onclick="cambiarJornadaProximos(-1)" aria-label="Jornada anterior">‹</button>
-    <span class="jornada-nav-label">Jornada ${proximaJornadaActual}</span>
-    <button onclick="cambiarJornadaProximos(1)" aria-label="Jornada siguiente">›</button>
+    <button onclick="cambiarJornadaProximos(-1)" aria-label="Semana anterior">‹</button>
+    <span class="jornada-nav-label">Semana ${proximaJornadaActual}</span>
+    <button onclick="cambiarJornadaProximos(1)" aria-label="Semana siguiente">›</button>
   </div>`;
 
   if(juegos.length === 0){
-    html += '<div class="empty-state">No hay partidos programados para esta jornada.</div>';
+    html += '<div class="empty-state">No hay partidos programados para esta semana.</div>';
   } else {
     html += '<div class="cards-grid">';
     juegos.forEach(m=>{
@@ -1977,7 +1979,7 @@ function renderRol(){
   grouped.forEach(g=>{
     const visibleItems = g.items.filter(m=>matchesSearch(m.local, m.visitante));
     if(visibleItems.length === 0) return;
-    html += `<div class="jornada-heading">Jornada ${g.jornada}<span class="line"></span></div>`;
+    html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
     html += '<div class="cards-grid">';
     visibleItems.forEach(m=>{
       const badgeClass = m.estatus === "Jugado" ? "jugado" : m.estatus === "Pospuesto" || m.estatus === "Cancelado" ? "pospuesto" : "programado";
@@ -2128,18 +2130,24 @@ function computeRachas(){
   if(RESULTADOS.length){
     const conMargen = RESULTADOS.map(m=>({...m, margen: Math.abs(m.ptsLocal - m.ptsVisitante)}));
     const masCerrado = [...conMargen].sort((a,b)=>a.margen - b.margen)[0];
-    insights.push({icono:"🎢", titulo:"El partido más cerrado de la temporada", texto:`${masCerrado.local} ${masCerrado.ptsLocal} - ${masCerrado.ptsVisitante} ${masCerrado.visitante} (Jornada ${masCerrado.jornada}), decidido por ${masCerrado.margen} punto${masCerrado.margen === 1 ? "" : "s"}.`, prioridad:3});
+    insights.push({icono:"🎢", titulo:"El partido más cerrado de la temporada", texto:`${masCerrado.local} ${masCerrado.ptsLocal} - ${masCerrado.ptsVisitante} ${masCerrado.visitante} (Semana ${masCerrado.jornada}), decidido por ${masCerrado.margen} punto${masCerrado.margen === 1 ? "" : "s"}.`, prioridad:3});
 
     const palizaMasGrande = [...conMargen].sort((a,b)=>b.margen - a.margen)[0];
-    insights.push({icono:"💥", titulo:"La mayor diferencia de la temporada", texto:`${palizaMasGrande.local} ${palizaMasGrande.ptsLocal} - ${palizaMasGrande.ptsVisitante} ${palizaMasGrande.visitante} (Jornada ${palizaMasGrande.jornada}), con ${palizaMasGrande.margen} puntos de diferencia.`, prioridad:3});
+    insights.push({icono:"💥", titulo:"La mayor diferencia de la temporada", texto:`${palizaMasGrande.local} ${palizaMasGrande.ptsLocal} - ${palizaMasGrande.ptsVisitante} ${palizaMasGrande.visitante} (Semana ${palizaMasGrande.jornada}), con ${palizaMasGrande.margen} puntos de diferencia.`, prioridad:3});
   }
 
   insights.sort((a,b)=>a.prioridad - b.prioridad);
   return insights;
 }
 
+/* Por ahora Tendencias muestra un mensaje fijo hasta la semana 3 de juego.
+   Cuando llegue ese momento, se puede quitar este "return" para volver a
+   activar el cálculo automático de tendencias de abajo. */
 function renderRachas(){
   const el = document.getElementById("view-tendencias");
+  el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div><div class="empty-state">Esta información estará disponible a partir de la semana 3 de juego.</div>';
+  return;
+
   const insights = computeRachas();
   if(insights.length === 0){
     el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div><div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias.</div>';
@@ -2218,10 +2226,12 @@ function renderConcentrado(){
 
 /* Sanciones: listado de faltas/expulsiones y su sanción correspondiente,
    conforme al Tabulador de Sanciones del reglamento. Se llena más adelante
-   con datos reales; por ahora muestra que no hay sanciones registradas. */
+   con datos reales; por ahora muestra que no hay sanciones registradas y
+   aclara que esta sección aplica desde el inicio de la temporada, en caso
+   de que haya sanciones. */
 function renderSanciones(){
   const el = document.getElementById("view-sanciones");
-  el.innerHTML = '<div class="section-heading">Sanciones<span class="line"></span></div><div class="empty-state">No hay sanciones registradas por el momento.</div>';
+  el.innerHTML = '<div class="section-heading">Sanciones<span class="line"></span></div><div class="empty-state">No hay sanciones registradas por el momento. Esta sección aplica desde el inicio de la temporada, en caso de que haya sanciones.</div>';
 }
 
 /* Reglamento oficial "REGLAMENTO DE COMPETENCIA — TEMPORADA AGOSTO 2026", tal
@@ -2585,7 +2595,6 @@ function renderReglamento(categoria){
     <div class="section-heading">Reglamento<span class="line"></span></div>
     <button class="reglamento-volver" type="button" onclick="volverAInscribirEquipo()">&larr; Volver a Inscribir Equipo</button>
     <div class="reglamento-toggle">
-      <button class="${cat === "resumen" ? "active" : ""}" onclick="renderReglamento('resumen')">RESUMEN</button>
       <button class="${cat === "varonil" ? "active" : ""}" onclick="renderReglamento('varonil')">VARONIL</button>
       <button class="${cat === "femenil" ? "active" : ""}" onclick="renderReglamento('femenil')">FEMENIL</button>
     </div>
@@ -2597,7 +2606,7 @@ function renderReglamento(categoria){
 function renderDondeEstamos(){
   const el = document.getElementById("view-dondeestamos");
   const direccion = CONFIG.direccion || "Dirección pendiente de confirmar.";
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(direccion);
+  const mapsUrl = CONFIG.direccionMapsUrl || ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(direccion));
   el.innerHTML = `
     <div class="section-heading">Dónde Estamos<span class="line"></span></div>
     <p style="font-size:15px;font-weight:600;color:var(--text);max-width:520px;">${direccion}</p>
@@ -2720,11 +2729,6 @@ function formEquipoHTML(){
   _menoresEquipo = ""; // el form se vuelve a armar cada vez que se abre esta pestaña
   return `
     <div class="insc-form">
-      <p class="insc-intro">
-        Registra aquí a tu equipo. Una vez enviado queda <strong>pendiente de aprobación</strong>;
-        el comité lo revisa y te confirma. Después de inscribir al equipo, cada jugador
-        se da de alta por su cuenta en la pestaña <strong>Alta de Jugador</strong>.
-      </p>
       <div class="insc-campo">
         <label for="iEqNombre">Nombre del equipo <span class="req">*</span></label>
         <input type="text" id="iEqNombre" maxlength="40" placeholder="Ej. LOS HALCONES" autocomplete="off">
