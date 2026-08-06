@@ -389,6 +389,7 @@
     <button data-view="pagos">Pagos</button>
     <button data-view="cedulas">Cédulas</button>
     <button data-view="inscripciones">Inscripciones</button>
+    <button data-view="pruebas">Pruebas</button>
   </nav>
 </header>
 
@@ -604,6 +605,49 @@
       </div>
     </div>
   </section>
+
+  <!-- ============ TAB: PRUEBAS ============ -->
+  <section class="view" id="view-pruebas">
+    <div class="card">
+      <h2>🧪 Equipos de prueba</h2>
+      <div class="empty-state" style="text-align:left; padding:0 0 14px 0;">
+        Cualquier equipo inscrito con el nombre exacto <strong>"Prueba"</strong> se detecta
+        automáticamente y se saca de la Consola pública y de las demás pestañas de este
+        Admin (Rol de Juego, Cruces, Pagos, Inscripciones, etc.), para que nunca se mezcle
+        con los equipos reales. Todo lo relacionado con esas pruebas aparece aquí.
+      </div>
+      <button class="save-btn" style="padding:8px 16px;font-size:13px;" onclick="renderPruebas(true)">🔄 Actualizar</button>
+      <div class="msg" id="pruebasMsg" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Inscripciones de prueba</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="pruebasInscripcionesTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Jugadores dados de alta en pruebas</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="pruebasJugadoresTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Pagos registrados en pruebas</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="pruebasPagosTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Partidos de prueba (Rol de Juego / Resultados)</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="pruebasPartidosTable"></table>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- ============ MODAL: DETALLE DE PAGO POR EQUIPO ============ -->
@@ -718,7 +762,7 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", captura: "view-captura", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", captura: "view-captura", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -729,6 +773,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
     if(btn.dataset.view === "inscripciones") renderInscripciones();
+    if(btn.dataset.view === "pruebas") renderPruebas();
   });
 });
 
@@ -1528,6 +1573,125 @@ function renderAltasJugadores(){
       ${filas.length} jugador${filas.length===1?"":"es"} en total${filas.length>30?" (se muestran los 30 más recientes)":""}.
     </td></tr>`;
   tabla.innerHTML = html;
+}
+
+/* ============================================================
+   TAB: PRUEBAS
+   Cualquier equipo con nombre EXACTO "Prueba" (sin importar mayúsculas ni
+   acentos) lo esconde el backend (doGet + leerInscripciones) de todas las
+   demás pestañas y de la Consola pública. Esta pestaña llama a la acción
+   "leerPruebas" (misma contraseña del candado) para traer justo lo que se
+   esconde en todos lados, y así el organizador pueda revisarlo aparte.
+   ============================================================ */
+let PRUEBAS = null;
+
+async function fetchPruebas(){
+  if(!CONFIG.appsScriptUrl) return null;
+  try{
+    const res = await fetch(CONFIG.appsScriptUrl, {
+      method: "POST",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify({action: "leerPruebas", clave: CONFIG.adminPassword})
+    });
+    const d = await res.json();
+    if(!d.ok) throw new Error(d.error || "Error desconocido");
+    return d.hojas;
+  }catch(err){
+    return {__error: err.message};
+  }
+}
+
+async function renderPruebas(forzarRecarga){
+  const msg = document.getElementById("pruebasMsg");
+  if(forzarRecarga || !PRUEBAS){
+    msg.style.display = "block";
+    msg.className = "msg";
+    msg.textContent = "Buscando pruebas...";
+    PRUEBAS = await fetchPruebas();
+  }
+
+  if(!PRUEBAS || PRUEBAS.__error){
+    msg.style.display = "block";
+    msg.className = "msg err";
+    msg.textContent = "No se pudo cargar: " + (PRUEBAS && PRUEBAS.__error || "revisa CONFIG.appsScriptUrl") + ".";
+  } else {
+    msg.style.display = "none";
+  }
+
+  const insc = (PRUEBAS && PRUEBAS["Inscripción de Equipos"]) || [];
+  const tablaInsc = document.getElementById("pruebasInscripcionesTable");
+  if(insc.length === 0){
+    tablaInsc.innerHTML = '<tr><td class="empty-state">Todavía no hay ningún equipo inscrito como "Prueba".</td></tr>';
+  } else {
+    let html = `<tr><th>Fecha</th><th>Equipo</th><th>Categoría</th><th>Capitán / Sub-capitán</th><th>Código</th><th>Estatus</th></tr>`;
+    insc.forEach(i=>{
+      html += `<tr>
+        <td>${i["Timestamp"] || ""}</td>
+        <td><strong>${i["Nombre del Equipo"] || ""}</strong></td>
+        <td>${i["Categoría"] || ""}</td>
+        <td>${i["Capitán / Sub-capitán"] || ""}</td>
+        <td style="font-weight:700;letter-spacing:1px;">${i["Código"] || "—"}</td>
+        <td>${i["Estatus"] || "Pendiente"}</td>
+      </tr>`;
+    });
+    tablaInsc.innerHTML = html;
+  }
+
+  const jugadores = (PRUEBAS && PRUEBAS["Integrantes"]) || [];
+  const tablaJug = document.getElementById("pruebasJugadoresTable");
+  if(jugadores.length === 0){
+    tablaJug.innerHTML = '<tr><td class="empty-state">Todavía no hay jugadores dados de alta en pruebas.</td></tr>';
+  } else {
+    let html = "<tr><th>Jugador</th><th>Equipo</th><th>Fecha de alta</th></tr>";
+    jugadores.forEach(j=>{
+      html += `<tr><td>${j["Nombre Completo"] || ""}</td><td>${j["Equipo"] || ""}</td><td>${j["Timestamp"] || "—"}</td></tr>`;
+    });
+    tablaJug.innerHTML = html;
+  }
+
+  const pagos = (PRUEBAS && PRUEBAS["Pagos"]) || [];
+  const tablaPagos = document.getElementById("pruebasPagosTable");
+  if(pagos.length === 0){
+    tablaPagos.innerHTML = '<tr><td class="empty-state">Todavía no hay pagos registrados en pruebas.</td></tr>';
+  } else {
+    let html = "<tr><th>Fecha</th><th>Equipo</th><th>Concepto</th><th>Monto</th><th>Forma de pago</th><th>Registrado por</th></tr>";
+    pagos.forEach(p=>{
+      const monto = Number(p["Monto"] || 0);
+      html += `<tr>
+        <td>${p["Timestamp"] || ""}</td>
+        <td>${p["Equipo"] || ""}</td>
+        <td>${p["Concepto"] || ""}</td>
+        <td>$${monto.toLocaleString("es-MX")}</td>
+        <td>${p["Método de Pago"] || ""}</td>
+        <td>${p["Registrado por"] || ""}</td>
+      </tr>`;
+    });
+    tablaPagos.innerHTML = html;
+  }
+
+  const partidos = [
+    ...((PRUEBAS && PRUEBAS["Rol de Juego"]) || []).map(p=>({...p, __tipo: "Rol de Juego"})),
+    ...((PRUEBAS && PRUEBAS["Resultados"]) || []).map(p=>({...p, __tipo: "Resultado"}))
+  ];
+  const tablaPartidos = document.getElementById("pruebasPartidosTable");
+  if(partidos.length === 0){
+    tablaPartidos.innerHTML = '<tr><td class="empty-state">Todavía no hay partidos de prueba.</td></tr>';
+  } else {
+    let html = "<tr><th>Tipo</th><th>Jornada</th><th>Fecha</th><th>Local</th><th>Visitante</th><th>Marcador</th></tr>";
+    partidos.forEach(p=>{
+      const marcador = (p["Puntos Local"] !== undefined && p["Puntos Local"] !== "")
+        ? `${p["Puntos Local"]} - ${p["Puntos Visitante"]}` : "—";
+      html += `<tr>
+        <td>${p.__tipo}</td>
+        <td>${p["Jornada"] || ""}</td>
+        <td>${p["Fecha"] || ""}</td>
+        <td>${p["Equipo Local"] || ""}</td>
+        <td>${p["Equipo Visitante"] || ""}</td>
+        <td>${marcador}</td>
+      </tr>`;
+    });
+    tablaPartidos.innerHTML = html;
+  }
 }
 
 async function cambiarEstatusInscripcion(equipo, estatus){

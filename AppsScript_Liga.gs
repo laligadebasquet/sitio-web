@@ -302,6 +302,8 @@ function doPost(e) {
       resultado.pagos = infoCapitan.pagos;
     } else if (data.action === "cambiarPasswordCapitan") {
       cambiarPasswordCapitan(ss, data);
+    } else if (data.action === "leerPruebas") {
+      resultado.hojas = leerPruebas(ss, data);
     } else {
       escribirResultado(ss, data);
       marcarRolComoJugado(ss, data);
@@ -327,6 +329,19 @@ function normalizarTexto_(txt) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+/**
+ * Detecta equipos de PRUEBA: cualquier equipo cuyo nombre normalizado sea
+ * exactamente "prueba" (no importan mayusculas ni acentos: "Prueba",
+ * "PRUEBA", etc. cuentan). Estos equipos existen para que el organizador
+ * pueda probar el flujo completo (inscripcion, alta de jugadores, pagos,
+ * Portal de Capitanes) sin que esos datos se mezclen con los equipos reales
+ * en ninguna categoria ni vista publica. Se usa para esconderlos de doGet()
+ * y de leerInscripciones(), y para juntarlos aparte en leerPruebas().
+ */
+function esEquipoPrueba_(nombre) {
+  return normalizarTexto_(nombre) === "prueba";
 }
 
 // Caracteres para el código de equipo: sin 0/O, 1/I/L ni vocales que se
@@ -921,7 +936,9 @@ function leerInscripciones(ss, data) {
   if (String(data.clave || "") !== ADMIN_CLAVE_) {
     throw new Error("No autorizado.");
   }
-  return leerHojaComoObjetos_(ss, "Inscripción de Equipos");
+  var filas = leerHojaComoObjetos_(ss, "Inscripción de Equipos");
+  // Los equipos de PRUEBA no se mezclan aquí: van aparte, ver leerPruebas().
+  return filas.filter(function (f) { return !esEquipoPrueba_(f["Nombre del Equipo"]); });
 }
 
 /**
@@ -1226,6 +1243,31 @@ var HOJAS_PERMITIDAS = [
   "Pagos"
 ];
 
+// En qué columna(s) aparece el nombre del equipo en cada hoja pública. Se usa
+// para esconder de doGet() cualquier fila de un equipo de PRUEBA (ver
+// esEquipoPrueba_): así ningún dato de prueba se cuela en la Consola pública
+// ni en las pestañas normales del Admin (que leen estas mismas hojas).
+var CAMPOS_EQUIPO_POR_HOJA_ = {
+  "Equipos": ["Nombre Equipo"],
+  "Integrantes": ["Equipo"],
+  "Resultados": ["Equipo Local", "Equipo Visitante"],
+  "Rol de Juego": ["Equipo Local", "Equipo Visitante"],
+  "Tabla General": ["Equipo"],
+  "Asistencia": ["Equipo"],
+  "Pagos": ["Equipo"]
+};
+
+/** Quita las filas donde cualquiera de "campos" sea un equipo de PRUEBA. */
+function quitarFilasDePrueba_(filas, campos) {
+  if (!campos || !campos.length) return filas;
+  return filas.filter(function (fila) {
+    for (var i = 0; i < campos.length; i++) {
+      if (esEquipoPrueba_(fila[campos[i]])) return false;
+    }
+    return true;
+  });
+}
+
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
   var callback = params.callback;
@@ -1249,7 +1291,8 @@ function doGet(e) {
       if (HOJAS_PERMITIDAS.indexOf(nombre) === -1) {
         throw new Error("La hoja '" + nombre + "' no está autorizada para lectura.");
       }
-      resultado[nombre] = leerHojaComoObjetos_(ss, nombre);
+      var filas = leerHojaComoObjetos_(ss, nombre);
+      resultado[nombre] = quitarFilasDePrueba_(filas, CAMPOS_EQUIPO_POR_HOJA_[nombre]);
     });
 
     salida.ok = true;
@@ -1267,6 +1310,44 @@ function doGet(e) {
   }
   return ContentService.createTextOutput(texto)
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Junta TODO lo relacionado con equipos de PRUEBA (nombre "Prueba", ver
+ * esEquipoPrueba_), de todas las hojas donde puedan aparecer -- justo lo
+ * opuesto al filtro que aplican doGet() y leerInscripciones(). Es para que
+ * el Admin tenga dónde revisar una prueba completa (inscripción, roster,
+ * pagos, partidos) sin que se mezcle con los equipos reales en ningún otro
+ * lado. Protegida con ADMIN_CLAVE_ igual que leerInscripciones, porque
+ * "Inscripción de Equipos" trae teléfonos y códigos de equipo.
+ *
+ * Acción: "leerPruebas"
+ * Payload: { action: "leerPruebas", clave: "..." }
+ * Respuesta: { ok:true, hojas: { "Inscripción de Equipos":[...], "Equipos":[...],
+ *   "Integrantes":[...], "Resultados":[...], "Rol de Juego":[...],
+ *   "Asistencia":[...], "Pagos":[...], "Tabla General":[...] } }
+ */
+function leerPruebas(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) {
+    throw new Error("No autorizado.");
+  }
+
+  var salida = {};
+
+  var inscripciones = leerHojaComoObjetos_(ss, "Inscripción de Equipos");
+  salida["Inscripción de Equipos"] = inscripciones.filter(function (f) {
+    return esEquipoPrueba_(f["Nombre del Equipo"]);
+  });
+
+  Object.keys(CAMPOS_EQUIPO_POR_HOJA_).forEach(function (nombreHoja) {
+    var campos = CAMPOS_EQUIPO_POR_HOJA_[nombreHoja];
+    var filas = leerHojaComoObjetos_(ss, nombreHoja);
+    salida[nombreHoja] = filas.filter(function (fila) {
+      return campos.some(function (campo) { return esEquipoPrueba_(fila[campo]); });
+    });
+  });
+
+  return salida;
 }
 
 /**
