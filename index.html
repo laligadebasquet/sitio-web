@@ -1685,6 +1685,17 @@ let PUNTOS_JUGADOR = DEMO_PUNTOS_JUGADOR;
 async function init(){
   let usedFallback = false;
 
+  /* Las vistas que NO dependen del Sheet (Reglamento, Inscripción, Dónde
+     Estamos, Contacto) se pintan y se aplica el deep-link ANTES de esperar
+     los datos. Si no, un link tipo ?view=reglamento&cat=varonil deja al
+     usuario viendo Inicio varios segundos hasta que carga el Sheet, y
+     parece que el link está roto. */
+  renderReglamento();
+  renderDondeEstamos();
+  renderContacto();
+  renderInscripcion();
+  aplicarDeepLink();
+
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
     const datos = await leerDelSheet(["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia"]);
     if(datos){
@@ -1705,6 +1716,10 @@ async function init(){
   _cacheJugadoresQuery = null;
   _cacheJugadoresSet = null;
 
+  // Solo las vistas que dependen del Sheet. Reglamento, Inscripción, Dónde
+  // Estamos y Contacto ya se pintaron arriba: volver a pintarlas aquí
+  // borraría la categoría/pestaña que eligió el deep-link (por ejemplo
+  // ?view=reglamento&cat=femenil se resetearía a varonil).
   renderProximos();
   renderResultados();
   renderRol();
@@ -1714,11 +1729,6 @@ async function init(){
   renderConcentrado();
   renderSanciones();
   renderCredencial();
-  renderReglamento();
-  renderDondeEstamos();
-  renderContacto();
-  renderInscripcion();
-  aplicarDeepLink();
 }
 
 function groupByJornada(arr){

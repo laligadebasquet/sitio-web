@@ -769,7 +769,7 @@ function enviarCorreoBienvenidaJugador_(correo, nombre, equipo, categoria, foto)
           '<p style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">Lo esencial del reglamento</p>' +
           '<ul style="padding-left:18px;margin:0;font-size:14px;line-height:1.7;">' +
             '<li>Para playoffs necesitas haber jugado al menos 2 partidos de temporada regular.</li>' +
-            '<li>Uniforme: mismo color de jersey que tu equipo, con número visible.</li>' +
+            '<li>Uniforme: mismo color de jersey que tu equipo, con número visible, NO se puede repetir número.</li>' +
             '<li>Para ganar el MVP de temporada regular (el jugador con más puntos anotados durante la temporada) hay que disputar mínimo 4 partidos.</li>' +
             '<li>Se toman en cuenta los puntos anotados en cada juego.</li>' +
             '<li>Todos los partidos son transmitidos por nuestro canal de YouTube.</li>' +
@@ -868,11 +868,8 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
         '<div style="background:#F5F5F5;border-radius:10px;padding:16px 18px;margin:20px 0;text-align:center;">' +
           '<p style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;color:#6B6B6B;">Código para alta de jugadores</p>' +
           '<p style="font-weight:900;font-size:28px;letter-spacing:4px;color:#111111;margin:0;">' + codigo + '</p>' +
-          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 12px;">Compártelo con tu equipo. Cada jugador lo necesita para darse de alta en ' +
+          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 0;">Compártelo con tu equipo. Cada jugador lo necesita para darse de alta en ' +
             '<a href="' + urlAltaJugador + '" style="color:#F37228;font-weight:700;">Alta de Jugador</a>.</p>' +
-          '<a href="' + urlAltaJugador + '" style="display:block;background:#ffffff;border:1px dashed #F37228;border-radius:8px;padding:10px 12px;' +
-            'font-family:monospace;font-size:11px;color:#111111;word-break:break-all;text-decoration:none;">' + urlAltaJugador + '</a>' +
-          '<p style="font-size:11px;color:#6B6B6B;margin:6px 0 0;">Mantén presionado (o clic derecho) sobre el link de arriba para copiarlo y compartirlo donde quieras.</p>' +
         '</div>' +
         '<p style="font-size:13px;background:rgba(243,114,40,.1);border:1px solid #F37228;border-radius:8px;padding:12px 14px;">' +
           '<strong>No se te olvide:</strong> tú también te tienes que dar de alta como jugador con el código de arriba, en ' +
