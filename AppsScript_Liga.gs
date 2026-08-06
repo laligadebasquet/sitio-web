@@ -239,6 +239,16 @@ function actualizarDropdownEquipos() {
  * }
  * Respuesta: { "ok": true }
  *
+ * action "reenviarBienvenidaCapitan" — igual que "reenviarBienvenida" pero
+ * para el correo de bienvenida del CAPITÁN (nombre de equipo, categoría,
+ * código de alta de jugadores), buscando por "Correo de Contacto" en
+ * "Inscripción de Equipos". No genera código ni contraseña nuevos, reenvía
+ * con los que ya existen. Protegida con "clave".
+ * {
+ *   "action": "reenviarBienvenidaCapitan", "clave": "liga2026", "correo": "pedro@mail.com"
+ * }
+ * Respuesta: { "ok": true }
+ *
  * action "loginCapitan" — login del Portal de Capitanes (capitanes.html).
  * Valida correo+password contra "Inscripción de Equipos" (columnas Correo
  * de Contacto y Contraseña Capitán, esta última generada automáticamente
@@ -293,6 +303,9 @@ function doPost(e) {
     } else if (data.action === "reenviarBienvenida") {
       var infoReenvio = reenviarCorreoBienvenidaJugador_(ss, data);
       resultado.enviados = infoReenvio.enviados;
+    } else if (data.action === "reenviarBienvenidaCapitan") {
+      var infoReenvioCap = reenviarCorreoBienvenidaCapitan_(ss, data);
+      resultado.enviados = infoReenvioCap.enviados;
     } else if (data.action === "loginCapitan") {
       var infoCapitan = loginCapitan(ss, data);
       resultado.equipo = infoCapitan.equipo;
@@ -815,20 +828,23 @@ function enviarCorreoBienvenidaJugador_(correo, nombre, equipo, categoria, foto)
 
 /**
  * Manda el correo de bienvenida al CAPITÁN justo después de inscribir su
- * equipo (acción "inscribirEquipo"). Incluye: nombre del equipo, categoría
- * ("Fuerza"), un link a la página de Reglamento (que ya incluye la sección
- * de formas de pago) para la categoría correspondiente, el código de 6
- * caracteres que sus jugadores van a necesitar para darse de alta uno por
- * uno, y la contraseña del Portal de Capitanes (con recomendación de
- * cambiarla ahí mismo). También le recuerda que él/ella también se tiene
- * que dar de alta como jugador. Usa Resend, igual que el correo de
+ * equipo (acción "inscribirEquipo"). Incluye: nombre del equipo, categoría,
+ * un link a la página de Reglamento (que ya incluye la sección de formas
+ * de pago) para la categoría correspondiente, y el código de 6 caracteres
+ * que sus jugadores van a necesitar para darse de alta uno por uno (con un
+ * cuadro fácil de copiar con el link directo a Alta de Jugador). También le
+ * recuerda que él/ella también se tiene que dar de alta como jugador. El
+ * Portal de Capitanes está temporalmente oculto (ver nota en index.html),
+ * así que este correo NO lo menciona. Usa Resend, igual que el correo de
  * bienvenida de jugador — si RESEND_API_KEY no está configurada, revienta
  * (el llamador de esta función ya la envuelve en try/catch).
  */
 function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo, passwordCapitan) {
   var asunto = "¡Bienvenido a La Liga de Basquet! Equipo " + nombreEquipo;
   var urlReglamento = /femenil/i.test(categoria || "") ? REGLAMENTO_URL_FEMENIL_ : REGLAMENTO_URL_VARONIL_;
-  var urlPortalCapitanes = "https://www.laligadebasquet.com/capitanes.html";
+  // Debe ser EXACTAMENTE esta URL: lleva directo a la pestaña "Alta de
+  // Jugador" dentro de Inscripción en la Consola (ver aplicarDeepLink() en
+  // index.html, que lee ?view=inscripcion&tab=jugador).
   var urlAltaJugador = "https://www.laligadebasquet.com/?view=inscripcion&tab=jugador";
 
   var htmlBody =
@@ -844,7 +860,7 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
           'style="border:1px solid #E2E2E2;border-radius:8px;margin:14px 0 20px 0;">' +
           '<tr><td style="padding:10px 14px;border-bottom:1px solid #E2E2E2;font-size:11px;font-weight:700;color:#6B6B6B;text-transform:uppercase;">Nombre del equipo</td>' +
             '<td style="padding:10px 14px;border-bottom:1px solid #E2E2E2;font-size:14px;font-weight:800;text-align:right;">' + nombreEquipo + '</td></tr>' +
-          '<tr><td style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B6B;text-transform:uppercase;">Fuerza</td>' +
+          '<tr><td style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B6B;text-transform:uppercase;">Categoría</td>' +
             '<td style="padding:10px 14px;font-size:14px;font-weight:800;text-align:right;">' + categoria + '</td></tr>' +
         '</table>' +
         '<p style="font-size:13px;">Ahí también vienen las formas de pago aceptadas. ' +
@@ -852,15 +868,11 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
         '<div style="background:#F5F5F5;border-radius:10px;padding:16px 18px;margin:20px 0;text-align:center;">' +
           '<p style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;color:#6B6B6B;">Código para alta de jugadores</p>' +
           '<p style="font-weight:900;font-size:28px;letter-spacing:4px;color:#111111;margin:0;">' + codigo + '</p>' +
-          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 0;">Compártelo con tu equipo. Cada jugador lo necesita para darse de alta en ' +
+          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 12px;">Compártelo con tu equipo. Cada jugador lo necesita para darse de alta en ' +
             '<a href="' + urlAltaJugador + '" style="color:#F37228;font-weight:700;">Alta de Jugador</a>.</p>' +
-        '</div>' +
-        '<div style="background:#F5F5F5;border-radius:10px;padding:16px 18px;margin:20px 0;text-align:center;">' +
-          '<p style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;color:#6B6B6B;">Portal de Capitanes</p>' +
-          '<p style="font-size:13px;margin:0 0 10px;">Ahí puedes revisar el roster de tu equipo, sus pagos, sanciones y más.</p>' +
-          '<p style="margin:0;"><a href="' + urlPortalCapitanes + '" style="color:#F37228;font-weight:700;">' + urlPortalCapitanes + '</a></p>' +
-          '<p style="font-size:12px;color:#6B6B6B;margin:10px 0 0;">Correo: <strong>' + correo + '</strong><br>Contraseña: <strong style="letter-spacing:1.5px;">' + passwordCapitan + '</strong></p>' +
-          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 0;">Te recomendamos cambiar esta contraseña por una tuya en cuanto entres al Portal.</p>' +
+          '<a href="' + urlAltaJugador + '" style="display:block;background:#ffffff;border:1px dashed #F37228;border-radius:8px;padding:10px 12px;' +
+            'font-family:monospace;font-size:11px;color:#111111;word-break:break-all;text-decoration:none;">' + urlAltaJugador + '</a>' +
+          '<p style="font-size:11px;color:#6B6B6B;margin:6px 0 0;">Mantén presionado (o clic derecho) sobre el link de arriba para copiarlo y compartirlo donde quieras.</p>' +
         '</div>' +
         '<p style="font-size:13px;background:rgba(243,114,40,.1);border:1px solid #F37228;border-radius:8px;padding:12px 14px;">' +
           '<strong>No se te olvide:</strong> tú también te tienes que dar de alta como jugador con el código de arriba, en ' +
@@ -995,6 +1007,47 @@ function reenviarCorreoBienvenidaJugador_(ss, data) {
   encontrados.forEach(function (jg) {
     var categoria = mapaCategorias[jg.equipo] || "";
     enviarCorreoBienvenidaJugador_(data.correo, jg.nombre, jg.equipo, categoria, jg.foto);
+  });
+
+  return { enviados: encontrados.length };
+}
+
+/**
+ * Reenvía el correo de bienvenida al CAPITÁN (con el contenido tal como
+ * está AHORA, por ejemplo después de corregirlo) a TODOS los equipos cuya
+ * "Correo de Contacto" coincida con el correo dado, buscándolos en
+ * "Inscripción de Equipos". No vuelve a generar código ni contraseña, usa
+ * los que ya están guardados. Protegida con "clave", igual que
+ * reenviarBienvenida.
+ */
+function reenviarCorreoBienvenidaCapitan_(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) {
+    throw new Error("No autorizado.");
+  }
+  var correoObjetivo = normalizarTexto_(data.correo);
+  if (!correoObjetivo) throw new Error("Falta el correo.");
+
+  var hojaInsc = ss.getSheetByName("Inscripción de Equipos");
+  if (!hojaInsc) throw new Error("No existe la hoja 'Inscripción de Equipos'.");
+  var ultimaInsc = hojaInsc.getLastRow();
+  if (ultimaInsc < 2) throw new Error("Ese correo no está dado de alta.");
+
+  var filas = hojaInsc.getRange(2, 1, ultimaInsc - 1, CAPITAN_PASSWORD_COL_).getValues(); // A:M
+  var encontrados = [];
+  for (var i = 0; i < filas.length; i++) {
+    if (normalizarTexto_(filas[i][CORREO_EQUIPO_COL_ - 1]) === correoObjetivo) {
+      encontrados.push({
+        nombreEquipo: String(filas[i][1]).trim(),
+        categoria: String(filas[i][3]).trim(),
+        codigo: String(filas[i][CODIGO_EQUIPO_COL_ - 1]).trim(),
+        passwordCapitan: String(filas[i][CAPITAN_PASSWORD_COL_ - 1]).trim()
+      });
+    }
+  }
+  if (!encontrados.length) throw new Error("Ese correo no está dado de alta.");
+
+  encontrados.forEach(function (eq) {
+    enviarCorreoBienvenidaCapitan_(data.correo, eq.nombreEquipo, eq.categoria, eq.codigo, eq.passwordCapitan);
   });
 
   return { enviados: encontrados.length };
