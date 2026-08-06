@@ -181,9 +181,7 @@
   .nav-dropdown.open .nav-dropdown-trigger{color:#fff;}
   .nav-dropdown-menu{
     display:none;
-    position:absolute;
-    top:100%;
-    left:0;
+    position:fixed;
     background:#111111;
     border:1px solid rgba(255,255,255,.14);
     border-radius:8px;
@@ -3256,12 +3254,22 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
   });
 });
 
-/* Menús desplegables del nav ("Rol de Juego y Estadística", "Información") */
+/* Menús desplegables del nav ("Rol de Juego y Estadística", "Información").
+   El menú usa position:fixed (calculado aquí) en vez de absolute porque
+   nav.tabs tiene overflow-x:auto para el scroll horizontal en móvil, y eso
+   recorta cualquier hijo absolutamente posicionado que se salga de su caja. */
 function toggleNavDropdown(id){
   const el = document.getElementById(id);
   const estabaAbierto = el.classList.contains("open");
   cerrarNavDropdowns();
-  if(!estabaAbierto) el.classList.add("open");
+  if(!estabaAbierto){
+    el.classList.add("open");
+    const trigger = el.querySelector(".nav-dropdown-trigger");
+    const menu = el.querySelector(".nav-dropdown-menu");
+    const r = trigger.getBoundingClientRect();
+    menu.style.top = (r.bottom + 2) + "px";
+    menu.style.left = r.left + "px";
+  }
 }
 function cerrarNavDropdowns(){
   document.querySelectorAll(".nav-dropdown.open").forEach(d=>d.classList.remove("open"));
