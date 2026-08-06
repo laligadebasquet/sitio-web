@@ -345,16 +345,26 @@ function normalizarTexto_(txt) {
 }
 
 /**
- * Detecta equipos de PRUEBA: cualquier equipo cuyo nombre normalizado sea
- * exactamente "prueba" (no importan mayusculas ni acentos: "Prueba",
- * "PRUEBA", etc. cuentan). Estos equipos existen para que el organizador
- * pueda probar el flujo completo (inscripcion, alta de jugadores, pagos,
- * Portal de Capitanes) sin que esos datos se mezclen con los equipos reales
- * en ninguna categoria ni vista publica. Se usa para esconderlos de doGet()
- * y de leerInscripciones(), y para juntarlos aparte en leerPruebas().
+ * Detecta equipos de PRUEBA: cualquier equipo cuyo nombre normalizado EMPIECE
+ * con "prueba" (no importan mayusculas ni acentos). Asi entran "Prueba",
+ * "PRUEBA", "Prueba 2", "PRUEBA 3", "prueba final", etc., sin tener que tocar
+ * el codigo cada vez que el organizador hace otra prueba.
+ *
+ * Se eligio "empieza con" en vez de coincidencia exacta a proposito: el
+ * organizador numera sus pruebas ("Prueba 2") y con coincidencia exacta esos
+ * equipos se colaban a las vistas publicas. El riesgo de que un equipo REAL
+ * se llame "Prueba algo" es practicamente nulo, y si pasara no se pierde
+ * nada: el equipo sigue existiendo y aparece en la pestaña "Pruebas" del
+ * Admin, solo habria que renombrarlo.
+ *
+ * Estos equipos existen para que el organizador pueda probar el flujo
+ * completo (inscripcion, alta de jugadores, pagos) sin que esos datos se
+ * mezclen con los equipos reales en ninguna categoria ni vista publica. Se
+ * usa para esconderlos de doGet() y de leerInscripciones(), y para juntarlos
+ * aparte en leerPruebas().
  */
 function esEquipoPrueba_(nombre) {
-  return normalizarTexto_(nombre) === "prueba";
+  return normalizarTexto_(nombre).indexOf("prueba") === 0;
 }
 
 // Caracteres para el código de equipo: sin 0/O, 1/I/L ni vocales que se
