@@ -735,9 +735,13 @@ function enviarCorreoBienvenidaJugador_(correo, nombre, equipo, categoria, foto)
           '</td>' +
         '</tr></table>' +
       '</td></tr>' +
+      '<tr><td style="padding:0 14px 12px 14px;text-align:center;">' +
+        '<div style="font-size:18px;letter-spacing:2px;">🏀🏀🏀</div>' +
+        '<div style="font-size:9px;color:#6B6B6B;margin-top:2px;">Cada 🏀 representa un partido jugado</div>' +
+      '</td></tr>' +
     '</table>' +
     '<p style="text-align:center;font-size:11px;color:#6B6B6B;font-style:italic;margin:0 0 20px 0;">' +
-      'Así se ve tu credencial. Consúltala completa (con tu asistencia) en la sección "Credencial" de la Consola.</p>';
+      'Así se ve tu credencial. Consúltala completa (con tus puntos anotados) en la sección "Credencial" de la Consola.</p>';
   var htmlBody =
     '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111111;">' +
       '<div style="background:#000000;padding:20px;text-align:center;border-bottom:4px solid #F37228;">' +
