@@ -165,6 +165,48 @@
   nav.tabs button.tab-icon:hover svg{
     filter:brightness(1.12);
   }
+  .nav-dropdown{
+    position:relative;
+  }
+  .nav-dropdown-trigger{
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .nav-caret{
+    font-size:9px;
+    transition:transform .15s ease;
+  }
+  .nav-dropdown.open .nav-caret{transform:rotate(180deg);}
+  .nav-dropdown.open .nav-dropdown-trigger{color:#fff;}
+  .nav-dropdown-menu{
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    background:#111111;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:8px;
+    padding:6px;
+    min-width:220px;
+    box-shadow:0 10px 26px rgba(0,0,0,.35);
+    z-index:20;
+    flex-direction:column;
+    gap:2px;
+  }
+  .nav-dropdown.open .nav-dropdown-menu{display:flex;}
+  .nav-dropdown-menu button{
+    text-align:left;
+    padding:10px 14px;
+    border-radius:6px;
+    border-bottom:none !important;
+    white-space:nowrap;
+  }
+  .nav-dropdown-menu button:hover{background:rgba(255,255,255,.08);}
+  .nav-dropdown-menu button.active{
+    background:var(--orange);
+    color:#fff;
+  }
   .inicio-hero{
     position:relative;
     overflow:hidden;
@@ -711,11 +753,22 @@
     color:var(--text);
     text-transform:uppercase;
   }
-  .id-card-ball{
-    position:absolute;
-    bottom:2px; right:2px;
-    font-size:20px;
-    opacity:.85;
+  .id-card-balls-row{
+    font-size:15px;
+    line-height:1;
+    letter-spacing:2px;
+    margin-top:6px;
+  }
+  .id-card-balls-empty{
+    font-size:9px;
+    color:var(--text-soft);
+    font-style:italic;
+  }
+  .id-card-balls-caption{
+    font-size:8px;
+    color:var(--text-soft);
+    margin-top:3px;
+    font-style:italic;
   }
   .id-card-back{
     transform:rotateY(180deg);
@@ -1237,14 +1290,27 @@
         </g>
       </svg>
     </button>
-    <button data-view="equipos">Equipos</button>
-    <button data-view="resultados">Resultados</button>
-    <button data-view="rol">Rol de Juegos</button>
-    <button data-view="tabla">Tabla de Posiciones</button>
-    <button data-view="racha">Racha</button>
-    <button data-view="playoffs">Playoffs</button>
+    <div class="nav-dropdown" id="navDropJuego">
+      <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropJuego')">Rol de Juego y Estadística <span class="nav-caret">&#9662;</span></button>
+      <div class="nav-dropdown-menu">
+        <button data-view="rol">Rol de Juego</button>
+        <button data-view="resultados">Resultados</button>
+        <button data-view="tabla">Tabla de Posiciones</button>
+        <button data-view="playoffs">Playoffs</button>
+        <button data-view="concentrado">Concentrado</button>
+        <button data-view="sanciones">Sanciones</button>
+      </div>
+    </div>
+    <button data-view="tendencias">Tendencias</button>
+    <div class="nav-dropdown" id="navDropInfo">
+      <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInfo')">Información <span class="nav-caret">&#9662;</span></button>
+      <div class="nav-dropdown-menu">
+        <button data-view="reglamento">Reglamento</button>
+        <button data-view="dondeestamos">Dónde Estamos</button>
+        <button data-view="contacto">Contacto</button>
+      </div>
+    </div>
     <button data-view="credencial">Credencial</button>
-    <button data-view="reglamento">Reglamento</button>
     <button data-view="inscripcion">Inscripción</button>
   </nav>
 </header>
@@ -1264,7 +1330,7 @@
         <span class="inicio-fecha-label">Inicio</span>
         <span class="inicio-fecha-valor">Lunes 17 de Agosto</span>
       </div>
-      <button class="cta-btn inicio-cta" type="button" onclick="irAInscripcion()">📋 Inscribe tu equipo</button>
+      <button class="cta-btn inicio-cta" type="button" onclick="irAInscripcion()">Inscribe tu equipo</button>
     </div>
 
     <!-- PATROCINADORES EN HOLD: Mauricio pidió quitarlos temporalmente.
@@ -1314,17 +1380,20 @@
       </a>
     </div>
   </section>
-  <section class="view" id="view-equipos"></section>
   <section class="view" id="view-resultados">
     <div id="proximosPartidosBox"></div>
     <div id="resultadosBox"></div>
   </section>
   <section class="view" id="view-rol"></section>
   <section class="view" id="view-tabla"></section>
-  <section class="view" id="view-racha"></section>
   <section class="view" id="view-playoffs"></section>
+  <section class="view" id="view-concentrado"></section>
+  <section class="view" id="view-sanciones"></section>
+  <section class="view" id="view-tendencias"></section>
   <section class="view" id="view-credencial"></section>
   <section class="view" id="view-reglamento"></section>
+  <section class="view" id="view-dondeestamos"></section>
+  <section class="view" id="view-contacto"></section>
   <section class="view" id="view-inscripcion"></section>
 </main>
 
@@ -1378,6 +1447,8 @@ const CONFIG = {
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbyli-ZsXTYA6felhpvlBX7CFOrPaW-_DieSupKALbAulsdAMM4ajBU_jea_okdZcQNL/exec",
   // Categorías que se ofrecen en los formularios de inscripción.
   categorias: ["Varonil A", "Varonil B", "Femenil A", "Femenil B"],
+  // Dirección del gimnasio/sede, se muestra en la pestaña Información > Dónde Estamos.
+  direccion: "",
   // Con esto en true, la página lee los datos EN VIVO del Google Sheet a
   // través del Web App de Apps Script (appsScriptUrl). No hace falta publicar
   // ninguna hoja en la web: el Web App corre con la cuenta del organizador.
@@ -1408,6 +1479,11 @@ const DEMO_ROSTERS = {};
 
 /* Partidos a los que asistió cada jugador, calculado de la hoja "Asistencia" simulada (temporada de 36 partidos) */
 const DEMO_ASISTENCIA_JUGADOS = {};
+
+/* Puntos anotados por cada jugador durante la temporada. Se llenará más
+   adelante desde una hoja "Puntos" en el Sheet; por ahora queda vacío y la
+   credencial muestra "—" mientras no haya dato. */
+const DEMO_PUNTOS_JUGADOR = {};
 
 document.getElementById("tournamentPill").textContent = CONFIG.nombreTorneo;
 
@@ -1549,6 +1625,7 @@ let ROL = DEMO_ROL;
 let EQUIPOS = DEMO_EQUIPOS;
 let ROSTERS = DEMO_ROSTERS;
 let ASISTENCIA_JUGADOS = DEMO_ASISTENCIA_JUGADOS;
+let PUNTOS_JUGADOR = DEMO_PUNTOS_JUGADOR;
 
 async function init(){
   let usedFallback = false;
@@ -1573,15 +1650,18 @@ async function init(){
   _cacheJugadoresQuery = null;
   _cacheJugadoresSet = null;
 
-  renderEquipos();
   renderProximos();
   renderResultados();
   renderRol();
   renderTabla();
   renderRachas();
   renderPlayoffs();
+  renderConcentrado();
+  renderSanciones();
   renderCredencial();
   renderReglamento();
+  renderDondeEstamos();
+  renderContacto();
   renderInscripcion();
   aplicarDeepLink();
 }
@@ -2006,13 +2086,13 @@ function computeRachas(){
 }
 
 function renderRachas(){
-  const el = document.getElementById("view-racha");
+  const el = document.getElementById("view-tendencias");
   const insights = computeRachas();
   if(insights.length === 0){
-    el.innerHTML = '<div class="section-heading">Racha<span class="line"></span></div><div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias.</div>';
+    el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div><div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias.</div>';
     return;
   }
-  let html = '<div class="section-heading">Racha — Tendencias de la Temporada<span class="line"></span></div>';
+  let html = '<div class="section-heading">Tendencias de la Temporada<span class="line"></span></div>';
   html += '<div class="cards-grid">';
   insights.forEach(ins=>{
     html += `
@@ -2032,13 +2112,13 @@ function renderRachas(){
    cuando ya se jugaron todos los partidos de la temporada regular
    (Rol de Juego sin ningún partido "Programado").
    ============================================================ */
+/* Por ahora los Playoffs muestran un mensaje fijo hasta la semana 5 de
+   juego. Cuando llegue ese momento, se puede quitar este "return" para
+   volver a activar el armado automático de llaves de abajo. */
 function renderPlayoffs(){
   const el = document.getElementById("view-playoffs");
-  const temporadaCompleta = ROL.length > 0 && ROL.every(m=>m.estatus === "Jugado");
-  if(!temporadaCompleta){
-    el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div><div class="empty-state">Los playoffs se arman cuando termine la temporada regular. Todavía hay partidos pendientes.</div>';
-    return;
-  }
+  el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div><div class="empty-state">Esta información estará disponible a partir de la semana 5 de juego.</div>';
+  return;
 
   const standings = computeStandings();
   if(standings.length < 8){
@@ -2074,6 +2154,21 @@ function renderPlayoffs(){
   });
   html += "</div>";
   el.innerHTML = html;
+}
+
+/* Concentrado: resumen general de la temporada. Se llena más adelante con
+   datos reales; por ahora muestra un mensaje de "próximamente". */
+function renderConcentrado(){
+  const el = document.getElementById("view-concentrado");
+  el.innerHTML = '<div class="section-heading">Concentrado<span class="line"></span></div><div class="empty-state">Esta sección estará disponible próximamente.</div>';
+}
+
+/* Sanciones: listado de faltas/expulsiones y su sanción correspondiente,
+   conforme al Tabulador de Sanciones del reglamento. Se llena más adelante
+   con datos reales; por ahora muestra que no hay sanciones registradas. */
+function renderSanciones(){
+  const el = document.getElementById("view-sanciones");
+  el.innerHTML = '<div class="section-heading">Sanciones<span class="line"></span></div><div class="empty-state">No hay sanciones registradas por el momento.</div>';
 }
 
 /* Reglamento oficial "REGLAMENTO DE COMPETENCIA — TEMPORADA AGOSTO 2026", tal
@@ -2247,25 +2342,26 @@ const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9000, forma1:800
 
 function renderCredencial(){
   const el = document.getElementById("view-credencial");
-  const equiposOrdenados = [...EQUIPOS].sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  const opcionesEquipo = equiposOrdenados.map(t=>`<option value="${t.nombre.replace(/"/g,"&quot;")}">${t.nombre}</option>`).join("");
   el.innerHTML = `
     <div class="section-heading">Credencial de Jugador<span class="line"></span></div>
+    <div class="config-note" style="margin:0 0 24px 0;padding:0;">
+      <p>Esta información estará habilitada a partir del 17 de agosto. Si ya te diste de alta como jugador, te llegó un correo con tu credencial. Si lo hiciste y no te llegó, manda un correo a control@laligadebasquet.com.</p>
+    </div>
     <div class="credencial-selectors">
       <div class="credencial-field">
         <label for="credEquipo">Equipo</label>
-        <select id="credEquipo" onchange="actualizarJugadoresCredencial()">
-          <option value="">Selecciona un equipo</option>
-          ${opcionesEquipo}
+        <select id="credEquipo" disabled>
+          <option value="">Disponible a partir del 17 de agosto</option>
         </select>
       </div>
       <div class="credencial-field">
         <label for="credJugador">Jugador</label>
-        <select id="credJugador" onchange="mostrarCredencial()" disabled>
-          <option value="">Primero elige un equipo</option>
+        <select id="credJugador" disabled>
+          <option value="">Disponible a partir del 17 de agosto</option>
         </select>
       </div>
     </div>
+    <button class="reglamento-volver" type="button" onclick="abrirEjemploCredencial()">Ver ejemplo de credencial</button>
     <div class="credencial-card-wrap" id="credencialCardWrap"></div>
   `;
 }
@@ -2291,6 +2387,21 @@ function actualizarJugadoresCredencial(){
     jugadores.map(j=>`<option value="${j.nombre.replace(/"/g,"&quot;")}">${j.nombre}</option>`).join("");
 }
 
+/* Quita la palabra de género ("Varonil"/"Femenil") de la categoría y deja
+   solo la letra de nivel (A/B), tal como lo pidió Mauricio para el frente
+   de la credencial. */
+function categoriaCorta(categoria){
+  return (categoria || "").replace(/^(Varonil|Femenil)\s*/i, "").trim();
+}
+
+/* Fila de pelotas de basquet: una pelota por cada partido jugado, para que
+   se entienda de un vistazo que cada 🏀 representa un partido jugado. */
+function pelotasHTML(partidos){
+  const n = Number(partidos) || 0;
+  if(n <= 0) return '<span class="id-card-balls-empty">Sin partidos jugados todavía</span>';
+  return "🏀".repeat(Math.min(n, 20));
+}
+
 function mostrarCredencial(){
   const equipo = document.getElementById("credEquipo").value;
   const nombreJugador = document.getElementById("credJugador").value;
@@ -2306,10 +2417,10 @@ function mostrarCredencial(){
     return;
   }
   const equipoInfo = EQUIPOS.find(t=>t.nombre === equipo);
-  const categoria = equipoInfo ? equipoInfo.categoria : "";
-  const numero = jugadoresEquipo.findIndex(j=>j.nombre === nombreJugador) + 1;
+  const categoria = categoriaCorta(equipoInfo ? equipoInfo.categoria : "");
   const partidos = (ASISTENCIA_JUGADOS[equipo] || {})[nombreJugador];
-  const partidosTexto = partidos !== undefined ? partidos : "—";
+  const puntos = (PUNTOS_JUGADOR[equipo] || {})[nombreJugador];
+  const puntosTexto = puntos !== undefined ? puntos : "—";
   const avatar = jugador.foto
     ? `<img src="${jugador.foto}" alt="${jugador.nombre}">`
     : jugador.nombre.split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
@@ -2321,28 +2432,28 @@ function mostrarCredencial(){
             <div class="id-card-front-header">
               <div class="id-card-liga-title">${CONFIG.nombreLiga}</div>
               <div class="id-card-liga-sub">${CONFIG.subtituloLiga}</div>
-              <div class="id-card-categoria">:-: ${categoria} :-:</div>
+              <div class="id-card-categoria">${categoria}</div>
             </div>
             <div class="id-card-front-body">
               <div class="id-card-photo-box">${avatar}</div>
               <table class="id-card-table">
                 <tr><td class="id-card-table-label">Nombre:</td><td class="id-card-table-value">${jugador.nombre}</td></tr>
                 <tr><td class="id-card-table-label">Equipo:</td><td class="id-card-table-value">${equipo}</td></tr>
-                <tr><td class="id-card-table-label">No.</td><td class="id-card-table-value">${numero}</td></tr>
               </table>
-              <span class="id-card-ball">🏀</span>
             </div>
+            <div class="id-card-balls-row">${pelotasHTML(partidos)}</div>
+            <div class="id-card-balls-caption">Cada 🏀 representa un partido jugado</div>
           </div>
           <div class="id-card-face id-card-back">
             <div class="id-card-back-header">${CONFIG.nombreLiga}<br><span style="font-weight:400;letter-spacing:2.2px;font-size:8px;">${CONFIG.subtituloLiga}</span></div>
-            <div class="id-card-back-stat-value">${partidosTexto}</div>
-            <div class="id-card-back-stat-label">Partidos Jugados</div>
+            <div class="id-card-back-stat-value">${puntosTexto}</div>
+            <div class="id-card-back-stat-label">Puntos Anotados</div>
             <div class="id-card-back-sub">${jugador.nombre} · ${equipo}</div>
           </div>
         </div>
       </div>
     </div>
-    <span class="credencial-hint">Toca la credencial para ver la asistencia</span>
+    <span class="credencial-hint">Toca la credencial para ver tus puntos anotados</span>
   `;
 }
 
@@ -2367,22 +2478,22 @@ function abrirEjemploCredencial(){
               <div class="id-card-front-header">
                 <div class="id-card-liga-title">${CONFIG.nombreLiga}</div>
                 <div class="id-card-liga-sub">${CONFIG.subtituloLiga}</div>
-                <div class="id-card-categoria">:-: CATEGORIA :-:</div>
+                <div class="id-card-categoria">A</div>
               </div>
               <div class="id-card-front-body">
                 <div class="id-card-photo-box" style="color:var(--text-soft);">${SILUETA_JUGADOR_SVG}</div>
                 <table class="id-card-table">
                   <tr><td class="id-card-table-label">Nombre:</td><td class="id-card-table-value">NOMBRE</td></tr>
                   <tr><td class="id-card-table-label">Equipo:</td><td class="id-card-table-value">EQUIPO</td></tr>
-                  <tr><td class="id-card-table-label">No.</td><td class="id-card-table-value">0</td></tr>
                 </table>
-                <span class="id-card-ball">🏀</span>
               </div>
+              <div class="id-card-balls-row">🏀🏀🏀</div>
+              <div class="id-card-balls-caption">Cada 🏀 representa un partido jugado</div>
             </div>
             <div class="id-card-face id-card-back">
               <div class="id-card-back-header">${CONFIG.nombreLiga}<br><span style="font-weight:400;letter-spacing:2.2px;font-size:8px;">${CONFIG.subtituloLiga}</span></div>
               <div class="id-card-back-stat-value">0</div>
-              <div class="id-card-back-stat-label">Partidos Jugados</div>
+              <div class="id-card-back-stat-label">Puntos Anotados</div>
               <div class="id-card-back-sub">NOMBRE · EQUIPO</div>
             </div>
           </div>
@@ -2398,18 +2509,68 @@ function cerrarEjemploCredencial(){
   document.getElementById("ejemploCredencialModal").classList.remove("open");
 }
 
+/* Resumen del reglamento: por ahora es un espacio reservado. Mauricio va a
+   escribir el resumen/lo más importante del reglamento más adelante; en
+   cuanto lo mande, se reemplaza este texto por el resumen real. */
+const REGLAMENTO_RESUMEN_HTML = '<div class="empty-state">Muy pronto vas a encontrar aquí el resumen con lo más importante del reglamento.</div>';
+
 function renderReglamento(categoria){
   const el = document.getElementById("view-reglamento");
   const cat = categoria || "varonil";
-  const html = cat === "femenil" ? REGLAMENTO_FEMENIL_HTML : REGLAMENTO_VARONIL_HTML;
+  const html = cat === "resumen" ? REGLAMENTO_RESUMEN_HTML : (cat === "femenil" ? REGLAMENTO_FEMENIL_HTML : REGLAMENTO_VARONIL_HTML);
   el.innerHTML = `
     <div class="section-heading">Reglamento<span class="line"></span></div>
     <button class="reglamento-volver" type="button" onclick="volverAInscribirEquipo()">&larr; Volver a Inscribir Equipo</button>
     <div class="reglamento-toggle">
+      <button class="${cat === "resumen" ? "active" : ""}" onclick="renderReglamento('resumen')">RESUMEN</button>
       <button class="${cat === "varonil" ? "active" : ""}" onclick="renderReglamento('varonil')">VARONIL</button>
       <button class="${cat === "femenil" ? "active" : ""}" onclick="renderReglamento('femenil')">FEMENIL</button>
     </div>
     <div class="reglamento-content">${html}</div>
+  `;
+}
+
+/* Dónde Estamos: dirección del gimnasio/sede de la liga. */
+function renderDondeEstamos(){
+  const el = document.getElementById("view-dondeestamos");
+  const direccion = CONFIG.direccion || "Dirección pendiente de confirmar.";
+  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(direccion);
+  el.innerHTML = `
+    <div class="section-heading">Dónde Estamos<span class="line"></span></div>
+    <p style="font-size:15px;font-weight:600;color:var(--text);max-width:520px;">${direccion}</p>
+    <a class="cta-btn" style="display:inline-block;margin-top:10px;" href="${mapsUrl}" target="_blank" rel="noopener">Ver en Google Maps</a>
+  `;
+}
+
+/* Contacto: mismos datos de contacto y redes sociales que aparecen en Inicio. */
+function renderContacto(){
+  const el = document.getElementById("view-contacto");
+  el.innerHTML = `
+    <div class="section-heading">Contacto<span class="line"></span></div>
+    <div class="contact-wrap" style="margin-top:0;padding-top:0;border-top:none;justify-content:flex-start;">
+      <div class="contact-item" style="align-items:flex-start;">
+        <span class="contact-label">Contacto</span>
+        <span class="contact-value">control@laligadebasquet.com</span>
+      </div>
+      <div class="contact-item" style="align-items:flex-start;">
+        <span class="contact-label">Teléfono</span>
+        <span class="contact-value">81 1781 7451</span>
+      </div>
+    </div>
+    <div class="social-links" style="justify-content:flex-start;">
+      <a href="https://www.facebook.com/laligadebasquet/" target="_blank" rel="noopener" aria-label="Facebook">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.91h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94z"></path></svg>
+      </a>
+      <a href="https://www.instagram.com/laligadebasquet/" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </a>
+      <a href="https://www.tiktok.com/@laligadebasquet?lang=es-419" target="_blank" rel="noopener" aria-label="TikTok">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6c0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64c0 3.33 2.76 5.7 5.69 5.7c3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"></path></svg>
+      </a>
+      <a href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" target="_blank" rel="noopener" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.9 2.6 12 2.6 12 2.6h0s-4.9 0-8.2.3c-.5 0-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S0 8.1 0 10v1.9c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.6 1 1.9.2 8.3.3 8.3.3s4.9 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V10c0-1.9-.2-3.8-.2-3.8zM9.5 14.3V7.7l6.4 3.3-6.4 3.3z"></path></svg>
+      </a>
+    </div>
   `;
 }
 
@@ -2981,7 +3142,6 @@ async function enviarInscripcionEquipo(){
     EQUIPOS.push({nombre, categoria, integrantes:0, estatus:"Pendiente"});
     if(!ROSTERS[nombre]) ROSTERS[nombre] = [];
     _cacheJugadoresQuery = null; _cacheJugadoresSet = null;
-    renderEquipos();
     mostrarCodigoEquipoInsc(nombre, resp.codigo || "", _menoresEquipo);
     ["iEqNombre","iEqCapitan","iEqTelCapitan","iEqSub","iEqTelSub","iEqCorreo"]
       .forEach(id=>document.getElementById(id).value = "");
@@ -3060,7 +3220,6 @@ async function enviarAltaJugador(){
     const eq = EQUIPOS.find(t=>t.nombre === equipo);
     if(eq) eq.integrantes = (eq.integrantes || 0) + 1;
     _cacheJugadoresQuery = null; _cacheJugadoresSet = null;
-    renderEquipos();
     renderCredencial();
     mostrarMsgInsc("iJgMsg","ok","¡Listo, " + nombre + "! Ya quedaste dado de alta en " + equipo + ". Te mandamos un correo de bienvenida a " + correo + ".");
     document.getElementById("iJgNombre").value = "";
@@ -3087,17 +3246,31 @@ async function enviarAltaJugador(){
   }
 }
 
-document.querySelectorAll("nav.tabs button").forEach(btn=>{
+document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll("nav.tabs button[data-view]").forEach(b=>b.classList.remove("active"));
     document.querySelectorAll("section.view").forEach(s=>s.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("view-" + btn.dataset.view).classList.add("active");
+    cerrarNavDropdowns();
   });
 });
 
+/* Menús desplegables del nav ("Rol de Juego y Estadística", "Información") */
+function toggleNavDropdown(id){
+  const el = document.getElementById(id);
+  const estabaAbierto = el.classList.contains("open");
+  cerrarNavDropdowns();
+  if(!estabaAbierto) el.classList.add("open");
+}
+function cerrarNavDropdowns(){
+  document.querySelectorAll(".nav-dropdown.open").forEach(d=>d.classList.remove("open"));
+}
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest(".nav-dropdown")) cerrarNavDropdowns();
+});
+
 document.getElementById("teamSearch").addEventListener("input", ()=>{
-  renderEquipos();
   renderProximos();
   renderResultados();
   renderRol();
