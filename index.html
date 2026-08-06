@@ -1299,7 +1299,15 @@
         <button data-view="sanciones">Sanciones</button>
       </div>
     </div>
+    <button data-view="credencial">Credencial</button>
     <button data-view="tendencias">Tendencias</button>
+    <div class="nav-dropdown" id="navDropInscripcion">
+      <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInscripcion')">Inscripción <span class="nav-caret">&#9662;</span></button>
+      <div class="nav-dropdown-menu">
+        <button data-view="inscripcion" onclick="renderInscripcion('equipo')">Inscripción Equipo</button>
+        <button data-view="inscripcion" onclick="renderInscripcion('jugador')">Alta Jugador</button>
+      </div>
+    </div>
     <div class="nav-dropdown" id="navDropInfo">
       <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInfo')">Información <span class="nav-caret">&#9662;</span></button>
       <div class="nav-dropdown-menu">
@@ -1308,8 +1316,6 @@
         <button data-view="contacto">Contacto</button>
       </div>
     </div>
-    <button data-view="credencial">Credencial</button>
-    <button data-view="inscripcion">Inscripción</button>
   </nav>
 </header>
 
@@ -1322,7 +1328,7 @@
 
   <section class="view active" id="view-inicio">
     <div class="inicio-hero">
-      <span class="inicio-eyebrow">🏀 Inscripciones Abiertas</span>
+      <span class="inicio-eyebrow">Inscripciones Abiertas</span>
       <h1 class="inicio-titulo">Temporada Agosto 2026</h1>
       <div class="inicio-fecha-box">
         <span class="inicio-fecha-label">Inicio</span>
