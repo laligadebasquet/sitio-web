@@ -873,13 +873,12 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
           '<tr><td style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B6B;text-transform:uppercase;">Categoría</td>' +
             '<td style="padding:10px 14px;font-size:14px;font-weight:800;text-align:right;">' + categoria + '</td></tr>' +
         '</table>' +
-        '<p style="font-size:13px;">Ahí también vienen las formas de pago aceptadas. ' +
+        '<p style="font-size:13px;">' +
           '<a href="' + urlReglamento + '" style="color:#F37228;font-weight:700;">Haz click aquí para ver el reglamento completo y las formas de pago</a>.</p>' +
         '<div style="background:#F5F5F5;border-radius:10px;padding:16px 18px;margin:20px 0;text-align:center;">' +
           '<p style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;color:#6B6B6B;">Código para alta de jugadores</p>' +
           '<p style="font-weight:900;font-size:28px;letter-spacing:4px;color:#111111;margin:0;">' + codigo + '</p>' +
-          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 0;">Compártelo con tu equipo. Cada jugador lo necesita para darse de alta en ' +
-            '<a href="' + urlAltaJugador + '" style="color:#F37228;font-weight:700;">Alta de Jugador</a>.</p>' +
+          '<p style="font-size:12px;color:#6B6B6B;margin:8px 0 0;">Compártelo con tu equipo para que cada jugador se dé de alta.</p>' +
         '</div>' +
         '<p style="font-size:13px;background:rgba(243,114,40,.1);border:1px solid #F37228;border-radius:8px;padding:12px 14px;">' +
           '<strong>No se te olvide:</strong> tú también te tienes que dar de alta como jugador con el código de arriba, en ' +
