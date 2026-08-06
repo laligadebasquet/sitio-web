@@ -304,7 +304,7 @@
   .contact-wrap{
     margin-top:32px;
     padding-top:24px;
-    border-top:1px solid rgba(255,255,255,.14);
+    border-top:1px solid var(--gray-line);
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
@@ -319,14 +319,14 @@
   .contact-label{
     font-size:11px;
     font-weight:700;
-    color:var(--on-dark-soft);
+    color:var(--text-soft);
     text-transform:uppercase;
     letter-spacing:1.2px;
   }
   .contact-value{
     font-size:14px;
     font-weight:700;
-    color:#fff;
+    color:var(--navy);
   }
   .social-links{
     margin-top:20px;
@@ -337,12 +337,12 @@
   .social-links a{
     width:38px; height:38px;
     border-radius:50%;
-    background:rgba(255,255,255,.12);
+    background:var(--orange);
     display:flex; align-items:center; justify-content:center;
     color:#fff;
     transition:background .15s;
   }
-  .social-links a:hover{background:var(--orange);}
+  .social-links a:hover{background:var(--orange-dark);}
   .social-links svg{width:19px; height:19px;}
   main{
     max-width:1080px;
@@ -1286,10 +1286,6 @@
       <div class="contact-item">
         <span class="contact-label">Teléfono</span>
         <span class="contact-value">81 1781 7451</span>
-      </div>
-      <div class="contact-item">
-        <span class="contact-label">Organiza</span>
-        <span class="contact-value">Manuel Gonzalez SPPG</span>
       </div>
     </div>
 
