@@ -325,6 +325,10 @@ function doPost(e) {
       cambiarPasswordCapitan(ss, data);
     } else if (data.action === "leerPruebas") {
       resultado.hojas = leerPruebas(ss, data);
+    } else if (data.action === "reportarPruebas") {
+      resultado.reporte = reportarPruebas(ss, data);
+    } else if (data.action === "borrarPruebas") {
+      resultado.resultado = borrarPruebas(ss, data);
     } else {
       escribirResultado(ss, data);
       marcarRolComoJugado(ss, data);
@@ -1566,6 +1570,54 @@ function filasDePruebaPorHoja_(ss) {
     mapa[nombreHoja] = encontradas;
   });
   return mapa;
+}
+
+/**
+ * Versión de reportePruebas() para doPost. SOLO LECTURA: dice qué filas se
+ * borrarían y, muy importante, cuántos equipos REALES hay (para poder
+ * confirmar antes y después que no se tocó ninguno).
+ */
+function reportarPruebas(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) throw new Error("No autorizado.");
+  var mapa = filasDePruebaPorHoja_(ss);
+  var resumen = {};
+  var total = 0;
+  Object.keys(mapa).forEach(function (h) {
+    resumen[h] = mapa[h].map(function (f) {
+      return { fila: f.fila, equipo: f.equipo, conFormula: f.colsConFormula.length > 0 };
+    });
+    total += mapa[h].length;
+  });
+  var insc = leerHojaComoObjetos_(ss, "Inscripción de Equipos");
+  return {
+    totalFilasDePrueba: total,
+    detalle: resumen,
+    equiposReales: insc
+      .filter(function (f) { return !esEquipoPrueba_(f["Nombre del Equipo"]); })
+      .map(function (f) { return f["Nombre del Equipo"]; })
+  };
+}
+
+/**
+ * Versión de borrarEquiposDePrueba() para doPost. Además de la clave de
+ * admin exige data.confirmar === "BORRAR", para que sea imposible
+ * dispararla por accidente con una petición mal armada.
+ */
+function borrarPruebas(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) throw new Error("No autorizado.");
+  if (String(data.confirmar || "") !== "BORRAR") {
+    throw new Error("Falta la confirmación explícita (confirmar: 'BORRAR').");
+  }
+  var antes = reportarPruebas(ss, data);
+  var resumen = borrarEquiposDePrueba();
+  var despues = reportarPruebas(ss, data);
+  return {
+    borrado: resumen,
+    filasDePruebaAntes: antes.totalFilasDePrueba,
+    filasDePruebaDespues: despues.totalFilasDePrueba,
+    equiposRealesAntes: antes.equiposReales,
+    equiposRealesDespues: despues.equiposReales
+  };
 }
 
 /**
