@@ -1074,6 +1074,15 @@ function reenviarCorreoBienvenidaJugador_(ss, data) {
  * "Inscripción de Equipos". No vuelve a generar código ni contraseña, usa
  * los que ya están guardados. Protegida con "clave", igual que
  * reenviarBienvenida.
+ *
+ * Dos parámetros OPCIONALES para reenvíos puntuales:
+ *  - data.nombreEquipo  → reenvía SOLO ese equipo, en vez de todos los que
+ *    comparten el correo. Útil cuando un mismo correo tiene varios equipos
+ *    (por ejemplo los de prueba) y no queremos llenar la bandeja.
+ *  - data.correoDestino → manda el correo a OTRA dirección, sin tocar la
+ *    que está guardada en el Sheet. Sirve para revisar cómo se ve el correo
+ *    en otra bandeja sin tener que modificar la inscripción.
+ * Si no se mandan, el comportamiento es el de siempre.
  */
 function reenviarCorreoBienvenidaCapitan_(ss, data) {
   if (String(data.clave || "") !== ADMIN_CLAVE_) {
@@ -1081,6 +1090,8 @@ function reenviarCorreoBienvenidaCapitan_(ss, data) {
   }
   var correoObjetivo = normalizarTexto_(data.correo);
   if (!correoObjetivo) throw new Error("Falta el correo.");
+  var soloEquipo = normalizarTexto_(data.nombreEquipo || "");
+  var correoDestino = String(data.correoDestino || "").trim() || String(data.correo).trim();
 
   var hojaInsc = ss.getSheetByName("Inscripción de Equipos");
   if (!hojaInsc) throw new Error("No existe la hoja 'Inscripción de Equipos'.");
@@ -1090,22 +1101,27 @@ function reenviarCorreoBienvenidaCapitan_(ss, data) {
   var filas = hojaInsc.getRange(2, 1, ultimaInsc - 1, CAPITAN_PASSWORD_COL_).getValues(); // A:M
   var encontrados = [];
   for (var i = 0; i < filas.length; i++) {
-    if (normalizarTexto_(filas[i][CORREO_EQUIPO_COL_ - 1]) === correoObjetivo) {
-      encontrados.push({
-        nombreEquipo: String(filas[i][1]).trim(),
-        categoria: String(filas[i][3]).trim(),
-        codigo: String(filas[i][CODIGO_EQUIPO_COL_ - 1]).trim(),
-        passwordCapitan: String(filas[i][CAPITAN_PASSWORD_COL_ - 1]).trim()
-      });
-    }
+    if (normalizarTexto_(filas[i][CORREO_EQUIPO_COL_ - 1]) !== correoObjetivo) continue;
+    var nombreFila = String(filas[i][1]).trim();
+    if (soloEquipo && normalizarTexto_(nombreFila) !== soloEquipo) continue;
+    encontrados.push({
+      nombreEquipo: nombreFila,
+      categoria: String(filas[i][3]).trim(),
+      codigo: String(filas[i][CODIGO_EQUIPO_COL_ - 1]).trim(),
+      passwordCapitan: String(filas[i][CAPITAN_PASSWORD_COL_ - 1]).trim()
+    });
   }
-  if (!encontrados.length) throw new Error("Ese correo no está dado de alta.");
+  if (!encontrados.length) {
+    throw new Error(soloEquipo
+      ? "No encontré el equipo '" + data.nombreEquipo + "' con ese correo."
+      : "Ese correo no está dado de alta.");
+  }
 
   encontrados.forEach(function (eq) {
-    enviarCorreoBienvenidaCapitan_(data.correo, eq.nombreEquipo, eq.categoria, eq.codigo, eq.passwordCapitan);
+    enviarCorreoBienvenidaCapitan_(correoDestino, eq.nombreEquipo, eq.categoria, eq.codigo, eq.passwordCapitan);
   });
 
-  return { enviados: encontrados.length };
+  return { enviados: encontrados.length, destino: correoDestino };
 }
 
 /* =====================================================================
