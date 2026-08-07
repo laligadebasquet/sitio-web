@@ -1137,11 +1137,13 @@
   /* Link "HORARIOS" al lado de la etiqueta Categoría. Va dentro del <label>,
      así que se le quita la herencia de mayúsculas/peso para que se lea como
      link y no como parte del título del campo. */
-  /* Fila que junta la etiqueta del campo y el link HORARIOS en la misma línea. */
-  .insc-label-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  /* Fila que junta la etiqueta del campo y el link HORARIOS en la misma línea.
+     Van pegados (no separados a los extremos) para que se lea como un apoyo
+     del campo Categoría y no como un elemento suelto. */
+  .insc-label-row{display:flex;align-items:baseline;gap:8px;}
   .insc-label-row label{margin-bottom:6px;}
   .horarios-link{
-    font-size:11px;font-weight:800;letter-spacing:.6px;white-space:nowrap;
+    font-size:9.5px;font-weight:800;letter-spacing:.4px;white-space:nowrap;
     color:var(--orange-dark);text-decoration:underline;cursor:pointer;
   }
   .horarios-link:hover{color:var(--orange);}
@@ -1531,7 +1533,7 @@
       </div>
       <div class="horarios-horas">
         <div class="horarios-hora-bloque">
-          <div class="horarios-hora-titulo">Lunes a jueves</div>
+          <div class="horarios-hora-titulo">Entre semana</div>
           <div class="horarios-hora-valor">8:10, 9:10, 10:10 pm</div>
         </div>
         <div class="horarios-hora-bloque">
