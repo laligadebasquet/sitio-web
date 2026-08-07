@@ -1134,6 +1134,35 @@
   }
   .insc-campo select:disabled{background:var(--gray-bg);color:var(--text-soft);cursor:not-allowed;}
   .insc-campo .ayuda{font-size:12px;color:var(--text-soft);margin-top:5px;}
+  /* Link "HORARIOS" al lado de la etiqueta Categoría. Va dentro del <label>,
+     así que se le quita la herencia de mayúsculas/peso para que se lea como
+     link y no como parte del título del campo. */
+  .horarios-link{
+    float:right;font-size:11px;font-weight:800;letter-spacing:.6px;
+    color:var(--orange-dark);text-decoration:underline;cursor:pointer;
+  }
+  .horarios-link:hover{color:var(--orange);}
+  /* Contenido de la ventana de Horarios */
+  .horarios-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .horarios-cat{
+    flex:1;min-width:190px;border:1px solid var(--gray-line);
+    border-radius:10px;padding:14px 16px;background:#fff;
+  }
+  .horarios-cat-nombre{
+    font-size:13px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--navy);margin-bottom:5px;
+  }
+  .horarios-cat-dias{font-size:14px;color:var(--text);line-height:1.5;}
+  .horarios-horas{
+    display:flex;gap:12px;flex-wrap:wrap;
+    background:var(--gray-bg,#F5F5F5);border-radius:10px;padding:14px 16px;
+  }
+  .horarios-hora-bloque{flex:1;min-width:150px;}
+  .horarios-hora-titulo{
+    font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--text-soft);margin-bottom:4px;
+  }
+  .horarios-hora-valor{font-size:15px;font-weight:700;color:var(--text);}
   .insc-fila{display:flex;gap:14px;}
   .insc-fila > *{flex:1;min-width:0;}
   @media (max-width:560px){.insc-fila{flex-direction:column;gap:0;}}
@@ -1470,6 +1499,44 @@
       <button class="modal-close" onclick="cerrarEjemploCredencial()">✕</button>
     </div>
     <div class="roster-body" id="ejemploCredencialBody"></div>
+  </div>
+</div>
+
+<!-- Horarios por categoría. Se abre desde el link "HORARIOS" que está junto
+     al campo Categoría en el formulario de Inscribir Equipo, para que el
+     capitán vea los días y horas antes de elegir categoría, sin salirse
+     del formulario ni perder lo que ya escribió. -->
+<div class="modal-overlay" id="horariosModal" onclick="if(event.target===this) cerrarHorarios()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>Horarios</h3>
+        <span>Días y horas de juego por categoría</span>
+      </div>
+      <button class="modal-close" onclick="cerrarHorarios()">✕</button>
+    </div>
+    <div class="roster-body">
+      <div class="horarios-grid">
+        <div class="horarios-cat">
+          <div class="horarios-cat-nombre">Categoría A</div>
+          <div class="horarios-cat-dias">Lunes, Miércoles, Sábado</div>
+        </div>
+        <div class="horarios-cat">
+          <div class="horarios-cat-nombre">Categoría B</div>
+          <div class="horarios-cat-dias">Martes, Jueves, Sábado/Domingo</div>
+        </div>
+      </div>
+      <div class="horarios-horas">
+        <div class="horarios-hora-bloque">
+          <div class="horarios-hora-titulo">Lunes a jueves</div>
+          <div class="horarios-hora-valor">8:10, 9:10, 10:10 pm</div>
+        </div>
+        <div class="horarios-hora-bloque">
+          <div class="horarios-hora-titulo">Fin de semana</div>
+          <div class="horarios-hora-valor">12 – 5 pm</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2592,6 +2659,17 @@ function cerrarEjemploCredencial(){
   document.getElementById("ejemploCredencialModal").classList.remove("open");
 }
 
+/* Horarios: ventana que se abre desde el link "HORARIOS" junto al campo
+   Categoría. El contenido es fijo (está en el HTML del modal), así que aquí
+   sólo se muestra y se esconde. */
+function abrirHorarios(){
+  document.getElementById("horariosModal").classList.add("open");
+}
+
+function cerrarHorarios(){
+  document.getElementById("horariosModal").classList.remove("open");
+}
+
 /* Resumen del reglamento: por ahora es un espacio reservado. Mauricio va a
    escribir el resumen/lo más importante del reglamento más adelante; en
    cuanto lo mande, se reemplaza este texto por el resumen real. */
@@ -2744,7 +2822,9 @@ function formEquipoHTML(){
         <input type="text" id="iEqNombre" maxlength="40" placeholder="Ej. LOS HALCONES" autocomplete="off">
       </div>
       <div class="insc-campo">
-        <label for="iEqCategoria">Categoría <span class="req">*</span></label>
+        <label for="iEqCategoria">Categoría <span class="req">*</span>
+          <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirHorarios();">HORARIOS</a>
+        </label>
         <select id="iEqCategoria">
           <option value="">Selecciona una categoría</option>
           ${opcionesCategoria()}
