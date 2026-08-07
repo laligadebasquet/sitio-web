@@ -58,6 +58,14 @@ var ADMIN_CLAVE_ = "liga2026";
 // URL real de la Consola ya publicada (GitHub Pages + dominio propio).
 var REGLAMENTO_URL_VARONIL_ = "https://www.laligadebasquet.com/?view=reglamento&cat=varonil";
 var REGLAMENTO_URL_FEMENIL_ = "https://www.laligadebasquet.com/?view=reglamento&cat=femenil";
+// PDFs de "Formas de pago". Viven en el repo de GitHub Pages (misma carpeta
+// que index.html), NO embebidos en este archivo: así se pueden actualizar los
+// precios subiendo un PDF nuevo, sin volver a desplegar el Apps Script. Se
+// descargan con UrlFetchApp al momento de mandar el correo de bienvenida al
+// capitán y se adjuntan. OJO: los costos son DISTINTOS por rama (varonil
+// $10,000 / femenil $9,000), por eso hay dos archivos.
+var FORMAS_PAGO_URL_VARONIL_ = "https://www.laligadebasquet.com/formas-de-pago-varonil.pdf";
+var FORMAS_PAGO_URL_FEMENIL_ = "https://www.laligadebasquet.com/formas-de-pago-femenil.pdf";
 // -------------------------
 
 
@@ -843,7 +851,10 @@ function enviarCorreoBienvenidaJugador_(correo, nombre, equipo, categoria, foto)
  * de pago) para la categoría correspondiente, y el código de 6 caracteres
  * que sus jugadores van a necesitar para darse de alta uno por uno (con un
  * cuadro fácil de copiar con el link directo a Alta de Jugador). También le
- * recuerda que él/ella también se tiene que dar de alta como jugador. El
+ * recuerda que él/ella también se tiene que dar de alta como jugador.
+ * Además ADJUNTA el PDF de "Formas de pago" de la rama que le corresponde
+ * (varonil o femenil; los costos son distintos), descargándolo de GitHub
+ * Pages en el momento del envío — ver obtenerAdjuntoFormasPago_(). El
  * Portal de Capitanes está temporalmente oculto (ver nota en index.html),
  * así que este correo NO lo menciona. Usa Resend, igual que el correo de
  * bienvenida de jugador — si RESEND_API_KEY no está configurada, revienta
@@ -851,7 +862,13 @@ function enviarCorreoBienvenidaJugador_(correo, nombre, equipo, categoria, foto)
  */
 function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo, passwordCapitan) {
   var asunto = "¡Bienvenido a La Liga de Basquet! Equipo " + nombreEquipo;
-  var urlReglamento = /femenil/i.test(categoria || "") ? REGLAMENTO_URL_FEMENIL_ : REGLAMENTO_URL_VARONIL_;
+  // Una sola decisión rama-por-categoría, reusada para el reglamento Y para
+  // el PDF de formas de pago (los costos NO son iguales en varonil y femenil).
+  var esFemenil = /femenil/i.test(categoria || "");
+  var urlReglamento = esFemenil ? REGLAMENTO_URL_FEMENIL_ : REGLAMENTO_URL_VARONIL_;
+  var etiquetaRama = esFemenil ? "Femenil" : "Varonil";
+  var urlFormasPago = esFemenil ? FORMAS_PAGO_URL_FEMENIL_ : FORMAS_PAGO_URL_VARONIL_;
+  var nombreArchivoPago = "Formas de pago - " + etiquetaRama + ".pdf";
   // Debe ser EXACTAMENTE esta URL: lleva directo a la pestaña "Alta de
   // Jugador" dentro de Inscripción en la Consola (ver aplicarDeepLink() en
   // index.html, que lee ?view=inscripcion&tab=jugador).
@@ -875,6 +892,9 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
         '</table>' +
         '<p style="font-size:13px;">' +
           '<a href="' + urlReglamento + '" style="color:#F37228;font-weight:700;">Haz click aquí para ver el reglamento completo y las formas de pago</a>.</p>' +
+        '<p style="font-size:13px;">' +
+          'Adjunto en este correo va el documento <strong>FORMAS DE PAGO ' + etiquetaRama.toUpperCase() + '</strong>, ' +
+          'que aplica para tu equipo.</p>' +
         '<div style="background:#F5F5F5;border-radius:10px;padding:16px 18px;margin:20px 0;text-align:center;">' +
           '<p style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;color:#6B6B6B;">Código para alta de jugadores</p>' +
           '<p style="font-weight:900;font-size:28px;letter-spacing:4px;color:#111111;margin:0;">' + codigo + '</p>' +
@@ -904,21 +924,50 @@ function enviarCorreoBienvenidaCapitan_(correo, nombreEquipo, categoria, codigo,
   if (!apiKeyResend) {
     throw new Error("Falta configurar RESEND_API_KEY en las Propiedades del script.");
   }
+  var payloadResend = {
+    from: "La Liga de Basquet · Gante San Pedro <control@laligadebasquet.com>",
+    to: correo,
+    subject: asunto,
+    html: htmlBody
+  };
+  // Adjunta el PDF de formas de pago de la rama que le toca. Va dentro de
+  // try/catch a propósito: si GitHub Pages estuviera caído o el archivo no
+  // existiera, preferimos mandar la bienvenida SIN adjunto (el link al
+  // reglamento sigue teniendo la info) que no mandar nada.
+  var adjuntoPago = obtenerAdjuntoFormasPago_(urlFormasPago, nombreArchivoPago);
+  if (adjuntoPago) {
+    payloadResend.attachments = [adjuntoPago];
+  }
   var respuestaResend = UrlFetchApp.fetch("https://api.resend.com/emails", {
     method: "post",
     contentType: "application/json",
     headers: { Authorization: "Bearer " + apiKeyResend },
-    payload: JSON.stringify({
-      from: "La Liga de Basquet · Gante San Pedro <control@laligadebasquet.com>",
-      to: correo,
-      subject: asunto,
-      html: htmlBody
-    }),
+    payload: JSON.stringify(payloadResend),
     muteHttpExceptions: true
   });
   var codigoResend = respuestaResend.getResponseCode();
   if (codigoResend < 200 || codigoResend >= 300) {
     throw new Error("Resend respondió " + codigoResend + ": " + respuestaResend.getContentText());
+  }
+}
+
+/**
+ * Descarga el PDF de formas de pago y lo regresa en el formato que espera
+ * Resend ({filename, content en base64}). Si algo falla regresa null para que
+ * el correo se pueda mandar de todos modos, sin adjunto.
+ */
+function obtenerAdjuntoFormasPago_(url, nombreArchivo) {
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) return null;
+    var bytes = resp.getBlob().getBytes();
+    if (!bytes || !bytes.length) return null;
+    return {
+      filename: nombreArchivo,
+      content: Utilities.base64Encode(bytes)
+    };
+  } catch (err) {
+    return null;
   }
 }
 
