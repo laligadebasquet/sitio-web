@@ -1510,6 +1510,123 @@ function leerHojaComoObjetos_(ss, nombre) {
   return filas;
 }
 
+/* =====================================================================
+   LIMPIEZA DE EQUIPOS DE PRUEBA
+   ---------------------------------------------------------------------
+   Estas dos funciones son de MANTENIMIENTO MANUAL: se corren desde el
+   editor de Apps Script (menú "Ejecutar"), NO están expuestas en doPost.
+   Eso es a propósito: borrar datos no debe poder dispararse desde la web.
+
+   Primero corre reportePruebas() y lee el registro de ejecución. Solo si
+   el reporte se ve bien, corre borrarEquiposDePrueba().
+
+   OJO con las fórmulas: varias hojas ("Equipos", "Tabla General",
+   "Resultados"...) traen cientos de filas precargadas con fórmulas. Por
+   eso NO se borran filas a lo bruto: si la fila tiene alguna fórmula se
+   limpian nada más las celdas escritas a mano y la fórmula se queda viva.
+   ===================================================================== */
+
+/** Junta, por hoja, las filas que pertenecen a un equipo de PRUEBA. */
+function filasDePruebaPorHoja_(ss) {
+  var mapa = {};
+  var hojas = {};
+  hojas["Inscripción de Equipos"] = ["Nombre del Equipo"];
+  Object.keys(CAMPOS_EQUIPO_POR_HOJA_).forEach(function (n) {
+    hojas[n] = CAMPOS_EQUIPO_POR_HOJA_[n];
+  });
+
+  Object.keys(hojas).forEach(function (nombreHoja) {
+    var hoja = ss.getSheetByName(nombreHoja);
+    if (!hoja) return;
+    var ultimaFila = hoja.getLastRow();
+    var ultimaCol = hoja.getLastColumn();
+    if (ultimaFila < 2 || ultimaCol < 1) { mapa[nombreHoja] = []; return; }
+
+    var valores = hoja.getRange(1, 1, ultimaFila, ultimaCol).getDisplayValues();
+    var formulas = hoja.getRange(1, 1, ultimaFila, ultimaCol).getFormulas();
+    var encabezados = valores[0].map(function (h) { return String(h).trim(); });
+    var indices = hojas[nombreHoja]
+      .map(function (campo) { return encabezados.indexOf(campo); })
+      .filter(function (i) { return i > -1; });
+
+    var encontradas = [];
+    for (var f = 1; f < valores.length; f++) {
+      var esPrueba = indices.some(function (i) { return esEquipoPrueba_(valores[f][i]); });
+      if (!esPrueba) continue;
+      var colsConFormula = [];
+      for (var c = 0; c < ultimaCol; c++) {
+        if (String(formulas[f][c] || "") !== "") colsConFormula.push(c + 1);
+      }
+      encontradas.push({
+        fila: f + 1,                       // número de fila real en la hoja
+        equipo: valores[f][indices[0]],
+        colsConFormula: colsConFormula
+      });
+    }
+    mapa[nombreHoja] = encontradas;
+  });
+  return mapa;
+}
+
+/**
+ * SOLO LECTURA. Escribe en el registro de ejecución qué se borraría.
+ * Correr esta ANTES de borrarEquiposDePrueba().
+ */
+function reportePruebas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var mapa = filasDePruebaPorHoja_(ss);
+  var total = 0;
+  Object.keys(mapa).forEach(function (hoja) {
+    var filas = mapa[hoja];
+    total += filas.length;
+    Logger.log(hoja + ": " + filas.length + " fila(s) de prueba");
+    filas.forEach(function (f) {
+      Logger.log("   fila " + f.fila + " → " + f.equipo +
+        (f.colsConFormula.length ? "  [FÓRMULAS en col " + f.colsConFormula.join(",") + " → se conservan]" : "  [sin fórmulas → se borra la fila]"));
+    });
+  });
+  Logger.log("TOTAL: " + total + " fila(s)");
+  return mapa;
+}
+
+/**
+ * Borra de verdad los equipos de PRUEBA. Filas sin fórmulas: se elimina la
+ * fila completa (de abajo hacia arriba, para que no se recorran los
+ * índices). Filas con fórmulas: se limpian solo las celdas sin fórmula.
+ */
+function borrarEquiposDePrueba() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var mapa = filasDePruebaPorHoja_(ss);
+  var resumen = {};
+
+  Object.keys(mapa).forEach(function (nombreHoja) {
+    var hoja = ss.getSheetByName(nombreHoja);
+    var filas = mapa[nombreHoja];
+    if (!hoja || !filas.length) { resumen[nombreHoja] = { borradas: 0, limpiadas: 0 }; return; }
+
+    var borradas = 0, limpiadas = 0;
+    // De abajo hacia arriba: borrar una fila recorre las de abajo.
+    for (var i = filas.length - 1; i >= 0; i--) {
+      var f = filas[i];
+      if (f.colsConFormula.length === 0) {
+        hoja.deleteRow(f.fila);
+        borradas++;
+      } else {
+        var ultimaCol = hoja.getLastColumn();
+        for (var c = 1; c <= ultimaCol; c++) {
+          if (f.colsConFormula.indexOf(c) === -1) hoja.getRange(f.fila, c).setValue("");
+        }
+        limpiadas++;
+      }
+    }
+    resumen[nombreHoja] = { borradas: borradas, limpiadas: limpiadas };
+    Logger.log(nombreHoja + ": " + borradas + " fila(s) eliminada(s), " + limpiadas + " limpiada(s)");
+  });
+
+  SpreadsheetApp.flush();
+  return resumen;
+}
+
 function escribirResultado(ss, data) {
   var hoja = ss.getSheetByName("Resultados");
   if (!hoja) throw new Error("No existe la hoja 'Resultados'.");
