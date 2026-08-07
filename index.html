@@ -1137,8 +1137,11 @@
   /* Link "HORARIOS" al lado de la etiqueta Categoría. Va dentro del <label>,
      así que se le quita la herencia de mayúsculas/peso para que se lea como
      link y no como parte del título del campo. */
+  /* Fila que junta la etiqueta del campo y el link HORARIOS en la misma línea. */
+  .insc-label-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .insc-label-row label{margin-bottom:6px;}
   .horarios-link{
-    float:right;font-size:11px;font-weight:800;letter-spacing:.6px;
+    font-size:11px;font-weight:800;letter-spacing:.6px;white-space:nowrap;
     color:var(--orange-dark);text-decoration:underline;cursor:pointer;
   }
   .horarios-link:hover{color:var(--orange);}
@@ -2822,9 +2825,13 @@ function formEquipoHTML(){
         <input type="text" id="iEqNombre" maxlength="40" placeholder="Ej. LOS HALCONES" autocomplete="off">
       </div>
       <div class="insc-campo">
-        <label for="iEqCategoria">Categoría <span class="req">*</span>
+        <!-- El link HORARIOS va FUERA del <label> a propósito: si está dentro,
+             el navegador reenvía el clic al <select> asociado (comportamiento
+             normal de un label) y nunca se abre la ventana. -->
+        <div class="insc-label-row">
+          <label for="iEqCategoria">Categoría <span class="req">*</span></label>
           <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirHorarios();">HORARIOS</a>
-        </label>
+        </div>
         <select id="iEqCategoria">
           <option value="">Selecciona una categoría</option>
           ${opcionesCategoria()}
