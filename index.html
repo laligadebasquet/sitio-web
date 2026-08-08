@@ -2765,6 +2765,16 @@ const PAGOS_POR_RAMA = {
   }
 };
 
+/* Muestra el link "FORMAS DE PAGO" solo cuando ya hay categoría elegida.
+   Se llama desde el onchange del select, al pintar el formulario y después
+   de limpiarlo tras una inscripción exitosa. */
+function sincronizarLinkPagos(){
+  const sel  = document.getElementById("iEqCategoria");
+  const link = document.getElementById("pagosLink");
+  if(!sel || !link) return;
+  link.style.display = sel.value ? "" : "none";
+}
+
 function abrirPagos(){
   const cat = (document.getElementById("iEqCategoria") || {}).value || "";
   const esFemenil = /femenil/i.test(cat);
@@ -2966,6 +2976,9 @@ function renderInscripcion(categoriaTab){
     ${aviso}
     ${tab === "equipo" ? formEquipoHTML() : formJugadorHTML()}
   `;
+  // El formulario se acaba de rearmar: el select vuelve a estar vacío, así
+  // que el link de FORMAS DE PAGO tiene que quedar escondido otra vez.
+  if(tab === "equipo") sincronizarLinkPagos();
 }
 
 function opcionesCategoria(){
@@ -2987,9 +3000,13 @@ function formEquipoHTML(){
         <div class="insc-label-row">
           <label for="iEqCategoria">Categoría <span class="req">*</span></label>
           <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirHorarios();">HORARIOS</a>
-          <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirPagos();">FORMAS DE PAGO</a>
+          <!-- Este link nace OCULTO: los costos dependen de la rama, así que
+               no tiene sentido ofrecerlo antes de que elijan categoría.
+               sincronizarLinkPagos() lo muestra/esconde según el select. -->
+          <a href="#" class="horarios-link" id="pagosLink" style="display:none;"
+             onclick="event.preventDefault(); abrirPagos();">FORMAS DE PAGO</a>
         </div>
-        <select id="iEqCategoria">
+        <select id="iEqCategoria" onchange="sincronizarLinkPagos()">
           <option value="">Selecciona una categoría</option>
           ${opcionesCategoria()}
         </select>
@@ -3471,6 +3488,7 @@ async function enviarInscripcionEquipo(){
     ["iEqNombre","iEqCapitan","iEqTelCapitan","iEqSub","iEqTelSub","iEqCorreo"]
       .forEach(id=>document.getElementById(id).value = "");
     document.getElementById("iEqCategoria").value = "";
+    sincronizarLinkPagos(); // el select quedó vacío → esconder FORMAS DE PAGO
     document.getElementById("iEqReglamento").checked = false;
     _menoresEquipo = "";
     document.querySelectorAll("#iEqMenoresToggle button").forEach(b=>b.classList.remove("active"));
