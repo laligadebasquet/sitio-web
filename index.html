@@ -1168,6 +1168,52 @@
     letter-spacing:.5px;color:var(--text-soft);margin-bottom:4px;
   }
   .horarios-hora-valor{font-size:15px;font-weight:700;color:var(--text);}
+  /* Contenido de la ventana de Formas de pago */
+  .pagos-cuota{
+    border:2px solid var(--orange);border-radius:10px;
+    padding:14px 16px;margin-bottom:16px;text-align:center;background:#fff;
+  }
+  .pagos-cuota-label{
+    font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--text-soft);margin-bottom:4px;
+  }
+  .pagos-cuota-monto{font-size:26px;font-weight:900;color:var(--navy);line-height:1.1;}
+  .pagos-cuota-nota{font-size:12px;color:var(--text-soft);margin-top:6px;}
+  .pagos-titulo{
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--text-soft);margin:0 0 8px;
+  }
+  .pagos-formas{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .pagos-forma{
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    border:1px solid var(--gray-line);border-radius:9px;padding:11px 14px;background:#fff;
+  }
+  .pagos-forma-txt{font-size:13px;color:var(--text);line-height:1.4;}
+  .pagos-forma-txt b{font-weight:800;}
+  .pagos-forma-monto{font-size:16px;font-weight:900;color:var(--navy);white-space:nowrap;}
+  .pagos-reglas{
+    background:var(--gray-bg,#F5F5F5);border-radius:10px;padding:13px 16px;margin-bottom:16px;
+  }
+  .pagos-reglas ul{margin:0;padding-left:18px;}
+  .pagos-reglas li{font-size:13px;color:var(--text);line-height:1.6;}
+  .pagos-metodo{
+    border:1px solid var(--gray-line);border-radius:10px;
+    padding:13px 16px;margin-bottom:10px;background:#fff;
+  }
+  .pagos-metodo-nombre{
+    font-size:12px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--navy);margin-bottom:6px;
+  }
+  .pagos-metodo p{margin:0 0 4px;font-size:13px;color:var(--text);line-height:1.5;}
+  .pagos-cuenta{
+    font-size:18px;font-weight:900;letter-spacing:1.5px;color:var(--navy);
+    margin:2px 0 4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .pagos-aviso{
+    font-size:13px;color:var(--text);line-height:1.5;text-align:center;
+    background:rgba(243,114,40,.1);border:1px solid var(--orange);
+    border-radius:9px;padding:12px 14px;
+  }
   .insc-fila{display:flex;gap:14px;}
   .insc-fila > *{flex:1;min-width:0;}
   @media (max-width:560px){.insc-fila{flex-direction:column;gap:0;}}
@@ -1544,6 +1590,22 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Ventana de FORMAS DE PAGO. El contenido lo pinta abrirPagos() según la
+     categoría elegida: los costos NO son iguales en varonil y femenil, así
+     que nunca se muestran los dos a la vez para no confundir al capitán. -->
+<div class="modal-overlay" id="pagosModal" onclick="if(event.target===this) cerrarPagos()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>Formas de pago</h3>
+        <span id="pagosSubtitulo">Cuota e información de pago</span>
+      </div>
+      <button class="modal-close" onclick="cerrarPagos()">✕</button>
+    </div>
+    <div class="roster-body" id="pagosBody"></div>
   </div>
 </div>
 
@@ -2677,6 +2739,96 @@ function cerrarHorarios(){
   document.getElementById("horariosModal").classList.remove("open");
 }
 
+/* ---------- FORMAS DE PAGO ----------
+   Los costos son DISTINTOS por rama, así que la ventana se arma según la
+   categoría que el capitán ya eligió. Si todavía no elige, no se inventa
+   nada: se le pide que primero seleccione la categoría. Estos montos salen
+   de los PDFs oficiales "FORMAS DE PAGO varonil/femenil" (los mismos que se
+   adjuntan al correo de bienvenida) — si cambian, hay que cambiarlos aquí,
+   en los PDFs del repo y en la sección de Reglamento. */
+const PAGOS_POR_RAMA = {
+  varonil: {
+    cuota: "$10,000 MXN",
+    formas: [
+      { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$9,000" },
+      { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$10,000" },
+      { cuando: "Liquidando antes del <b>quinto</b> partido", monto: "$11,000" }
+    ]
+  },
+  femenil: {
+    cuota: "$9,000 MXN",
+    formas: [
+      { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$8,000" },
+      { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$9,000" },
+      { cuando: "Liquidando antes del <b>quinto</b> partido", monto: "$10,000" }
+    ]
+  }
+};
+
+function abrirPagos(){
+  const cat = (document.getElementById("iEqCategoria") || {}).value || "";
+  const esFemenil = /femenil/i.test(cat);
+  const esVaronil = /varonil/i.test(cat);
+  const sub  = document.getElementById("pagosSubtitulo");
+  const body = document.getElementById("pagosBody");
+
+  if(!esFemenil && !esVaronil){
+    sub.textContent = "Primero elige tu categoría";
+    body.innerHTML =
+      '<div class="pagos-aviso">Selecciona primero tu <strong>categoría</strong> en el formulario. ' +
+      'Los costos son distintos en la rama varonil y en la femenil, así que te mostramos ' +
+      'nada más la que te corresponde.</div>';
+    document.getElementById("pagosModal").classList.add("open");
+    return;
+  }
+
+  const rama = esFemenil ? "femenil" : "varonil";
+  const datos = PAGOS_POR_RAMA[rama];
+  sub.textContent = "Categoría " + cat;
+
+  body.innerHTML =
+    '<div class="pagos-cuota">' +
+      '<div class="pagos-cuota-label">Cuota de inscripción</div>' +
+      '<div class="pagos-cuota-monto">' + datos.cuota + '</div>' +
+      '<div class="pagos-cuota-nota">Incluye el arbitraje de los ocho partidos de la temporada regular.</div>' +
+    '</div>' +
+    '<p class="pagos-titulo">Formas de pago</p>' +
+    '<div class="pagos-formas">' +
+      datos.formas.map(function(f, i){
+        return '<div class="pagos-forma">' +
+                 '<span class="pagos-forma-txt"><b>Forma ' + (i+1) + ':</b> ' + f.cuando + '</span>' +
+                 '<span class="pagos-forma-monto">' + f.monto + '</span>' +
+               '</div>';
+      }).join("") +
+    '</div>' +
+    '<div class="pagos-reglas"><ul>' +
+      '<li>La <b>Forma 1</b> se paga en una sola exhibición <b>ANTES</b> del primer partido.</li>' +
+      '<li>Con la <b>Forma 2</b> o <b>3</b>, antes de cada partido hay que abonar mínimo <b>$1,500 MXN</b>.</li>' +
+      '<li>Si para el quinto partido el equipo no ha liquidado, será dado de baja sin previo aviso.</li>' +
+      '<li>Los partidos no inician si los equipos tienen adeudos.</li>' +
+    '</ul></div>' +
+    '<p class="pagos-titulo">Dónde pagar</p>' +
+    '<div class="pagos-metodo">' +
+      '<div class="pagos-metodo-nombre">Transferencia bancaria</div>' +
+      '<p><strong>BANORTE</strong></p>' +
+      '<p class="pagos-cuenta">4189 1434 1115 8077</p>' +
+      '<p>A nombre de <strong>Mauricio Oliver</strong></p>' +
+      '<p>Manda tu comprobante al <strong>81 1781 7451</strong> o a ' +
+        '<strong>control@laligadebasquet.com</strong>.</p>' +
+      '<p>¿Necesitas factura? Manda tu constancia fiscal a esos mismos contactos.</p>' +
+    '</div>' +
+    '<div class="pagos-metodo">' +
+      '<div class="pagos-metodo-nombre">Efectivo</div>' +
+      '<p>En el gimnasio, con <strong>Oliver</strong> o <strong>Juan</strong>.</p>' +
+    '</div>';
+
+  document.getElementById("pagosModal").classList.add("open");
+}
+
+function cerrarPagos(){
+  document.getElementById("pagosModal").classList.remove("open");
+}
+
 /* Resumen del reglamento: por ahora es un espacio reservado. Mauricio va a
    escribir el resumen/lo más importante del reglamento más adelante; en
    cuanto lo mande, se reemplaza este texto por el resumen real. */
@@ -2835,6 +2987,7 @@ function formEquipoHTML(){
         <div class="insc-label-row">
           <label for="iEqCategoria">Categoría <span class="req">*</span></label>
           <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirHorarios();">HORARIOS</a>
+          <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirPagos();">FORMAS DE PAGO</a>
         </div>
         <select id="iEqCategoria">
           <option value="">Selecciona una categoría</option>
