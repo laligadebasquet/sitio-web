@@ -296,10 +296,12 @@ function doPost(e) {
     } else if (data.action === "inscribirEquipo") {
       var infoEq = inscribirEquipo(ss, data);
       resultado.codigo = infoEq.codigo;
+      resultado.yaExistia = !!infoEq.yaExistia;
     } else if (data.action === "altaJugador") {
       var infoJg = altaJugador(ss, data);
       resultado.equipo = infoJg.equipo;
       resultado.categoria = infoJg.categoria;
+      resultado.yaExistia = !!infoJg.yaExistia;
     } else if (data.action === "verificarCodigoEquipo") {
       var infoVer = verificarCodigoEquipo(ss, data);
       resultado.equipo = infoVer.nombreEquipo;
@@ -481,8 +483,32 @@ function inscribirEquipo(ss, data) {
   var hojaEquipos = ss.getSheetByName("Equipos");
   if (!hojaEquipos) throw new Error("No existe la hoja 'Equipos'.");
 
-  // --- No permitir nombres repetidos ---
+  // --- Nombres repetidos / reintentos ---
+  // OJO, esto arregla un problema real: a veces el navegador (sobre todo
+  // Safari en iPhone) no logra leer la respuesta del Web App aunque la
+  // inscripción SÍ se haya guardado. El capitán ve un error, le vuelve a
+  // dar a "Inscribir equipo"... y antes se topaba con "Ya hay un equipo con
+  // ese nombre", sin manera de salir del atorón y sin su código.
+  // Ahora: si el equipo ya existe Y lo está reintentando la MISMA persona
+  // (mismo correo de contacto), no se duplica nada — se le regresa el
+  // código que ya se le había generado. Si el correo es distinto, sí es un
+  // choque de nombres de verdad y se rechaza como siempre.
   var objetivo = normalizarTexto_(nombre);
+  var correoNorm = normalizarTexto_(correoEq);
+  var ultimaInscPrev = hojaInsc.getLastRow();
+  if (ultimaInscPrev >= 2) {
+    var previas = hojaInsc.getRange(2, 1, ultimaInscPrev - 1, CAPITAN_PASSWORD_COL_).getValues();
+    for (var p = 0; p < previas.length; p++) {
+      if (normalizarTexto_(previas[p][1]) !== objetivo) continue;
+      if (normalizarTexto_(previas[p][CORREO_EQUIPO_COL_ - 1]) === correoNorm) {
+        return {
+          codigo: String(previas[p][CODIGO_EQUIPO_COL_ - 1]).trim(),
+          yaExistia: true
+        };
+      }
+      throw new Error("Ya hay un equipo inscrito con el nombre '" + nombre + "'.");
+    }
+  }
   var ultimaEq = hojaEquipos.getLastRow();
   if (ultimaEq >= 2) {
     var existentes = hojaEquipos.getRange(2, 2, ultimaEq - 1, 1).getValues();
@@ -645,14 +671,24 @@ function altaJugador(ss, data) {
   }
 
   // --- No repetir al mismo jugador en el mismo equipo ---
+  // Igual que en inscribirEquipo: si el navegador no alcanzó a leer la
+  // respuesta y el jugador le vuelve a dar a "Darme de alta", no lo dejamos
+  // atorado con un error. Si coinciden nombre + equipo + CORREO es la misma
+  // persona reintentando → se le responde que ya quedó, sin duplicar. Si el
+  // correo es otro, son dos personas distintas que se llaman igual y ahí sí
+  // se avisa, porque el organizador tiene que resolverlo a mano.
   var objetivo = normalizarTexto_(nombre);
+  var correoNormJ = normalizarTexto_(correo);
   var ultimaInt = hojaInt.getLastRow();
   if (ultimaInt >= 2) {
-    var filas = hojaInt.getRange(2, 2, ultimaInt - 1, 2).getValues(); // Nombre, Equipo
+    var filas = hojaInt.getRange(2, 2, ultimaInt - 1, 4).getValues(); // Nombre, Equipo, Foto, Correo
     for (var k = 0; k < filas.length; k++) {
-      if (normalizarTexto_(filas[k][0]) === objetivo && String(filas[k][1]).trim() === equipo) {
-        throw new Error("'" + nombre + "' ya está dado de alta en " + equipo + ".");
+      if (normalizarTexto_(filas[k][0]) !== objetivo) continue;
+      if (String(filas[k][1]).trim() !== equipo) continue;
+      if (normalizarTexto_(filas[k][3]) === correoNormJ) {
+        return { equipo: equipo, categoria: categoria, yaExistia: true };
       }
+      throw new Error("'" + nombre + "' ya está dado de alta en " + equipo + ".");
     }
   }
 

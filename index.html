@@ -3428,16 +3428,61 @@ function copiarCodigoFallback(codigo){
 
 /* Envia al Web App. Mismo patron que usa el Admin (text/plain para
    evitar el preflight de CORS que Apps Script no maneja). */
-async function enviarAlSheet(payload){
-  if(!CONFIG.appsScriptUrl) throw new Error("Falta configurar CONFIG.appsScriptUrl.");
+/* Un intento suelto contra el Web App.
+   NO usa res.json() a propósito: cuando Apps Script redirige la respuesta
+   (pasa seguido en Safari de iPhone) el cuerpo que llega puede no ser JSON
+   —por ejemplo el texto "Apps Script de la Liga de Basquetbol activo."—
+   aunque el guardado SÍ se haya hecho. res.json() revienta con un error
+   feísimo ("Unexpected token 'A'..." o "The string did not match the
+   expected pattern") y el usuario cree que no se guardó. Aquí leemos texto
+   plano y marcamos ese caso aparte, para poder reintentar. */
+async function intentarEnviarAlSheet(payload){
   const res = await fetch(CONFIG.appsScriptUrl, {
     method: "POST",
     headers: {"Content-Type": "text/plain;charset=utf-8"},
     body: JSON.stringify(payload)
   });
-  const data = await res.json();
+  const texto = (await res.text() || "").trim();
+  let data;
+  try{
+    data = JSON.parse(texto);
+  }catch(e){
+    const err = new Error("No se pudo leer la respuesta del servidor.");
+    err.respuestaIlegible = true;   // ojo: puede que SÍ se haya guardado
+    throw err;
+  }
   if(!data.ok) throw new Error(data.error || "Error desconocido");
   return data;
+}
+
+/* Envia al Web App con reintento. Si el primer intento se cae por un
+   problema de red o por una respuesta ilegible, se reintenta: el backend es
+   idempotente (mismo equipo+correo, o mismo jugador+equipo+correo, no se
+   duplican, te regresan lo que ya se había guardado), así que reintentar es
+   seguro y resuelve el falso error sin dejar registros repetidos. */
+async function enviarAlSheet(payload){
+  if(!CONFIG.appsScriptUrl) throw new Error("Falta configurar CONFIG.appsScriptUrl.");
+  try{
+    return await intentarEnviarAlSheet(payload);
+  }catch(err){
+    // Un error de validación real ("Falta la categoría") no se reintenta:
+    // reintentar daría exactamente el mismo error.
+    if(!err.respuestaIlegible && !(err instanceof TypeError)) throw err;
+    await new Promise(r => setTimeout(r, 1200));
+    try{
+      return await intentarEnviarAlSheet(payload);
+    }catch(err2){
+      if(err2.respuestaIlegible || err2 instanceof TypeError){
+        const fin = new Error(
+          "Se perdió la conexión al confirmar. Es probable que tu registro SÍ se haya " +
+          "guardado: revisa tu correo. Si no te llegó nada en unos minutos, vuelve a " +
+          "intentarlo o escríbenos a control@laligadebasquet.com.");
+        fin.respuestaIlegible = true;
+        throw fin;
+      }
+      throw err2;
+    }
+  }
 }
 
 async function enviarInscripcionEquipo(){
