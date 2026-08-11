@@ -791,6 +791,19 @@ function parseCsv(text){
    Usa JSONP porque Apps Script redirige a otro dominio y no manda cabeceras
    CORS, así que un fetch normal lo bloquea el navegador.
    Devuelve {"Equipos":[...], ...} o null si falla. */
+/* Lee las hojas públicas con reintentos. Antes, si el primer intento se
+   caía o se pasaba de tiempo, devolvía null y el Admin se quedaba vacío sin
+   avisar — de ahí que hubiera que recargar la página varias veces. */
+async function leerDelSheetConReintentos(hojas, intentos){
+  const maxIntentos = intentos || 3;
+  for(let i = 0; i < maxIntentos; i++){
+    const datos = await leerDelSheet(hojas, 20000);
+    if(datos) return datos;
+    if(i < maxIntentos - 1) await new Promise(r=>setTimeout(r, 900 * (i + 1)));
+  }
+  return null;
+}
+
 function leerDelSheet(hojas, timeoutMs){
   return new Promise(resolve=>{
     const nombre = "__ligaCb" + Date.now() + Math.floor(Math.random()*1000);
@@ -834,6 +847,36 @@ function leerDelSheet(hojas, timeoutMs){
       + "&callback=" + nombre;
     document.head.appendChild(script);
   });
+}
+
+/* ============================================================
+   POST al Web App, a prueba de respuestas raras.
+   El Apps Script a veces contesta algo que NO es JSON (una página HTML de
+   Google, o el texto "Apps Script de la Liga de Basquetbol activo.") aunque
+   todo esté bien. Con res.json() eso reventaba y el Admin se quedaba sin
+   datos EN SILENCIO — por eso había que recargar varias veces. Aquí se lee
+   texto plano, se intenta parsear y se reintenta un par de veces.
+   ============================================================ */
+async function postAppsScript(payload, intentos){
+  const maxIntentos = intentos || 3;
+  let ultimoError = null;
+  for(let i = 0; i < maxIntentos; i++){
+    try{
+      const res = await fetch(CONFIG.appsScriptUrl, {
+        method: "POST",
+        headers: {"Content-Type": "text/plain;charset=utf-8"},
+        body: JSON.stringify(payload)
+      });
+      const texto = (await res.text() || "").trim();
+      const data = JSON.parse(texto);         // si no es JSON, cae al catch
+      if(!data.ok) throw new Error(data.error || "Error desconocido");
+      return data;
+    }catch(err){
+      ultimoError = err;
+      if(i < maxIntentos - 1) await new Promise(r=>setTimeout(r, 900 * (i + 1)));
+    }
+  }
+  throw ultimoError || new Error("No se pudo contactar al servidor.");
 }
 
 async function loadCsv(url){
@@ -924,37 +967,63 @@ let PAGOS = DEMO_PAGOS;
    En vivo se leen del CSV de la hoja "Inscripción de Equipos". */
 const DEMO_INSCRIPCIONES = [];
 let INSCRIPCIONES = DEMO_INSCRIPCIONES;
+/* true solo si la lectura de inscripciones REALMENTE funcionó. Sirve para
+   no confundir "no hay ninguna" con "no se pudo cargar". */
+let INSCRIPCIONES_CARGADAS = false;
+/* Altas de jugadores con su fecha. Va aparte de ROSTERS porque ROSTERS
+   guarda nombres como texto plano y varias pantallas dependen de eso. */
+let ALTAS_JUGADORES = [];
+/* Qué cosas no se pudieron cargar en el último intento (para avisar). */
+let ERRORES_CARGA = [];
+
+/* Nombre + equipo + fecha de alta, del más reciente al más viejo. */
+function mapAltasJugadores(rows){
+  return (rows || [])
+    .filter(r=>r["Nombre Completo"])
+    .map(r=>({
+      nombre: r["Nombre Completo"],
+      equipo: r["Equipo"] || "",
+      ts: r["Timestamp"] || ""
+    }))
+    .sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+}
 
 async function initData(){
   let usedFallback = false;
+  ERRORES_CARGA = [];   // se reinicia en cada carga
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
-    const datos = await leerDelSheet([
+    const datos = await leerDelSheetConReintentos([
       "Equipos","Rol de Juego","Integrantes","Resultados",
       "Asistencia","Pagos"
     ]);
     if(datos){
       if(datos["Equipos"])                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
       if(datos["Rol de Juego"])             MATCHES = mapRolCsv(datos["Rol de Juego"]);
-      if(datos["Integrantes"])              ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
+      if(datos["Integrantes"]){             ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
+                                     ALTAS_JUGADORES = mapAltasJugadores(datos["Integrantes"]); }
       if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Asistencia"])            ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
       if(datos["Pagos"])                      PAGOS = mapPagosCsv(datos["Pagos"]);
     } else {
       usedFallback = true;
+      ERRORES_CARGA.push("equipos y jugadores");
     }
     // "Inscripción de Equipos" tiene teléfonos y códigos de equipo, así que
     // no está en la lista blanca pública de doGet — se pide aparte por POST
     // mandando la misma contraseña del candado de este Admin.
     try{
-      const res = await fetch(CONFIG.appsScriptUrl, {
-        method: "POST",
-        headers: {"Content-Type": "text/plain;charset=utf-8"},
-        body: JSON.stringify({action: "leerInscripciones", clave: CONFIG.adminPassword})
-      });
-      const d = await res.json();
-      if(d.ok && d.filas) INSCRIPCIONES = mapInscripcionesCsv(d.filas);
-    }catch(err){ /* deja INSCRIPCIONES como estaba */ }
+      const d = await postAppsScript({action: "leerInscripciones", clave: CONFIG.adminPassword});
+      INSCRIPCIONES = mapInscripcionesCsv(d.filas || []);
+      INSCRIPCIONES_CARGADAS = true;
+    }catch(err){
+      // Antes esto se tragaba el error y la tabla decía "Todavía no hay
+      // inscripciones", que era MENTIRA. Ahora se marca como no cargado
+      // para poder decir la verdad en pantalla.
+      INSCRIPCIONES_CARGADAS = false;
+      ERRORES_CARGA.push("inscripciones de equipos");
+      console.warn("No se pudieron leer las inscripciones:", err);
+    }
   } else {
     usedFallback = true;
   }
@@ -1052,12 +1121,7 @@ async function agregarPartido(){
   btn.textContent = "Guardando...";
 
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const data = await postAppsScript(payload);
     if(data.ok){
       msg.className = "msg ok";
       msg.textContent = "Partido agregado: " + local + " vs " + visit + " — Jornada " + jornada + ".";
@@ -1154,12 +1218,7 @@ async function guardarResultado(){
   btn.textContent = "Guardando...";
 
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"}, // evita preflight CORS con Apps Script
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const data = await postAppsScript(payload);
     if(data.ok){
       msg.className = "msg ok";
       msg.textContent = "Guardado: " + m.local + " " + scoreLocal + " - " + scoreVisit + " " + m.visit + ". Asistencia registrada.";
@@ -1235,12 +1294,7 @@ async function guardarCorreccion(){
   btn.textContent = "Guardando...";
 
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const data = await postAppsScript(payload);
     if(data.ok){
       msg.className = "msg ok";
       msg.textContent = "Corregido: " + m.local + " " + scoreLocal + " - " + scoreVisit + " " + m.visit + ". Asistencia actualizada.";
@@ -1515,7 +1569,11 @@ function renderInscripciones(){
   });
 
   if(lista.length === 0){
-    tabla.innerHTML = '<tr><td class="empty-state">Todavía no hay inscripciones.</td></tr>';
+    // Distinguir "no hay ninguna" de "no se pudo cargar": antes las dos
+    // salían igual y parecía que no había equipos inscritos cuando sí había.
+    tabla.innerHTML = INSCRIPCIONES_CARGADAS
+      ? '<tr><td class="empty-state">Todavía no hay inscripciones.</td></tr>'
+      : '<tr><td class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar las inscripciones. Dale a Recargar datos.</td></tr>';
   } else {
     let html = `<tr>
       <th>Fecha</th><th>Equipo</th><th>Categoría</th>
@@ -1551,14 +1609,10 @@ function renderInscripciones(){
 /* Últimas altas de jugadores, del más reciente al más viejo. */
 function renderAltasJugadores(){
   const tabla = document.getElementById("altasJugadoresTable");
-  const filas = [];
-  Object.keys(ROSTERS || {}).forEach(equipo=>{
-    (ROSTERS[equipo] || []).forEach(j=>{
-      const nombre = typeof j === "string" ? j : j.nombre;
-      filas.push({nombre, equipo, ts: (typeof j === "object" && j.timestamp) ? j.timestamp : ""});
-    });
-  });
-  filas.sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  // Se usa ALTAS_JUGADORES (que sí trae la fecha) en vez de ROSTERS, que
+  // guarda solo el nombre — por eso la columna "Fecha de alta" salía "—"
+  // en todos los renglones y el orden "más reciente primero" no servía.
+  const filas = ALTAS_JUGADORES || [];
   const top = filas.slice(0, 30);
 
   if(top.length === 0){
@@ -1588,13 +1642,7 @@ let PRUEBAS = null;
 async function fetchPruebas(){
   if(!CONFIG.appsScriptUrl) return null;
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify({action: "leerPruebas", clave: CONFIG.adminPassword})
-    });
-    const d = await res.json();
-    if(!d.ok) throw new Error(d.error || "Error desconocido");
+    const d = await postAppsScript({action: "leerPruebas", clave: CONFIG.adminPassword});
     return d.hojas;
   }catch(err){
     return {__error: err.message};
@@ -1701,13 +1749,7 @@ async function cambiarEstatusInscripcion(equipo, estatus){
   msg.textContent = "Guardando...";
 
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify({action: "aprobarEquipo", nombreEquipo: equipo, estatus})
-    });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    const data = await postAppsScript({action: "aprobarEquipo", nombreEquipo: equipo, estatus});
 
     const insc = INSCRIPCIONES.find(i=>i.equipo === equipo);
     if(insc) insc.estatus = estatus;
@@ -1872,12 +1914,7 @@ async function guardarPago(){
   btn.textContent = "Guardando...";
 
   try{
-    const res = await fetch(CONFIG.appsScriptUrl, {
-      method: "POST",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    const data = await postAppsScript(payload);
     if(data.ok){
       PAGOS.push({fecha, equipo, categoria, concepto, monto:Number(monto), metodoPago, referencia, quienRecibio, notas:""});
       msg.className = "msg ok";
