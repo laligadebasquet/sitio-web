@@ -1005,6 +1005,12 @@ let INSCRIPCIONES_CARGADAS = false;
 let ALTAS_JUGADORES = [];
 /* Qué cosas no se pudieron cargar en el último intento (para avisar). */
 let ERRORES_CARGA = [];
+/* true mientras initData() está trabajando. Con los reintentos, una carga
+   con mala suerte puede tardar ~30 s; sin este aviso las tablas dirían
+   "Todavía no hay nada", que se ve EXACTAMENTE igual que el bug y hace
+   pensar que sigue roto. */
+let CARGANDO = false;
+const FILA_CARGANDO = '<tr><td class="empty-state">Cargando datos…</td></tr>';
 
 /* Nombre + equipo + fecha de alta, del más reciente al más viejo. */
 function mapAltasJugadores(rows){
@@ -1021,6 +1027,8 @@ function mapAltasJugadores(rows){
 async function initData(){
   let usedFallback = false;
   ERRORES_CARGA = [];   // se reinicia en cada carga
+  CARGANDO = true;
+  repintarVistaActual();   // muestra "Cargando datos…" de inmediato
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
     const datos = await leerDelSheetConReintentos([
@@ -1098,6 +1106,9 @@ async function initData(){
     jornadas.map(j=>`<option value="${j}">Jornada ${j}</option>`).join("");
   const programadas = MATCHES.filter(m=>m.estatus === "Programado").map(m=>m.jornada);
   jornadaSelect.value = programadas.length ? Math.min(...programadas) : (jornadas[jornadas.length - 1] || "todas");
+
+  CARGANDO = false;
+  repintarVistaActual();   // cambia "Cargando datos…" por los datos reales
 
   // Red de seguridad: si algo no cargó, se vuelve a intentar SOLO, en
   // segundo plano, sin que nadie tenga que picarle a nada.
@@ -1555,7 +1566,7 @@ function buscarResultadoPorEquipos(jornada, local, visit){
 function renderCruces(){
   const tabla = document.getElementById("crucesTable");
   if(EQUIPOS.length === 0){
-    tabla.innerHTML = '<tr><td class="empty-state">Todavía no hay equipos.</td></tr>';
+    tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay equipos.</td></tr>';
     return;
   }
 
@@ -1631,7 +1642,8 @@ function renderInscripciones(){
     // salían igual y parecía que no había equipos inscritos cuando sí había.
     tabla.innerHTML = INSCRIPCIONES_CARGADAS
       ? '<tr><td class="empty-state">Todavía no hay inscripciones.</td></tr>'
-      : '<tr><td class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar las inscripciones. Dale a Recargar datos.</td></tr>';
+      : '<tr><td class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar las inscripciones. Se está reintentando solo…</td></tr>';
+    if(CARGANDO) tabla.innerHTML = FILA_CARGANDO;
   } else {
     let html = `<tr>
       <th>Fecha</th><th>Equipo</th><th>Categoría</th>
@@ -1674,7 +1686,7 @@ function renderAltasJugadores(){
   const top = filas.slice(0, 30);
 
   if(top.length === 0){
-    tabla.innerHTML = '<tr><td class="empty-state">Todavía no hay jugadores dados de alta.</td></tr>';
+    tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay jugadores dados de alta.</td></tr>';
     return;
   }
   let html = "<tr><th>Jugador</th><th>Equipo</th><th>Fecha de alta</th></tr>";
@@ -1835,7 +1847,7 @@ function mapInscripcionesCsv(rows){
 function renderPagos(){
   const tabla = document.getElementById("pagosTable");
   if(EQUIPOS.length === 0){
-    tabla.innerHTML = '<tr><td class="empty-state">Todavía no hay equipos.</td></tr>';
+    tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay equipos.</td></tr>';
     return;
   }
 
