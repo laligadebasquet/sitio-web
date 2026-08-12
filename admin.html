@@ -741,6 +741,20 @@
 </main>
 
 <!-- ============ MODAL: DETALLE DE PAGO POR EQUIPO ============ -->
+<!-- Foto del jugador, la misma que sale en su credencial. -->
+<div class="modal-overlay" id="fotoModal" onclick="if(event.target===this) cerrarFotoJugador()">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div>
+        <h3 id="fotoModalTitle">Foto</h3>
+        <span id="fotoModalSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarFotoJugador()">✕</button>
+    </div>
+    <div class="modal-body" id="fotoModalBody" style="text-align:center;"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="pagoModal" onclick="if(event.target===this) cerrarDetallePago()">
   <div class="modal-box">
     <div class="modal-header">
@@ -1145,6 +1159,7 @@ function mapAltasJugadores(rows){
       nombre: r["Nombre Completo"],
       equipo: r["Equipo"] || "",
       correo: r["Correo"] || "",
+      foto: r["Foto"] || "",
       ts: r["Timestamp"] || ""
     }))
     .sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
@@ -2018,6 +2033,30 @@ function renderInscripciones(){
   renderAltasJugadores();
 }
 
+/* Muestra la foto del jugador (la misma que sale en su credencial).
+   Recibe el índice dentro de ALTAS_JUGADORES, no la foto: son data URLs de
+   cientos de miles de caracteres y no tienen por qué viajar por el HTML. */
+function verFotoJugador(indice){
+  const j = (ALTAS_JUGADORES || [])[indice];
+  if(!j) return;
+  document.getElementById("fotoModalTitle").textContent = j.nombre || "Jugador";
+  document.getElementById("fotoModalSub").textContent =
+    (j.equipo || "") + (j.ts ? " · alta " + j.ts : "");
+  const cuerpo = document.getElementById("fotoModalBody");
+  cuerpo.innerHTML = j.foto
+    ? `<img src="${j.foto}" alt="Foto de ${j.nombre}"
+            style="max-width:100%;max-height:60vh;border-radius:10px;border:1px solid #333;">
+       <p style="margin:12px 0 0;font-size:12px;color:#888;">${j.correo || ""}</p>`
+    : '<div class="empty-state">Este jugador no subió foto.</div>';
+  document.getElementById("fotoModal").classList.add("open");
+}
+
+function cerrarFotoJugador(){
+  document.getElementById("fotoModal").classList.remove("open");
+  // Se suelta la imagen para no dejar varios megas colgando en memoria.
+  document.getElementById("fotoModalBody").innerHTML = "";
+}
+
 /* Mismo criterio de formato que usa el servidor (correoValido_). */
 function correoTieneFormatoValido(correo){
   const c = String(correo || "").trim();
@@ -2083,14 +2122,21 @@ function renderAltasJugadores(){
     tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay jugadores dados de alta.</td></tr>';
     return;
   }
-  let html = "<tr><th>Jugador</th><th>Equipo</th><th>Correo</th><th>Fecha de alta</th><th></th></tr>";
-  top.forEach(f=>{
+  let html = "<tr><th>Jugador</th><th>Equipo</th><th>Correo</th><th>Fecha de alta</th><th>Foto</th><th></th></tr>";
+  // OJO: la foto es un data URL de cientos de miles de caracteres. Al botón
+  // se le pasa el ÍNDICE, nunca la foto: meterla en el onclick generaría un
+  // HTML gigantesco y tumbaría la página.
+  top.forEach((f, i)=>{
     const seguro = (t)=>String(t||"").replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const btnFoto = f.foto
+      ? `<button class="mini-btn" onclick="verFotoJugador(${i})">Ver foto</button>`
+      : `<span style="color:#777;font-size:11px;">Sin foto</span>`;
     html += `<tr>
       <td>${f.nombre}</td>
       <td>${f.equipo}</td>
       <td>${f.correo || "—"}</td>
       <td>${f.ts || "—"}</td>
+      <td>${btnFoto}</td>
       <td><button class="mini-btn" onclick="corregirCorreoDe('${seguro(f.nombre)}','${seguro(f.equipo)}','${seguro(f.correo)}')">Corregir correo</button></td>
     </tr>`;
   });
