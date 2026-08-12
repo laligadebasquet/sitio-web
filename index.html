@@ -3455,6 +3455,81 @@ async function intentarEnviarAlSheet(payload){
   return data;
 }
 
+/* ============================================================
+   VALIDACIÓN DE CORREO
+   Un correo mal escrito es un problema serio aquí: la credencial se manda
+   por correo y, si rebota, el jugador no se entera. Peor: si intenta darse
+   de alta otra vez, el sistema le dice que ya está registrado. Por eso se
+   valida en dos niveles.
+   ============================================================ */
+
+/* Nivel 1: el formato tiene que ser correcto de verdad. Es el mismo
+   criterio que aplica el servidor (correoValido_ en el Apps Script). */
+function correoTieneFormatoValido(correo){
+  const c = String(correo || "").trim();
+  if(c.length < 6 || c.length > 254) return false;
+  if(c.includes(" ")) return false;
+  const partes = c.split("@");
+  if(partes.length !== 2) return false;
+  const [local, dominio] = partes;
+  if(!local || local.length > 64) return false;
+  if(!/^[A-Za-z0-9._%+\-]+$/.test(local)) return false;
+  if(local.startsWith(".") || local.endsWith(".") || local.includes("..")) return false;
+  if(!dominio || dominio.length > 253) return false;
+  if(dominio.includes("..") || dominio.startsWith(".") || dominio.startsWith("-")) return false;
+  return /^([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(dominio);
+}
+
+/* Nivel 2: errores de dedo. El formato de "juan@gmial.com" es impecable,
+   pero ese correo no existe. Se compara el dominio contra los que usa
+   casi todo el mundo y, si se parece mucho sin ser igual, se sugiere. */
+const DOMINIOS_COMUNES = [
+  "gmail.com","hotmail.com","outlook.com","yahoo.com","icloud.com",
+  "live.com","hotmail.es","outlook.es","yahoo.com.mx","live.com.mx","me.com"
+];
+
+/* Distancia de edición: cuántos cambios de una letra hay entre dos textos. */
+function distanciaEdicion(a, b){
+  const m = a.length, n = b.length;
+  let fila = Array.from({length: n + 1}, (_, j) => j);
+  for(let i = 1; i <= m; i++){
+    let anterior = fila[0];
+    fila[0] = i;
+    for(let j = 1; j <= n; j++){
+      const temp = fila[j];
+      fila[j] = Math.min(
+        fila[j] + 1,                                   // borrar
+        fila[j-1] + 1,                                 // insertar
+        anterior + (a[i-1] === b[j-1] ? 0 : 1)         // sustituir
+      );
+      anterior = temp;
+    }
+  }
+  return fila[n];
+}
+
+/* Devuelve el correo corregido si el dominio parece un error de dedo, o
+   null si se ve bien. Nunca corrige solo: siempre le pregunta al jugador,
+   porque un dominio raro puede ser perfectamente real (el de su trabajo). */
+function sugerenciaDeCorreo(correo){
+  const c = String(correo || "").trim().toLowerCase();
+  const arroba = c.lastIndexOf("@");
+  if(arroba < 1) return null;
+  const local = c.slice(0, arroba);
+  const dominio = c.slice(arroba + 1);
+  if(DOMINIOS_COMUNES.includes(dominio)) return null;   // ya está bien
+
+  let mejor = null, mejorDist = 99;
+  DOMINIOS_COMUNES.forEach(d=>{
+    const dist = distanciaEdicion(dominio, d);
+    if(dist < mejorDist){ mejorDist = dist; mejor = d; }
+  });
+  // Hasta 2 cambios: cubre gmial/gmai/gmail.con/hotmial/yaho, y deja en paz
+  // los dominios de empresa, que quedan lejísimos de estos.
+  if(mejor && mejorDist > 0 && mejorDist <= 2) return local + "@" + mejor;
+  return null;
+}
+
 /* Envia al Web App con reintento. Si el primer intento se cae por un
    problema de red o por una respuesta ilegible, se reintenta: el backend es
    idempotente (mismo equipo+correo, o mismo jugador+equipo+correo, no se
@@ -3492,7 +3567,7 @@ async function enviarInscripcionEquipo(){
   const telCapitan = document.getElementById("iEqTelCapitan").value.trim();
   const subCapitan = document.getElementById("iEqSub").value.trim();
   const telSub     = document.getElementById("iEqTelSub").value.trim();
-  const correo     = document.getElementById("iEqCorreo").value.trim();
+  let correo       = document.getElementById("iEqCorreo").value.trim();
 
   if(!nombre)     return mostrarMsgInsc("iEqMsg","err","Escribe el nombre del equipo.");
   if(!categoria)  return mostrarMsgInsc("iEqMsg","err","Selecciona la categoría.");
@@ -3501,7 +3576,16 @@ async function enviarInscripcionEquipo(){
   if(!subCapitan) return mostrarMsgInsc("iEqMsg","err","Escribe el nombre del sub-capitán.");
   if(!telSub)     return mostrarMsgInsc("iEqMsg","err","Escribe el teléfono del sub-capitán.");
   if(!correo)     return mostrarMsgInsc("iEqMsg","err","Escribe el correo de contacto.");
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarMsgInsc("iEqMsg","err","Ese correo no parece válido.");
+  if(!correoTieneFormatoValido(correo)) return mostrarMsgInsc("iEqMsg","err","Ese correo no parece válido. Revísalo bien.");
+  // Error de dedo en el dominio (gmial.com, gmail.con...). Se pregunta, no
+  // se corrige solo: puede ser el correo real de su trabajo.
+  const sugEq = sugerenciaDeCorreo(correo);
+  if(sugEq && !confirm("¿Tu correo es " + sugEq + "?\n\nEscribiste: " + correo + "\n\nAceptar = usar " + sugEq + "\nCancelar = dejarlo como lo escribiste")){
+    // se queda con lo que escribió
+  } else if(sugEq){
+    document.getElementById("iEqCorreo").value = sugEq;
+    correo = sugEq;
+  }
   if(!_menoresEquipo) return mostrarMsgInsc("iEqMsg","err","Indica si el equipo tiene jugadores menores de edad.");
   if(!document.getElementById("iEqReglamento").checked)
     return mostrarMsgInsc("iEqMsg","err","Para inscribir al equipo necesitas aceptar el reglamento de la liga.");
@@ -3549,7 +3633,7 @@ async function enviarAltaJugador(){
   const nombrePila = document.getElementById("iJgNombre").value.trim();
   const apellido = document.getElementById("iJgApellido").value.trim();
   const fechaNacimiento = document.getElementById("iJgFechaNac").value;
-  const correo = document.getElementById("iJgCorreo").value.trim();
+  let correo = document.getElementById("iJgCorreo").value.trim();
   const codigo = document.getElementById("iJgCodigo").value.trim().toUpperCase();
   const nombre = (nombrePila + " " + apellido).trim();
 
@@ -3557,7 +3641,16 @@ async function enviarAltaJugador(){
   if(!apellido) return mostrarMsgInsc("iJgMsg","err","Escribe tu apellido.");
   if(!fechaNacimiento) return mostrarMsgInsc("iJgMsg","err","Escribe tu fecha de nacimiento.");
   if(!correo) return mostrarMsgInsc("iJgMsg","err","Escribe tu correo electrónico.");
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarMsgInsc("iJgMsg","err","Ese correo no parece válido.");
+  if(!correoTieneFormatoValido(correo)) return mostrarMsgInsc("iJgMsg","err","Ese correo no parece válido. Revísalo bien.");
+  // Aquí importa el doble: a este correo se manda la credencial. Si está
+  // mal, no llega y al reintentar el alta el sistema dice que ya existe.
+  const sugJg = sugerenciaDeCorreo(correo);
+  if(sugJg && !confirm("¿Tu correo es " + sugJg + "?\n\nEscribiste: " + correo + "\n\nAceptar = usar " + sugJg + "\nCancelar = dejarlo como lo escribiste")){
+    // se queda con lo que escribió
+  } else if(sugJg){
+    document.getElementById("iJgCorreo").value = sugJg;
+    correo = sugJg;
+  }
   if(!codigo) return mostrarMsgInsc("iJgMsg","err","Escribe el código de tu equipo.");
   if(!_equipoResuelto || _equipoResuelto.codigo !== codigo){
     await verificarCodigoEquipoUI();

@@ -327,6 +327,8 @@ function doPost(e) {
       cambiarPasswordCapitan(ss, data);
     } else if (data.action === "leerPruebas") {
       resultado.hojas = leerPruebas(ss, data);
+    } else if (data.action === "corregirCorreoJugador") {
+      resultado.correccion = corregirCorreoJugador(ss, data);
     } else if (data.action === "reportarPruebas") {
       resultado.reporte = reportarPruebas(ss, data);
     } else if (data.action === "borrarPruebas") {
@@ -379,6 +381,43 @@ function normalizarTexto_(txt) {
  */
 function esEquipoPrueba_(nombre) {
   return normalizarTexto_(nombre).indexOf("prueba") === 0;
+}
+
+/**
+ * ¿El correo tiene forma de correo de verdad?
+ *
+ * El regex que había antes (/^[^\s@]+@[^\s@]+\.[^\s@]+$/) dejaba pasar
+ * basura como "a@b.c", "juan@@gmail.com" o "juan@.com". Nadie puede
+ * comprobar desde aquí si un buzón EXISTE — eso solo se sabe cuando el
+ * correo rebota — pero sí se puede exigir que el formato sea correcto, que
+ * es donde se van casi todos los errores de captura.
+ *
+ * OJO: esto NO detecta "gmial.com". De eso se encarga la Consola, que le
+ * sugiere al jugador la corrección antes de mandar el formulario.
+ */
+function correoValido_(correo) {
+  var c = String(correo == null ? "" : correo).trim();
+  if (c.length < 6 || c.length > 254) return false;
+  if (c.indexOf(" ") > -1) return false;
+
+  var partes = c.split("@");
+  if (partes.length !== 2) return false;          // ni cero ni dos arrobas
+
+  var local = partes[0];
+  var dominio = partes[1];
+
+  if (!local || local.length > 64) return false;
+  if (!/^[A-Za-z0-9._%+\-]+$/.test(local)) return false;
+  if (local.charAt(0) === "." || local.charAt(local.length - 1) === ".") return false;
+  if (local.indexOf("..") > -1) return false;
+
+  if (!dominio || dominio.length > 253) return false;
+  if (dominio.indexOf("..") > -1) return false;
+  if (dominio.charAt(0) === "." || dominio.charAt(0) === "-") return false;
+  // etiquetas separadas por punto y terminación de al menos 2 letras
+  if (!/^([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(dominio)) return false;
+
+  return true;
 }
 
 // Caracteres para el código de equipo: sin 0/O, 1/I/L ni vocales que se
@@ -475,7 +514,7 @@ function inscribirEquipo(ss, data) {
   if (!data.telSubCapitan) throw new Error("Falta el teléfono del sub-capitán.");
   var correoEq = String(data.correo || "").trim();
   if (!correoEq) throw new Error("Falta el correo de contacto.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoEq)) throw new Error("El correo de contacto no es válido.");
+  if (!correoValido_(correoEq)) throw new Error("El correo de contacto no es válido. Revisa que esté bien escrito.");
   if (!data.reglamentoAceptado) throw new Error("Falta aceptar el reglamento de la liga.");
 
   var hojaInsc = ss.getSheetByName("Inscripción de Equipos");
@@ -633,7 +672,7 @@ function altaJugador(ss, data) {
   var nombre = (nombrePila + " " + apellido).trim();
   var correo = String(data.correo || "").trim();
   if (!correo) throw new Error("Falta el correo del jugador.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) throw new Error("El correo no es válido.");
+  if (!correoValido_(correo)) throw new Error("El correo no es válido. Revisa que esté bien escrito.");
 
   var edad = calcularEdad_(fechaNacimiento);
   var esMenor = edad !== null && edad >= 0 && edad < 18;
@@ -1105,6 +1144,76 @@ function reenviarCorreoBienvenidaJugador_(ss, data) {
   });
 
   return { enviados: encontrados.length };
+}
+
+/**
+ * Corrige el correo de un jugador ya dado de alta y le reenvía su
+ * credencial al correo nuevo.
+ *
+ * Para qué sirve: si alguien se equivoca al escribir su correo, nunca le
+ * llega la credencial. Si intenta darse de alta otra vez, el sistema le
+ * dice que ya está registrado (y hace bien, si no se duplicaría). Sin esto
+ * la única salida era editar el Google Sheet a mano.
+ *
+ * Se identifica al jugador por nombre + equipo, que es lo que el Admin
+ * tiene a la vista. Protegido con la clave de Admin.
+ */
+function corregirCorreoJugador(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) throw new Error("No autorizado.");
+
+  var nombre = String(data.nombre || "").trim();
+  var equipo = String(data.equipo || "").trim();
+  var correoNuevo = String(data.correoNuevo || "").trim();
+  if (!nombre) throw new Error("Falta el nombre del jugador.");
+  if (!equipo) throw new Error("Falta el equipo del jugador.");
+  if (!correoValido_(correoNuevo)) throw new Error("El correo nuevo no es válido. Revisa que esté bien escrito.");
+
+  var hojaInt = ss.getSheetByName("Integrantes");
+  if (!hojaInt) throw new Error("No existe la hoja 'Integrantes'.");
+  var ultima = hojaInt.getLastRow();
+  if (ultima < 2) throw new Error("La hoja 'Integrantes' está vacía.");
+
+  // Columnas: A Timestamp, B Nombre Completo, C Equipo, D Foto, E Correo
+  var filas = hojaInt.getRange(2, 1, ultima - 1, 5).getValues();
+  var objetivoNombre = normalizarTexto_(nombre);
+  var objetivoEquipo = normalizarTexto_(equipo);
+
+  for (var i = 0; i < filas.length; i++) {
+    if (normalizarTexto_(filas[i][1]) !== objetivoNombre) continue;
+    if (normalizarTexto_(filas[i][2]) !== objetivoEquipo) continue;
+
+    var correoAnterior = String(filas[i][4] || "").trim();
+    hojaInt.getRange(i + 2, 5).setValue(correoNuevo);
+
+    // Se le manda la credencial al correo bueno. Si falla el envío no se
+    // deshace la corrección: el dato del Sheet ya quedó bien, que es lo
+    // importante; el reenvío se puede repetir después.
+    var reenviado = false;
+    try {
+      var categoria = "";
+      var hojaInsc = ss.getSheetByName("Inscripción de Equipos");
+      if (hojaInsc) {
+        var ultInsc = hojaInsc.getLastRow();
+        if (ultInsc >= 2) {
+          var inscFilas = hojaInsc.getRange(2, 2, ultInsc - 1, 3).getValues();
+          for (var j = 0; j < inscFilas.length; j++) {
+            if (normalizarTexto_(inscFilas[j][0]) === objetivoEquipo) {
+              categoria = String(inscFilas[j][2]).trim();
+              break;
+            }
+          }
+        }
+      }
+      enviarCorreoBienvenidaJugador_(correoNuevo, String(filas[i][1]).trim(), String(filas[i][2]).trim(), categoria, String(filas[i][3] || ""));
+      reenviado = true;
+    } catch (errEnvio) {
+      Logger.log("Se corrigió el correo de " + nombre + " pero no se pudo reenviar: " + errEnvio);
+    }
+
+    return { correoAnterior: correoAnterior, correoNuevo: correoNuevo, reenviado: reenviado };
+  }
+
+  throw new Error("No encontré a '" + nombre + "' en el equipo '" + equipo + "'.");
 }
 
 /**

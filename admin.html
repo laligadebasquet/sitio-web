@@ -113,6 +113,11 @@
     padding:10px 12px; border-radius:4px; margin-bottom:16px; text-transform:none; font-weight:600;
   }
   .empty-state{color:var(--text-soft); font-size:13px; padding:20px; text-align:center; text-transform:none;}
+  .mini-btn{
+    padding:5px 11px;border-radius:6px;border:1px solid #444;background:#222;
+    color:#ddd;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+  }
+  .mini-btn:hover{background:#E8365D;border-color:#E8365D;color:#fff;}
   /* ---------- Rol de juego: filtro por categoría + dos columnas ---------- */
   .cat-botones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .cat-btn{
@@ -1139,6 +1144,7 @@ function mapAltasJugadores(rows){
     .map(r=>({
       nombre: r["Nombre Completo"],
       equipo: r["Equipo"] || "",
+      correo: r["Correo"] || "",
       ts: r["Timestamp"] || ""
     }))
     .sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
@@ -2012,6 +2018,58 @@ function renderInscripciones(){
   renderAltasJugadores();
 }
 
+/* Mismo criterio de formato que usa el servidor (correoValido_). */
+function correoTieneFormatoValido(correo){
+  const c = String(correo || "").trim();
+  if(c.length < 6 || c.length > 254) return false;
+  if(c.includes(" ")) return false;
+  const partes = c.split("@");
+  if(partes.length !== 2) return false;
+  const [local, dominio] = partes;
+  if(!local || local.length > 64) return false;
+  if(!/^[A-Za-z0-9._%+\-]+$/.test(local)) return false;
+  if(local.startsWith(".") || local.endsWith(".") || local.includes("..")) return false;
+  if(!dominio || dominio.length > 253) return false;
+  if(dominio.includes("..") || dominio.startsWith(".") || dominio.startsWith("-")) return false;
+  return /^([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/.test(dominio);
+}
+
+/* Corrige el correo de un jugador que se equivocó al darse de alta y le
+   reenvía la credencial al correo bueno. Sirve para el caso típico: puso
+   mal su correo, nunca le llegó nada, y si intenta registrarse otra vez el
+   sistema le dice (con razón) que ya está dado de alta. */
+async function corregirCorreoDe(nombre, equipo, correoActual){
+  const nuevo = prompt(
+    "Corregir el correo de " + nombre + " (" + equipo + ")\n\n" +
+    "Correo actual: " + (correoActual || "—") + "\n\n" +
+    "Escribe el correo correcto. Se le reenviará su credencial ahí.",
+    correoActual || "");
+  if(nuevo === null) return;                     // canceló
+
+  const limpio = String(nuevo).trim();
+  if(!correoTieneFormatoValido(limpio)){
+    alert("Ese correo no es válido: " + limpio + "\n\nRevisa que esté bien escrito.");
+    return;
+  }
+  if(limpio === correoActual){ alert("Es el mismo correo, no hay nada que cambiar."); return; }
+
+  try{
+    const d = await postAppsScript({
+      action: "corregirCorreoJugador",
+      clave: CONFIG.adminPassword,
+      nombre, equipo, correoNuevo: limpio
+    });
+    const c = d.correccion || {};
+    alert("Listo.\n\n" + nombre + "\nAntes: " + (c.correoAnterior || "—") + "\nAhora: " + c.correoNuevo +
+          (c.reenviado ? "\n\nYa se le reenvió su credencial." :
+                         "\n\nOJO: el correo quedó corregido, pero no se pudo reenviar la credencial. Inténtalo otra vez en un momento."));
+    await initData();
+    repintarVistaActual();
+  }catch(err){
+    alert("No se pudo corregir: " + err.message);
+  }
+}
+
 /* Últimas altas de jugadores, del más reciente al más viejo. */
 function renderAltasJugadores(){
   const tabla = document.getElementById("altasJugadoresTable");
@@ -2025,9 +2083,16 @@ function renderAltasJugadores(){
     tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay jugadores dados de alta.</td></tr>';
     return;
   }
-  let html = "<tr><th>Jugador</th><th>Equipo</th><th>Fecha de alta</th></tr>";
+  let html = "<tr><th>Jugador</th><th>Equipo</th><th>Correo</th><th>Fecha de alta</th><th></th></tr>";
   top.forEach(f=>{
-    html += `<tr><td>${f.nombre}</td><td>${f.equipo}</td><td>${f.ts || "—"}</td></tr>`;
+    const seguro = (t)=>String(t||"").replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    html += `<tr>
+      <td>${f.nombre}</td>
+      <td>${f.equipo}</td>
+      <td>${f.correo || "—"}</td>
+      <td>${f.ts || "—"}</td>
+      <td><button class="mini-btn" onclick="corregirCorreoDe('${seguro(f.nombre)}','${seguro(f.equipo)}','${seguro(f.correo)}')">Corregir correo</button></td>
+    </tr>`;
   });
   html += `<tr><td colspan="3" class="empty-state" style="text-align:left;">
       ${filas.length} jugador${filas.length===1?"":"es"} en total${filas.length>30?" (se muestran los 30 más recientes)":""}.
