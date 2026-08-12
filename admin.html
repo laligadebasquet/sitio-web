@@ -777,6 +777,22 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
   });
 });
 
+/* Vuelve a pintar la pestaña que está abierta. Se usa después de un
+   reintento automático, para que los datos que sí llegaron aparezcan sin
+   que el usuario tenga que cambiar de pestaña o recargar. */
+function repintarVistaActual(){
+  const activo = document.querySelector("nav.tabs button.active");
+  const vista = activo ? activo.dataset.view : null;
+  try{
+    if(vista === "cedulas") renderCedulas();
+    else if(vista === "cruces") renderCruces();
+    else if(vista === "pagos") renderPagos();
+    else if(vista === "inscripciones") renderInscripciones();
+    else if(vista === "pruebas") renderPruebas();
+    else if(typeof renderScheduleList === "function") renderScheduleList();
+  }catch(e){ console.warn("No se pudo repintar la vista:", e); }
+}
+
 function parseCsv(text){
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h=>h.trim());
@@ -794,12 +810,13 @@ function parseCsv(text){
 /* Lee las hojas públicas con reintentos. Antes, si el primer intento se
    caía o se pasaba de tiempo, devolvía null y el Admin se quedaba vacío sin
    avisar — de ahí que hubiera que recargar la página varias veces. */
-async function leerDelSheetConReintentos(hojas, intentos){
-  const maxIntentos = intentos || 3;
-  for(let i = 0; i < maxIntentos; i++){
+async function leerDelSheetConReintentos(hojas){
+  for(let i = 0; i <= ESPERAS_REINTENTO.length; i++){
     const datos = await leerDelSheet(hojas, 20000);
     if(datos) return datos;
-    if(i < maxIntentos - 1) await new Promise(r=>setTimeout(r, 900 * (i + 1)));
+    if(i < ESPERAS_REINTENTO.length){
+      await new Promise(r=>setTimeout(r, ESPERAS_REINTENTO[i]));
+    }
   }
   return null;
 }
@@ -857,23 +874,36 @@ function leerDelSheet(hojas, timeoutMs){
    datos EN SILENCIO — por eso había que recargar varias veces. Aquí se lee
    texto plano, se intenta parsear y se reintenta un par de veces.
    ============================================================ */
-async function postAppsScript(payload, intentos){
-  const maxIntentos = intentos || 3;
+/* Esperas entre reintentos, en milisegundos.
+   MEDIDO en vivo: el Web App contesta 404 como en 1 de cada 6 llamadas.
+   No es que el script falle (en el panel de Ejecuciones TODAS salen
+   "Completada"); lo que caduca es la URL temporal de googleusercontent.com
+   donde Google deja la respuesta. Los fallos vienen en rachas de unos
+   segundos, así que las esperas son largas y crecientes A PROPÓSITO: si se
+   reintenta muy rápido, los 3 intentos caen en la misma racha mala y falla
+   igual. Con estas esperas el último intento ocurre ~15 s después. */
+const ESPERAS_REINTENTO = [800, 2000, 4500, 8000];
+
+async function postAppsScript(payload){
   let ultimoError = null;
-  for(let i = 0; i < maxIntentos; i++){
+  for(let i = 0; i <= ESPERAS_REINTENTO.length; i++){
     try{
       const res = await fetch(CONFIG.appsScriptUrl, {
         method: "POST",
         headers: {"Content-Type": "text/plain;charset=utf-8"},
         body: JSON.stringify(payload)
       });
+      // El 404 de la URL temporal se ve aquí: hay que reintentar, no rendirse.
+      if(!res.ok) throw new Error("HTTP " + res.status);
       const texto = (await res.text() || "").trim();
       const data = JSON.parse(texto);         // si no es JSON, cae al catch
       if(!data.ok) throw new Error(data.error || "Error desconocido");
       return data;
     }catch(err){
       ultimoError = err;
-      if(i < maxIntentos - 1) await new Promise(r=>setTimeout(r, 900 * (i + 1)));
+      if(i < ESPERAS_REINTENTO.length){
+        await new Promise(r=>setTimeout(r, ESPERAS_REINTENTO[i]));
+      }
     }
   }
   throw ultimoError || new Error("No se pudo contactar al servidor.");
@@ -1068,6 +1098,34 @@ async function initData(){
     jornadas.map(j=>`<option value="${j}">Jornada ${j}</option>`).join("");
   const programadas = MATCHES.filter(m=>m.estatus === "Programado").map(m=>m.jornada);
   jornadaSelect.value = programadas.length ? Math.min(...programadas) : (jornadas[jornadas.length - 1] || "todas");
+
+  // Red de seguridad: si algo no cargó, se vuelve a intentar SOLO, en
+  // segundo plano, sin que nadie tenga que picarle a nada.
+  if(ERRORES_CARGA.length) programarReintentoAutomatico();
+}
+
+/* Reintenta la carga completa en segundo plano hasta 3 veces, separando
+   bien los intentos (los fallos del Web App vienen en rachas). En cuanto
+   uno funciona, la pantalla se actualiza sola. */
+let _reintentosAuto = 0;
+function programarReintentoAutomatico(){
+  if(_reintentosAuto >= 3) return;
+  _reintentosAuto++;
+  const espera = 6000 * _reintentosAuto;   // 6 s, 12 s, 18 s
+  console.warn("Faltaron datos (" + ERRORES_CARGA.join(", ") + "). Reintentando solo en " + (espera/1000) + "s…");
+  setTimeout(async ()=>{
+    try{
+      await initData();
+      repintarVistaActual();               // que se vea sin recargar
+      if(!ERRORES_CARGA.length){
+        _reintentosAuto = 0;
+        console.info("Datos completos tras el reintento automático.");
+      }
+    }catch(e){
+      console.warn("Falló el reintento automático:", e);
+      programarReintentoAutomatico();
+    }
+  }, espera);
 }
 
 function renderScheduleList(){
