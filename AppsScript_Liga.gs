@@ -1290,13 +1290,39 @@ function cambiarPasswordCapitan(ss, data) {
   hojaInsc.getRange(encontrado.indiceFila, CAPITAN_PASSWORD_COL_).setValue(passwordNueva.toUpperCase());
 }
 
+// Columnas de "Rol de Juego" después de la novena (Estatus). Se crean solas
+// la primera vez que hace falta, igual que se hizo con "Código" y
+// "Contraseña Capitán" en Inscripción de Equipos.
+var ROL_ARBITRO2_COL_ = 10; // columna J
+var ROL_MESA_COL_ = 11;     // columna K
+
+/**
+ * Agrega un partido a "Rol de Juego".
+ * OJO con el vocabulario: la liga se maneja por SEMANA, no por jornada. La
+ * columna A de la hoja se sigue llamando "Jornada" (así estaba desde el
+ * principio y cambiarla rompería fórmulas), pero para el Admin y para la
+ * Consola ese número ES la semana. Por eso se acepta data.semana y, si no
+ * viene, se cae a data.jornada por compatibilidad.
+ */
 function programarPartido(ss, data) {
   var hoja = ss.getSheetByName("Rol de Juego");
   if (!hoja) throw new Error("No existe la hoja 'Rol de Juego'.");
+
+  if (String(hoja.getRange(1, ROL_ARBITRO2_COL_).getValue()).trim() === "") {
+    hoja.getRange(1, ROL_ARBITRO2_COL_).setValue("Árbitro 2");
+  }
+  if (String(hoja.getRange(1, ROL_MESA_COL_).getValue()).trim() === "") {
+    hoja.getRange(1, ROL_MESA_COL_).setValue("Mesa");
+  }
+
+  var semana = (data.semana !== undefined && data.semana !== null && data.semana !== "")
+    ? data.semana : data.jornada;
+
   // Esta hoja no tiene fórmulas precargadas, así que appendRow es seguro.
   hoja.appendRow([
-    data.jornada, data.fecha, data.hora, data.sede, data.categoria,
-    data.equipoLocal, data.equipoVisit, data.arbitro, "Programado"
+    semana, data.fecha, data.hora, data.sede, data.categoria,
+    data.equipoLocal, data.equipoVisit, data.arbitro || "", "Programado",
+    data.arbitro2 || "", data.mesa || ""
   ]);
 }
 

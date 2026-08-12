@@ -113,6 +113,62 @@
     padding:10px 12px; border-radius:4px; margin-bottom:16px; text-transform:none; font-weight:600;
   }
   .empty-state{color:var(--text-soft); font-size:13px; padding:20px; text-align:center; text-transform:none;}
+  /* ---------- Rol de juego: filtro por categoría + dos columnas ---------- */
+  .cat-botones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .cat-btn{
+    padding:8px 16px;border-radius:999px;border:1px solid #333;background:#1a1a1a;
+    color:#bbb;font-weight:700;font-size:12px;letter-spacing:.4px;cursor:pointer;
+    text-transform:uppercase;
+  }
+  .cat-btn:hover{border-color:#666;color:#fff;}
+  .cat-btn.active{background:#E8365D;border-color:#E8365D;color:#fff;}
+  .rol-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;}
+  @media(max-width:1100px){ .rol-split{grid-template-columns:1fr;} }
+  .rol-col{min-width:0;}
+  .rol-col-titulo{
+    font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+    color:#888;margin:0 0 10px;font-weight:800;
+  }
+  /* Tabla del rol (izquierda) */
+  .rol-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+  .rol-tabla th{
+    background:#2E7D46;color:#fff;padding:6px 8px;text-align:center;
+    font-weight:800;text-transform:lowercase;font-size:11px;
+  }
+  .rol-tabla td{padding:5px 8px;text-align:center;border-bottom:1px solid #222;color:#ddd;}
+  .rol-tabla tr.sep-semana td{
+    background:#000;color:#fff;font-weight:900;text-transform:uppercase;
+    letter-spacing:1px;font-size:11px;padding:6px 8px;
+  }
+  .rol-tabla td.rol-cat{font-weight:700;white-space:nowrap;}
+  /* Cuadro de cruces (derecha) */
+  .cruces-tabla{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;}
+  .cruces-tabla th{
+    background:#E08A2E;color:#fff;padding:4px 2px;text-align:center;
+    font-weight:800;font-size:10px;
+  }
+  .cruces-tabla th.cru-equipo{text-align:left;padding-left:8px;width:34%;}
+  .cruces-tabla td{
+    padding:4px 2px;text-align:center;border:1px solid #111;
+    font-weight:800;color:#111;height:22px;
+  }
+  .cruces-tabla td.cru-num{background:#f2f2f2;color:#111;font-weight:900;width:22px;}
+  .cruces-tabla td.cru-equipo{
+    text-align:left;padding-left:8px;background:#fafafa;color:#111;
+    font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  /* Colores tal cual los definiste */
+  .cru-jugado{background:#4CAF50;color:#fff;}      /* verde  = jugado */
+  .cru-termino{background:#4A78D8;color:#fff;}     /* azul   = ya terminó sus partidos */
+  .cru-descanso{background:#E23B3B;color:#fff;}    /* rojo   = descanso */
+  .cru-reprogramado{background:#E23B3B;color:#fff;}/* rojo con R = reprogramado */
+  .cru-rolado{background:#E8912E;color:#fff;}      /* naranja= partido rolado */
+  .cru-sinactividad{background:#C63BD8;color:#fff;}/* violeta= no hubo actividad */
+  .cru-programado{background:#e9e9e9;color:#111;}  /* aún no se juega */
+  .cru-vacio{background:#7FD4D4;}                  /* semanas futuras sin rol */
+  .cruces-leyenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;color:#aaa;}
+  .cruces-leyenda span{display:flex;align-items:center;gap:5px;}
+  .cruces-leyenda i{width:13px;height:13px;border-radius:3px;display:inline-block;}
   .schedule-row{
     display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
     padding:11px 0; border-bottom:1px solid var(--line); font-size:13px; text-transform:none;
@@ -404,8 +460,8 @@
       <h2>Agregar partido al calendario</h2>
       <div class="grid-2">
         <div>
-          <label for="f_jornada">Jornada</label>
-          <input type="number" id="f_jornada" min="1" placeholder="Ej. 10">
+          <label for="f_semana">Semana</label>
+          <input type="number" id="f_semana" min="1" placeholder="Ej. 10">
         </div>
         <div>
           <label for="f_fecha">Fecha</label>
@@ -417,15 +473,25 @@
         </div>
         <div>
           <label for="f_sede">Sede / Cancha</label>
-          <input type="text" id="f_sede" placeholder="Ej. Cancha Central">
+          <select id="f_sede"></select>
         </div>
         <div>
+          <!-- Al cambiar la categoría se vuelven a llenar los equipos: solo
+               deben aparecer los de esa categoría. -->
           <label for="f_categoria">Categoría</label>
-          <input type="text" id="f_categoria" placeholder="Ej. Varonil A">
+          <select id="f_categoria" onchange="llenarEquiposDelFormulario()"></select>
         </div>
         <div>
-          <label for="f_arbitro">Árbitro</label>
-          <input type="text" id="f_arbitro" placeholder="Nombre del árbitro">
+          <label for="f_arbitro">Árbitro 1</label>
+          <select id="f_arbitro"></select>
+        </div>
+        <div>
+          <label for="f_arbitro2">Árbitro 2</label>
+          <select id="f_arbitro2"></select>
+        </div>
+        <div>
+          <label for="f_mesa">Mesa</label>
+          <select id="f_mesa"></select>
         </div>
         <div>
           <label for="f_local">Equipo Local</label>
@@ -441,7 +507,26 @@
     </div>
 
     <div class="card">
-      <h2>Calendario actual</h2>
+      <h2>Calendario</h2>
+      <!-- Los botones filtran SOLO el cuadro de cruces de la derecha.
+           El rol de la izquierda siempre muestra todas las categorías,
+           porque es la lista que se va sumando conforme se rola. -->
+      <div class="cat-botones" id="catBotones"></div>
+      <div class="rol-split">
+        <div class="rol-col">
+          <h3 class="rol-col-titulo">Rol de juego · todas las categorías</h3>
+          <div id="rolSemanal"></div>
+        </div>
+        <div class="rol-col">
+          <h3 class="rol-col-titulo" id="crucesTitulo">Cruces</h3>
+          <div id="crucesGrid"></div>
+          <div class="cruces-leyenda" id="crucesLeyenda"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Calendario actual (lista)</h2>
       <div id="scheduleList"></div>
     </div>
   </section>
@@ -450,7 +535,7 @@
   <section class="view" id="view-captura">
     <div class="card">
       <h2>1. Selecciona el partido</h2>
-      <label for="matchSelect">Jornada / Partido</label>
+      <label for="matchSelect">Semana / Partido</label>
       <select id="matchSelect"></select>
     </div>
 
@@ -501,7 +586,7 @@
 
     <div class="card">
       <h2>1. Selecciona el partido a corregir</h2>
-      <label for="matchSelectPasado">Jornada / Partido</label>
+      <label for="matchSelectPasado">Semana / Partido</label>
       <select id="matchSelectPasado"></select>
     </div>
 
@@ -571,7 +656,7 @@
   <section class="view" id="view-cedulas">
     <div class="card cedulas-toolbar">
       <h2>Generar cédulas de juego</h2>
-      <label for="cedulaJornadaSelect">Jornada</label>
+      <label for="cedulaJornadaSelect">Semana</label>
       <select id="cedulaJornadaSelect" onchange="renderCedulas()"></select>
       <button class="save-btn" onclick="imprimirCedulas()">🖨️ Imprimir / Guardar PDF</button>
       <div class="empty-state" style="text-align:left; padding:12px 0 0 0;">Se genera una cédula por cada partido de la jornada elegida. Usa el botón de imprimir de tu navegador y elige "Guardar como PDF" si prefieres un archivo en vez de papel.</div>
@@ -748,6 +833,12 @@ const CONFIG = {
   clubNombre: "Club Central Gante",
   clubSubtitulo: "San Pedro",
   ligaNombreCedula: "Liga Club Central Basquetbol",
+  // --- Listas fijas del formulario "Agregar partido" ---
+  categorias: ["Varonil A", "Varonil B", "Femenil A", "Femenil B"],
+  sedes: ["Club Central Gante"],
+  arbitros1: ["Francisco", "Jairo", "Esteban"],
+  arbitros2: ["Francisco", "Jairo", "Esteban", "Braulio"],
+  mesa: ["Michelle", "Eduardo", "Juan", "Miguel", "Mesa de control"],
 };
 
 function intentarAcceso(){
@@ -789,7 +880,11 @@ function repintarVistaActual(){
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
     else if(vista === "pruebas") renderPruebas();
-    else if(typeof renderScheduleList === "function") renderScheduleList();
+    else { // pestaña Rol de Juego
+      if(typeof renderScheduleList === "function") renderScheduleList();
+      if(typeof renderRolSemanal === "function") renderRolSemanal();
+      if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+    }
   }catch(e){ console.warn("No se pudo repintar la vista:", e); }
 }
 
@@ -925,7 +1020,7 @@ const DEMO_EQUIPOS = [];
 
 const DEMO_MATCHES = [];
 /* Nota: estos son datos de ejemplo de la temporada simulada — 9 equipos,
-   round-robin de 8 partidos por equipo, 36 partidos / 9 jornadas en total.
+   round-robin de 8 partidos por equipo, 36 partidos / 9 semanas en total.
    Conecta CONFIG.rolJuegoCsvUrl con el link CSV publicado de tu hoja
    "Rol de Juego" para ver y usar tu calendario real. */
 
@@ -953,11 +1048,33 @@ function mapEquiposCsv(rows){
   return rows.filter(r=>r["Nombre Equipo"]).map(r=>r["Nombre Equipo"]);
 }
 
+/* Categoría de cada equipo: { "KOOL AIDERS": "Varonil A", ... }
+   Va aparte de EQUIPOS porque EQUIPOS es una lista de NOMBRES (texto) y
+   varias pantallas dependen de eso. */
+function mapCategoriaPorEquipo(rows){
+  const map = {};
+  (rows || []).filter(r=>r["Nombre Equipo"]).forEach(r=>{
+    map[r["Nombre Equipo"]] = String(r["Categoría"] || "").trim();
+  });
+  return map;
+}
+
+/* Equipos de una categoría, en el orden en que están en la hoja. Si no se
+   pasa categoría (o es "todas"), devuelve todos. */
+function equiposDeCategoria(cat){
+  if(!cat || cat === "todas") return EQUIPOS.slice();
+  return EQUIPOS.filter(e => (CATEGORIA_POR_EQUIPO[e] || "") === cat);
+}
+
 function mapRolCsv(rows){
   return rows.filter(r=>r["Equipo Local"]).map(r=>({
+    // La columna de la hoja se llama "Jornada" desde el principio, pero para
+    // la liga ESE número es la SEMANA. Se deja el nombre interno por
+    // compatibilidad y en pantalla siempre se dice "Semana".
     jornada: Number(r["Jornada"]), fecha: r["Fecha"], hora: r["Hora"], sede: r["Sede/Cancha"],
     categoria: r["Categoría"], local: r["Equipo Local"], visit: r["Equipo Visitante"],
-    arbitro: r["Árbitro"], estatus: r["Estatus"]
+    arbitro: r["Árbitro"], arbitro2: r["Árbitro 2"] || "", mesa: r["Mesa"] || "",
+    instancia: r["Instancia"] || "temporada regular", estatus: r["Estatus"]
   }));
 }
 
@@ -987,6 +1104,9 @@ function mapAsistenciaCsv(rows){
 }
 
 let EQUIPOS = DEMO_EQUIPOS;
+let CATEGORIA_POR_EQUIPO = {};
+/* Categoría elegida con los botones del Rol de Juego. "todas" = sin filtro. */
+let CATEGORIA_ROL = "todas";
 let MATCHES = DEMO_MATCHES;
 let ROSTERS = DEMO_ROSTERS;
 let RESULTADOS = DEMO_RESULTADOS;
@@ -1036,7 +1156,8 @@ async function initData(){
       "Asistencia","Pagos"
     ]);
     if(datos){
-      if(datos["Equipos"])                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
+      if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
+                                CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
       if(datos["Rol de Juego"])             MATCHES = mapRolCsv(datos["Rol de Juego"]);
       if(datos["Integrantes"]){             ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
                                      ALTAS_JUGADORES = mapAltasJugadores(datos["Integrantes"]); }
@@ -1074,16 +1195,18 @@ async function initData(){
   }
 
   // --- Tab Rol de Juego ---
-  const optsHtml = EQUIPOS.map(e=>`<option value="${e}">${e}</option>`).join("");
-  document.getElementById("f_local").innerHTML = optsHtml;
-  document.getElementById("f_visit").innerHTML = optsHtml;
+  llenarMenusDelFormulario();
+  llenarEquiposDelFormulario();   // depende de la categoría elegida arriba
+  renderBotonesCategoria();
+  renderRolSemanal();
+  renderCrucesCategoria();
   renderScheduleList();
 
   // --- Tab Captura (solo partidos que AÚN no se han jugado / subido) ---
   const pendientes = MATCHES.filter(m=>m.estatus !== "Jugado");
   const select = document.getElementById("matchSelect");
   select.innerHTML = pendientes.length
-    ? pendientes.map(m=>`<option value="${MATCHES.indexOf(m)}">Jornada ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
+    ? pendientes.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
     : '<option value="">No hay partidos pendientes de capturar</option>';
   select.addEventListener("change", renderMatch);
   if(pendientes.length) renderMatch();
@@ -1093,7 +1216,7 @@ async function initData(){
   const jugados = MATCHES.filter(m=>m.estatus === "Jugado");
   const selectPasado = document.getElementById("matchSelectPasado");
   selectPasado.innerHTML = jugados.length
-    ? jugados.map(m=>`<option value="${MATCHES.indexOf(m)}">Jornada ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
+    ? jugados.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
     : '<option value="">Todavía no hay partidos jugados</option>';
   selectPasado.addEventListener("change", renderMatchPasado);
   if(jugados.length) renderMatchPasado();
@@ -1102,8 +1225,8 @@ async function initData(){
   // --- Tab Cédulas ---
   const jornadaSelect = document.getElementById("cedulaJornadaSelect");
   const jornadas = [...new Set(MATCHES.map(m=>m.jornada))].sort((a,b)=>a-b);
-  jornadaSelect.innerHTML = '<option value="todas">Todas las jornadas</option>' +
-    jornadas.map(j=>`<option value="${j}">Jornada ${j}</option>`).join("");
+  jornadaSelect.innerHTML = '<option value="todas">Todas las semanas</option>' +
+    jornadas.map(j=>`<option value="${j}">Semana ${j}</option>`).join("");
   const programadas = MATCHES.filter(m=>m.estatus === "Programado").map(m=>m.jornada);
   jornadaSelect.value = programadas.length ? Math.min(...programadas) : (jornadas[jornadas.length - 1] || "todas");
 
@@ -1149,28 +1272,241 @@ function renderScheduleList(){
   el.innerHTML = ordenado.map(m=>{
     const badgeClass = m.estatus === "Jugado" ? "jugado" : "programado";
     return `<div class="schedule-row">
-      <span class="j-pill">J${m.jornada}</span>
+      <span class="j-pill">S${m.jornada}</span>
       <span>${m.local} vs ${m.visit} — ${m.fecha}${m.hora ? " · " + m.hora : ""}${m.sede ? " · " + m.sede : ""}</span>
       <span class="badge ${badgeClass}">${m.estatus || "Programado"}</span>
     </div>`;
   }).join("");
 }
 
+/* Llena los menús fijos del formulario (sede, categoría, árbitros, mesa).
+   Se corre una sola vez al arrancar. */
+function llenarMenusDelFormulario(){
+  const opciones = (lista)=> lista.map(v=>`<option value="${v}">${v}</option>`).join("");
+  document.getElementById("f_sede").innerHTML = opciones(CONFIG.sedes);
+  document.getElementById("f_categoria").innerHTML =
+    '<option value="">Selecciona una categoría</option>' + opciones(CONFIG.categorias);
+  document.getElementById("f_arbitro").innerHTML =
+    '<option value="">—</option>' + opciones(CONFIG.arbitros1);
+  document.getElementById("f_arbitro2").innerHTML =
+    '<option value="">—</option>' + opciones(CONFIG.arbitros2);
+  document.getElementById("f_mesa").innerHTML =
+    '<option value="">—</option>' + opciones(CONFIG.mesa);
+}
+
+/* Equipo local y visitante: SOLO los de la categoría elegida arriba. */
+function llenarEquiposDelFormulario(){
+  const cat = document.getElementById("f_categoria").value;
+  const equipos = cat ? equiposDeCategoria(cat) : [];
+  const html = equipos.length
+    ? equipos.map(e=>`<option value="${e}">${e}</option>`).join("")
+    : `<option value="">${cat ? "No hay equipos en esa categoría" : "Elige primero la categoría"}</option>`;
+  document.getElementById("f_local").innerHTML = html;
+  document.getElementById("f_visit").innerHTML = html;
+}
+
+/* ============================================================
+   ROL DE JUEGO: filtro de categoría, rol semanal y cruces
+   ============================================================ */
+
+function renderBotonesCategoria(){
+  const cont = document.getElementById("catBotones");
+  if(!cont) return;
+  const cats = ["todas"].concat(CONFIG.categorias);
+  cont.innerHTML = cats.map(c=>{
+    const activo = (CATEGORIA_ROL === c) ? " active" : "";
+    const texto = c === "todas" ? "Todas" : c;
+    return `<button type="button" class="cat-btn${activo}" onclick="seleccionarCategoriaRol('${c}')">${texto}</button>`;
+  }).join("");
+}
+
+function seleccionarCategoriaRol(cat){
+  CATEGORIA_ROL = cat;
+  renderBotonesCategoria();
+  renderCrucesCategoria();
+}
+
+/* Fecha bonita: "lunes abril 27". La hoja guarda AAAA-MM-DD. */
+const _DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const _MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function fechaBonita(iso){
+  if(!iso) return "";
+  const p = String(iso).split("-");
+  if(p.length !== 3) return iso;
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if(isNaN(d.getTime())) return iso;
+  return `${_DIAS[d.getDay()]} ${_MESES[d.getMonth()]} ${d.getDate()}`;
+}
+
+/* ---------- IZQUIERDA: rol de juego, TODAS las categorías ----------
+   Siempre muestra todo, agrupado por semana. Es la lista que se va
+   sumando conforme se rolan partidos. */
+function renderRolSemanal(){
+  const el = document.getElementById("rolSemanal");
+  if(!el) return;
+  if(CARGANDO){ el.innerHTML = '<div class="empty-state">Cargando datos…</div>'; return; }
+  if(!MATCHES.length){
+    el.innerHTML = '<div class="empty-state">Todavía no hay partidos en el rol.</div>';
+    return;
+  }
+  const orden = [...MATCHES].sort((a,b)=>
+    (a.jornada - b.jornada) ||
+    String(a.fecha).localeCompare(String(b.fecha)) ||
+    String(a.hora).localeCompare(String(b.hora)));
+
+  let html = `<table class="rol-tabla"><tr>
+      <th>categoría</th><th>instancia</th><th>semana</th>
+      <th>fecha</th><th>hora</th><th>equipo 1</th><th>equipo 2</th></tr>`;
+  let semanaPrevia = null;
+  orden.forEach(m=>{
+    if(m.jornada !== semanaPrevia){
+      html += `<tr class="sep-semana"><td colspan="7">Semana ${m.jornada}</td></tr>`;
+      semanaPrevia = m.jornada;
+    }
+    html += `<tr>
+      <td class="rol-cat">${(m.categoria || "").toUpperCase()}</td>
+      <td>${m.instancia || "temporada regular"}</td>
+      <td>${m.jornada}</td>
+      <td>${fechaBonita(m.fecha)}</td>
+      <td>${m.hora || ""}</td>
+      <td>${m.local || ""}</td>
+      <td>${m.visit || ""}</td>
+    </tr>`;
+  });
+  html += "</table>";
+  el.innerHTML = html;
+}
+
+/* ---------- DERECHA: cuadro de cruces de la categoría elegida ----------
+   Cada renglón es un equipo, cada columna una semana. La celda trae el
+   NÚMERO del rival (el # de la primera columna) y el color dice el estado:
+     verde   = jugado
+     azul    = ese equipo ya terminó todos sus partidos de temporada regular
+     rojo    = descanso (esa semana no le tocó partido)
+     rojo+R  = reprogramado
+     naranja = partido rolado
+     violeta = esa semana no hubo actividad en toda la categoría          */
+function renderCrucesCategoria(){
+  const el = document.getElementById("crucesGrid");
+  const tit = document.getElementById("crucesTitulo");
+  const ley = document.getElementById("crucesLeyenda");
+  if(!el) return;
+
+  if(CARGANDO){ el.innerHTML = '<div class="empty-state">Cargando datos…</div>'; if(ley) ley.innerHTML=""; return; }
+
+  const cat = CATEGORIA_ROL;
+  if(tit) tit.textContent = cat === "todas" ? "Cruces" : "Cruces · " + cat;
+
+  if(cat === "todas"){
+    el.innerHTML = '<div class="empty-state">Elige una categoría arriba para ver sus cruces.</div>';
+    if(ley) ley.innerHTML = "";
+    return;
+  }
+
+  const equipos = equiposDeCategoria(cat);
+  if(!equipos.length){
+    el.innerHTML = '<div class="empty-state">Todavía no hay equipos en esa categoría.</div>';
+    if(ley) ley.innerHTML = "";
+    return;
+  }
+
+  const numDe = {};                     // nombre de equipo -> su # de renglón
+  equipos.forEach((e,i)=> numDe[e] = i + 1);
+
+  const partidosCat = MATCHES.filter(m=>m.categoria === cat);
+  const semanas = [...new Set(partidosCat.map(m=>Number(m.jornada)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b);
+  if(!semanas.length){
+    el.innerHTML = '<div class="empty-state">Todavía no hay partidos programados en esa categoría.</div>';
+    if(ley) ley.innerHTML = "";
+    return;
+  }
+  const maxSemana = Math.max(...semanas);
+  const todasLasSemanas = [];
+  for(let s = 1; s <= maxSemana; s++) todasLasSemanas.push(s);
+
+  // Semanas en las que NO hubo NINGÚN partido de esta categoría → violeta
+  const semanasConActividad = new Set(semanas);
+
+  // Última semana en la que cada equipo tiene partido: después de esa,
+  // ya terminó sus partidos de temporada regular (azul).
+  const ultimaSemanaDe = {};
+  partidosCat.forEach(m=>{
+    const s = Number(m.jornada);
+    [m.local, m.visit].forEach(eq=>{
+      if(numDe[eq] === undefined) return;
+      if(ultimaSemanaDe[eq] === undefined || s > ultimaSemanaDe[eq]) ultimaSemanaDe[eq] = s;
+    });
+  });
+
+  const claseDeEstatus = (est)=>{
+    const e = String(est || "").toLowerCase();
+    if(e.indexOf("jugado") > -1) return "cru-jugado";
+    if(e.indexOf("reprogram") > -1) return "cru-reprogramado";
+    if(e.indexOf("rolad") > -1) return "cru-rolado";
+    return "cru-programado";
+  };
+
+  let html = `<table class="cruces-tabla"><tr>
+      <th style="width:22px;">#</th><th class="cru-equipo">${cat}</th>` +
+      todasLasSemanas.map(s=>`<th>S${s}</th>`).join("") +
+      `<th>PJ</th><th>PR</th></tr>`;
+
+  equipos.forEach((eq, idx)=>{
+    html += `<tr><td class="cru-num">${idx+1}</td><td class="cru-equipo" title="${eq}">${eq}</td>`;
+    let jugados = 0;
+    todasLasSemanas.forEach(s=>{
+      const partido = partidosCat.find(m=>Number(m.jornada) === s && (m.local === eq || m.visit === eq));
+      if(partido){
+        const rival = partido.local === eq ? partido.visit : partido.local;
+        const clase = claseDeEstatus(partido.estatus);
+        if(clase === "cru-jugado") jugados++;
+        const marca = clase === "cru-reprogramado" ? "R" : (numDe[rival] || "");
+        html += `<td class="${clase}" title="${eq} vs ${rival} · ${partido.estatus || "Programado"}">${marca}</td>`;
+      }else if(!semanasConActividad.has(s)){
+        html += `<td class="cru-sinactividad" title="Semana ${s}: no hubo actividad"></td>`;
+      }else if(ultimaSemanaDe[eq] !== undefined && s > ultimaSemanaDe[eq]){
+        html += `<td class="cru-termino" title="${eq} ya terminó sus partidos de temporada regular"></td>`;
+      }else{
+        html += `<td class="cru-descanso" title="Semana ${s}: descanso"></td>`;
+      }
+    });
+    const porJugar = (ultimaSemanaDe[eq] === undefined ? 0 :
+      partidosCat.filter(m=>(m.local===eq||m.visit===eq)).length) - jugados;
+    html += `<td class="cru-num">${jugados}</td><td class="cru-num">${porJugar}</td></tr>`;
+  });
+  html += "</table>";
+  el.innerHTML = html;
+
+  if(ley){
+    ley.innerHTML = [
+      ["cru-jugado","Jugado"],
+      ["cru-programado","Por jugar"],
+      ["cru-descanso","Descanso"],
+      ["cru-reprogramado","Reprogramado (R)"],
+      ["cru-rolado","Partido rolado"],
+      ["cru-sinactividad","Sin actividad"],
+      ["cru-termino","Ya terminó sus partidos"]
+    ].map(([c,t])=>`<span><i class="${c}"></i>${t}</span>`).join("");
+  }
+}
+
 async function agregarPartido(){
-  const jornada = document.getElementById("f_jornada").value;
+  const semana = document.getElementById("f_semana").value;
   const fecha = document.getElementById("f_fecha").value;
   const hora = document.getElementById("f_hora").value;
   const sede = document.getElementById("f_sede").value;
   const categoria = document.getElementById("f_categoria").value;
   const arbitro = document.getElementById("f_arbitro").value;
+  const arbitro2 = document.getElementById("f_arbitro2").value;
+  const mesa = document.getElementById("f_mesa").value;
   const local = document.getElementById("f_local").value;
   const visit = document.getElementById("f_visit").value;
   const msg = document.getElementById("scheduleMsg");
   msg.className = "msg";
 
-  if(!jornada || !fecha || !local || !visit){
+  if(!semana || !fecha || !categoria || !local || !visit){
     msg.className = "msg err";
-    msg.textContent = "Faltan datos: jornada, fecha y ambos equipos son obligatorios.";
+    msg.textContent = "Faltan datos: semana, fecha, categoría y ambos equipos son obligatorios.";
     return;
   }
   if(local === visit){
@@ -1181,8 +1517,9 @@ async function agregarPartido(){
 
   const payload = {
     action: "programar",
-    jornada: Number(jornada), fecha, hora, sede, categoria,
-    equipoLocal: local, equipoVisit: visit, arbitro
+    semana: Number(semana), jornada: Number(semana), // jornada = compatibilidad
+    fecha, hora, sede, categoria,
+    equipoLocal: local, equipoVisit: visit, arbitro, arbitro2, mesa
   };
 
   const btn = document.getElementById("scheduleBtn");
@@ -1193,15 +1530,14 @@ async function agregarPartido(){
     const data = await postAppsScript(payload);
     if(data.ok){
       msg.className = "msg ok";
-      msg.textContent = "Partido agregado: " + local + " vs " + visit + " — Jornada " + jornada + ".";
-      MATCHES.push({jornada:Number(jornada), fecha, hora, sede, categoria, local, visit, arbitro, estatus:"Programado"});
+      msg.textContent = "Partido agregado: " + local + " vs " + visit + " — Semana " + semana + ".";
+      MATCHES.push({jornada:Number(semana), fecha, hora, sede, categoria, local, visit, arbitro, arbitro2, mesa, estatus:"Programado"});
       renderScheduleList();
-      document.getElementById("f_jornada").value = "";
+      renderCrucesCategoria();
+      // Se deja la semana y la categoría puestas: normalmente se cargan
+      // varios partidos seguidos de la misma semana y categoría.
       document.getElementById("f_fecha").value = "";
       document.getElementById("f_hora").value = "";
-      document.getElementById("f_sede").value = "";
-      document.getElementById("f_categoria").value = "";
-      document.getElementById("f_arbitro").value = "";
     }else{
       throw new Error(data.error || "Error desconocido");
     }
@@ -1493,7 +1829,7 @@ function buildCedulaHtml(match){
       <table class="cedula-infogrid">
         <tr>
           <td class="cedula-info-label">Torneo:</td><td class="cedula-info-value">${(match.categoria || "").toUpperCase()}</td>
-          <td class="cedula-info-label">Jornada:</td><td class="cedula-info-value">SEMANA ${match.jornada}</td>
+          <td class="cedula-info-label">Semana:</td><td class="cedula-info-value">SEMANA ${match.jornada}</td>
         </tr>
         <tr>
           <td class="cedula-info-label">División:</td><td class="cedula-info-value">${formatDivisionCedula(match.fecha)}</td>
@@ -1795,7 +2131,7 @@ async function renderPruebas(forzarRecarga){
   if(partidos.length === 0){
     tablaPartidos.innerHTML = '<tr><td class="empty-state">Todavía no hay partidos de prueba.</td></tr>';
   } else {
-    let html = "<tr><th>Tipo</th><th>Jornada</th><th>Fecha</th><th>Local</th><th>Visitante</th><th>Marcador</th></tr>";
+    let html = "<tr><th>Tipo</th><th>Semana</th><th>Fecha</th><th>Local</th><th>Visitante</th><th>Marcador</th></tr>";
     partidos.forEach(p=>{
       const marcador = (p["Puntos Local"] !== undefined && p["Puntos Local"] !== "")
         ? `${p["Puntos Local"]} - ${p["Puntos Visitante"]}` : "—";
