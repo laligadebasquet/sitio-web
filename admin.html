@@ -618,6 +618,33 @@
           <select id="hdPartidoSelect" onchange="hdCambiarPartido()"></select>
         </div>
         <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
+        <button class="mini-btn" onclick="hdAbrirPrueba()">🧪 Partido de prueba</button>
+      </div>
+      <!-- Modo prueba: para practicar o entrenar a la mesa de control sin
+           tocar el rol ni los resultados reales. -->
+      <div id="hdPruebaForm" style="display:none;margin-top:14px;padding:14px;
+           border:1px solid #5a4410;border-radius:10px;background:#1a1408;">
+        <div style="font-size:11px;font-weight:800;color:#e0a63c;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+          Partido de prueba — no se guarda nada
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="hdPruebaCat">Categoría</label>
+            <select id="hdPruebaCat" onchange="hdPruebaLlenarEquipos()"></select>
+          </div>
+          <div>
+            <label for="hdPruebaLocal">Equipo local</label>
+            <select id="hdPruebaLocal"></select>
+          </div>
+          <div>
+            <label for="hdPruebaVisit">Equipo visitante</label>
+            <select id="hdPruebaVisit"></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button class="save-btn" style="margin:0;" onclick="hdIniciarPrueba()">Empezar prueba</button>
+          <button class="mini-btn" onclick="document.getElementById('hdPruebaForm').style.display='none'">Cancelar</button>
+        </div>
       </div>
       <div class="empty-state" id="hdAviso" style="text-align:left;padding:10px 0 0;">
         Si un jugador se da de alta durante el partido, dale a <strong>Refrescar rosters</strong> y aparece.
@@ -1829,9 +1856,15 @@ function hdNuevoPartido(m){
   };
 }
 
+/* Un partido de prueba se respalda APARTE, para que practicar no borre el
+   respaldo de un partido real que estuviera a medias. */
+function hdClaveRespaldo(esPrueba){
+  return esPrueba ? HD_RESPALDO + "_prueba" : HD_RESPALDO;
+}
+
 function hdGuardarRespaldo(){
   if(!HD) return;
-  try{ localStorage.setItem(HD_RESPALDO, JSON.stringify(HD)); }
+  try{ localStorage.setItem(hdClaveRespaldo(HD.esPrueba), JSON.stringify(HD)); }
   catch(e){ console.warn("No se pudo respaldar la hoja digital:", e); }
 }
 
@@ -1842,6 +1875,51 @@ function hdLeerRespaldo(clave){
     const guardado = JSON.parse(crudo);
     return (guardado && guardado.clave === clave) ? guardado : null;
   }catch(e){ return null; }
+}
+
+/* ---------- Modo prueba ---------- */
+function hdAbrirPrueba(){
+  const form = document.getElementById("hdPruebaForm");
+  form.style.display = form.style.display === "none" ? "block" : "none";
+  if(form.style.display !== "block") return;
+  const sel = document.getElementById("hdPruebaCat");
+  sel.innerHTML = CONFIG.categorias.map(c=>`<option value="${c}">${c}</option>`).join("");
+  hdPruebaLlenarEquipos();
+}
+
+function hdPruebaLlenarEquipos(){
+  const cat = document.getElementById("hdPruebaCat").value;
+  const equipos = equiposDeCategoria(cat);
+  const html = equipos.length
+    ? equipos.map(e=>`<option value="${e}">${e}</option>`).join("")
+    : '<option value="">No hay equipos en esa categoría</option>';
+  document.getElementById("hdPruebaLocal").innerHTML = html;
+  document.getElementById("hdPruebaVisit").innerHTML = html;
+  // Que no salgan los dos iguales por defecto
+  const selV = document.getElementById("hdPruebaVisit");
+  if(selV.options.length > 1) selV.selectedIndex = 1;
+}
+
+function hdIniciarPrueba(){
+  const cat = document.getElementById("hdPruebaCat").value;
+  const local = document.getElementById("hdPruebaLocal").value;
+  const visit = document.getElementById("hdPruebaVisit").value;
+  if(!local || !visit){ alert("Elige los dos equipos."); return; }
+  if(local === visit){ alert("El local y el visitante no pueden ser el mismo equipo."); return; }
+
+  if(HD && !HD.esPrueba && !HD.cerrado && (hdTotal(HD,"local") + hdTotal(HD,"visit")) > 0){
+    if(!confirm("Tienes el partido REAL " + HD.local + " vs " + HD.visit + " a medias.\n\nSe queda respaldado aparte, pero ¿seguro que quieres empezar una prueba ahora?")) return;
+  }
+
+  HD = hdNuevoPartido({
+    jornada: 0, categoria: cat, local, visit,
+    fecha: new Date().toISOString().slice(0,10), hora: ""
+  });
+  HD.esPrueba = true;
+  HD.clave = "PRUEBA|" + cat + "|" + local + "|" + visit;
+  hdGuardarRespaldo();
+  document.getElementById("hdPruebaForm").style.display = "none";
+  hdRender();
 }
 
 /* ---------- Selector de partido ---------- */
@@ -2019,8 +2097,21 @@ function hdRender(){
 
   const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
 
+  let html = "";
+  if(HD.esPrueba){
+    html += `<div class="card" style="border-left-color:#e0a63c;">
+      <div style="color:#e0a63c;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.5px;">
+        🧪 Partido de prueba
+      </div>
+      <div style="color:#c9a05a;font-size:12px;margin-top:6px;">
+        Practica todo lo que quieras. Al finalizar <strong>no se guarda nada</strong>:
+        ni el marcador, ni las estadísticas, ni se toca el rol de juego.
+      </div>
+    </div>`;
+  }
+
   // Marcador
-  let html = `<div class="card">
+  html += `<div class="card">
     <div class="hd-marcador">
       <div>
         <div class="hd-equipo-nombre">${HD.local}</div>
@@ -2070,8 +2161,8 @@ function hdRender(){
       html += `<div class="hd-prorroga">⏸️ PRÓRROGA PEDIDA — el resultado NO se publica hasta que se asignen los puntos pendientes.</div>`;
     }
     html += `<div class="hd-cierre">
-      <button class="save-btn" onclick="hdFinalizar()">Finalizar y guardar partido</button>
-      <button class="mini-btn" onclick="hdBorrarPartido()">Descartar este partido</button>
+      <button class="save-btn" onclick="hdFinalizar()">${HD.esPrueba ? "Terminar prueba y ver resumen" : "Finalizar y guardar partido"}</button>
+      <button class="mini-btn" onclick="hdBorrarPartido()">${HD.esPrueba ? "Descartar la prueba" : "Descartar este partido"}</button>
     </div>`;
   }
   html += `</div>`;
@@ -2149,7 +2240,7 @@ function hdColumnaEquipo(lado){
 function hdBorrarPartido(){
   if(!HD) return;
   if(!confirm("¿Descartar todo lo capturado de " + HD.local + " vs " + HD.visit + "?\n\nEsto no se puede deshacer.")) return;
-  try{ localStorage.removeItem(HD_RESPALDO); }catch(e){}
+  try{ localStorage.removeItem(hdClaveRespaldo(HD.esPrueba)); }catch(e){}
   HD = null;
   hdRender();
 }
@@ -2176,6 +2267,28 @@ async function hdFinalizar(){
     hdGuardarRespaldo();
     hdRender();
     alert("Quedó marcado como PRÓRROGA.\n\nEl partido NO se guardó ni se publicó. Cuando la mesa de control asigne los puntos, vuelve a entrar aquí y dale a Finalizar.");
+    return;
+  }
+
+  // 2) Si es prueba, se muestra el resumen y NO se manda nada al servidor.
+  if(HD.esPrueba){
+    const linea = (lado)=> HD[lado] + ": " +
+      [1,2,3,4].map(c=>"C"+c+" "+hdPuntosCuarto(HD,lado,c)).join("  ") +
+      "  = " + hdTotal(HD, lado) + " pts";
+    const anotadores = ["local","visit"].flatMap(lado=>
+      HD.jugadores[lado].filter(j=>hdPuntosJugador(j)>0 || j.fp || j.ftf)
+        .map(j=>"  · " + (j.jersey ? "#"+j.jersey+" " : "") + j.nombre +
+               " — " + hdPuntosJugador(j) + " pts, " + j.triples + " triples, FP " + j.fp + ", FTF " + j.ftf));
+    alert(
+      "🧪 RESUMEN DE LA PRUEBA (no se guardó nada)\n\n" +
+      HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit + "\n\n" +
+      linea("local") + "\n" + linea("visit") + "\n\n" +
+      (anotadores.length ? "Jugadores:\n" + anotadores.join("\n") : "Nadie anotó."));
+    if(confirm("¿Descartar la prueba y dejar la hoja limpia?")){
+      try{ localStorage.removeItem(hdClaveRespaldo(true)); }catch(e){}
+      HD = null;
+      hdRender();
+    }
     return;
   }
 
