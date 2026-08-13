@@ -113,6 +113,91 @@
     padding:10px 12px; border-radius:4px; margin-bottom:16px; text-transform:none; font-weight:600;
   }
   .empty-state{color:var(--text-soft); font-size:13px; padding:20px; text-align:center; text-transform:none;}
+  /* Estados usados por la pestaña Cruces y por la tabla de Pagos.
+     Van sin prefijo de etiqueta porque se aplican tanto a <td> (Cruces)
+     como a <tr> (Pagos). */
+  .cruces-win{background:rgba(60,200,110,.16);}
+  .cruces-loss{background:rgba(255,77,94,.14);}
+  .cruces-pending{background:rgba(255,255,255,.05);}
+  .cruces-empty{background:transparent; color:var(--text-soft);}
+
+  /* ================= HOJA DIGITAL ================= */
+  .hd-barra{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
+  .hd-barra select{min-width:320px;}
+  /* Marcador */
+  .hd-marcador{
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;
+    background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:16px 18px;margin-bottom:14px;
+  }
+  .hd-equipo-nombre{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#ddd;}
+  .hd-puntos{font-size:52px;font-weight:900;line-height:1;color:#fff;}
+  .hd-marcador-centro{text-align:center;color:#777;font-size:11px;font-weight:800;letter-spacing:1px;}
+  .hd-lado-der{text-align:right;}
+  /* Cuartos */
+  .hd-cuartos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .hd-cuarto-btn{
+    padding:10px 20px;border-radius:10px;border:1px solid #333;background:#1a1a1a;
+    color:#bbb;font-weight:800;font-size:13px;cursor:pointer;
+  }
+  .hd-cuarto-btn.activo{background:#E8365D;border-color:#E8365D;color:#fff;}
+  .hd-cuarto-btn.cerrado{background:#243; border-color:#2f5; color:#8f8; cursor:not-allowed;}
+  .hd-cuarto-btn:disabled{opacity:.45;cursor:not-allowed;}
+  .hd-nota{font-size:11px;color:#888;margin:0 0 14px;}
+  /* Tabla por cuarto */
+  .hd-porcuarto{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+  .hd-porcuarto th,.hd-porcuarto td{border:1px solid #222;padding:5px 8px;text-align:center;color:#ddd;}
+  .hd-porcuarto th{background:#1c1c1c;font-size:11px;text-transform:uppercase;color:#999;}
+  .hd-porcuarto td.eq{text-align:left;font-weight:800;}
+  /* Dos columnas de equipos */
+  .hd-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:1000px){ .hd-split{grid-template-columns:1fr;} }
+  .hd-col{background:#101010;border:1px solid #262626;border-radius:12px;padding:14px;min-width:0;}
+  .hd-col h3{margin:0 0 4px;font-size:14px;color:#fff;font-weight:900;text-transform:uppercase;}
+  .hd-col-sub{font-size:11px;color:#888;margin-bottom:12px;}
+  .hd-acciones-equipo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .hd-tf-btn{
+    padding:8px 14px;border-radius:8px;border:1px solid #3a5;background:#152;
+    color:#cfc;font-weight:800;font-size:12px;cursor:pointer;
+  }
+  .hd-tf-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .hd-pend{display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+    background:#1a1408;border:1px solid #5a4410;border-radius:8px;padding:7px 10px;}
+  .hd-pend-label{font-size:10px;font-weight:800;color:#e0a63c;text-transform:uppercase;letter-spacing:.4px;}
+  .hd-bonus{
+    background:#5a1010;border:1px solid #e23b3b;color:#ffb3b3;
+    padding:6px 11px;border-radius:8px;font-size:11px;font-weight:800;text-transform:uppercase;
+  }
+  /* Jugadores */
+  .hd-jug{
+    display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;
+    padding:8px 6px;border-bottom:1px solid #1e1e1e;
+  }
+  .hd-jug:last-child{border-bottom:none;}
+  .hd-jug.expulsado{background:rgba(226,59,59,.12);}
+  .hd-jersey{
+    width:48px;padding:6px 4px;text-align:center;font-weight:900;font-size:15px;
+    background:#000;border:1px solid #444;border-radius:7px;color:#fff;
+  }
+  .hd-jug-nombre{font-size:13px;color:#eee;font-weight:700;line-height:1.25;min-width:0;}
+  .hd-jug-datos{font-size:10px;color:#888;font-weight:600;margin-top:2px;}
+  .hd-jug-datos b{color:#ddd;}
+  .hd-jug-datos .falta-alta{color:#ff8080;}
+  .hd-btns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+  .hd-b{
+    min-width:34px;padding:7px 8px;border-radius:7px;border:1px solid #333;
+    background:#1c1c1c;color:#ddd;font-weight:800;font-size:12px;cursor:pointer;
+  }
+  .hd-b:hover{background:#2a2a2a;}
+  .hd-b.mas{border-color:#2f6d3f;color:#8de0a0;}
+  .hd-b.mas:hover{background:#1c4a2a;}
+  .hd-b.menos{border-color:#7a3b1a;color:#e8a87c;}
+  .hd-b.falta{border-color:#7a2a2a;color:#ffb3b3;}
+  .hd-b:disabled{opacity:.35;cursor:not-allowed;}
+  .hd-cierre{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .hd-prorroga{
+    background:#4a1010;border:1px solid #e23b3b;color:#ffb3b3;border-radius:10px;
+    padding:12px 14px;font-size:13px;font-weight:700;margin-top:12px;
+  }
   .mini-btn{
     padding:5px 11px;border-radius:6px;border:1px solid #444;background:#222;
     color:#ddd;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
@@ -288,140 +373,6 @@
     align-items:center;
     gap:2px;
     padding:2px 0;
-  }
-  .cruces-rival{font-weight:700; text-transform:none;}
-  .cruces-meta{font-size:10px; color:var(--text-soft); text-transform:none;}
-  td.cruces-win{background:rgba(51,224,138,.14);}
-  td.cruces-loss{background:rgba(255,77,94,.14);}
-  td.cruces-pending{background:var(--surface-2);}
-  td.cruces-empty{background:transparent; color:var(--text-soft);}
-
-  /* ============ CÉDULAS ============ */
-  .cedulas-toolbar select{margin-bottom:14px;}
-  #cedulasContainer{display:flex; flex-direction:column; align-items:center; gap:24px;}
-
-  .cedula-sheet{
-    width:1000px;
-    max-width:100%;
-    background:#fff;
-    color:#000;
-    font-family:Arial,Helvetica,sans-serif;
-    text-transform:none;
-    border:2px solid #000;
-    padding:14px 18px;
-    box-sizing:border-box;
-  }
-  .cedula-sheet *{box-sizing:border-box; text-transform:none;}
-  .cedula-header{
-    display:flex; align-items:flex-start; justify-content:space-between;
-    border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:8px;
-  }
-  .cedula-club{display:flex; align-items:center; gap:8px;}
-  .cedula-club-badge{
-    width:40px; height:40px; border-radius:50%; background:#eee; border:1px solid #999;
-    display:flex; align-items:center; justify-content:center; font-size:20px;
-  }
-  .cedula-club-nombre{font-size:11px; font-weight:800;}
-  .cedula-club-sub{font-size:9px; color:#444;}
-  .cedula-titulo{text-align:center; flex:1;}
-  .cedula-titulo-main{font-size:18px; font-weight:800; letter-spacing:.03em;}
-  .cedula-titulo-sub{font-size:11px; color:#333;}
-  table.cedula-infogrid{width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px;}
-  table.cedula-infogrid td{padding:2px 4px;}
-  .cedula-info-label{font-weight:700; white-space:nowrap; width:8%;}
-  .cedula-info-value{width:42%; border-bottom:1px solid #999;}
-  .cedula-body{display:flex; gap:10px; align-items:flex-start;}
-  .cedula-left{flex:0 0 50%; max-width:50%; min-width:0;}
-  .cedula-right{flex:0 0 47%; max-width:47%;}
-  .cedula-team-block{margin-bottom:10px;}
-  .cedula-team-title{
-    background:#ddd; border:1px solid #000; font-weight:800; font-size:11px;
-    padding:3px 6px;
-  }
-  table.cedula-detenciones{width:100%; border-collapse:collapse; font-size:9px; margin-bottom:2px;}
-  table.cedula-detenciones th{border:1px solid #000; background:#f2f2f2; padding:2px; font-size:9px;}
-  table.cedula-detenciones td{border:1px solid #000; text-align:center; padding:2px; height:15px;}
-  .cedula-det-box{width:6%;}
-  .cedula-cuarto-label{width:28%; text-align:left !important; font-weight:700; padding-left:4px !important;}
-  .cedula-faltanum{width:8%; color:#666;}
-  table.cedula-jugadores{width:100%; border-collapse:collapse; font-size:9.5px;}
-  table.cedula-jugadores th{border:1px solid #000; background:#f2f2f2; padding:2px; font-size:9px;}
-  table.cedula-jugadores td{border:1px solid #000; padding:2px 4px; height:15px;}
-  .cedula-no{width:6%;}
-  .cedula-nombre{width:46%; font-weight:600; white-space:nowrap;}
-  .cedula-faltabox{width:8%;}
-  .cedula-coach-row{display:flex; gap:24px; margin-top:4px; font-size:9.5px;}
-  .cedula-coach-row > div{flex:1; display:flex; align-items:baseline; gap:6px;}
-  .cedula-line-label{white-space:nowrap; font-weight:700;}
-  .cedula-line{flex:1; border-bottom:1px solid #000; display:inline-block; height:1px; min-width:60px;}
-  .cedula-scoregrid{display:flex; gap:10px; justify-content:space-between;}
-  table.cedula-numtable{border-collapse:collapse; font-size:9px; flex:1; table-layout:fixed;}
-  table.cedula-numtable th{border:1px solid #000; background:#f2f2f2; padding:2px 0; font-size:9.5px; width:25%;}
-  table.cedula-numtable td{border:1px solid #999; padding:1.5px 4px; text-align:center; width:25%;}
-  .cedula-blank-col, .cedula-blank-col.wide{width:25%;}
-  table.cedula-marcador{width:100%; border-collapse:collapse; font-size:9px; margin-top:8px; table-layout:fixed;}
-  table.cedula-marcador td{border:1px solid #000; padding:2.5px 5px; height:15px;}
-  .cedula-marcador-label{width:30%;}
-  .cedula-ab-label{width:4%; font-weight:700; text-align:center;}
-  .cedula-box{width:11%;}
-  .cedula-final-label{font-weight:800;}
-  .cedula-mvp-label{width:24%; font-size:8.5px; font-weight:700; vertical-align:middle; line-height:1.5;}
-  .cedula-vencedor{font-weight:700; font-size:8.5px;}
-  .cedula-footer{
-    display:flex; justify-content:space-between; gap:20px; margin-top:22px; font-size:10px;
-  }
-  .cedula-footer > div{flex:1; display:flex; align-items:baseline; gap:6px;}
-
-  @media print{
-    @page{
-      size: letter landscape;
-      margin: 6mm;
-    }
-    html, body{width:100%; height:auto; background:#fff;}
-    body *{visibility:hidden;}
-    #view-cedulas, #view-cedulas *{visibility:visible;}
-    #view-cedulas{position:absolute; top:0; left:0; width:100%; margin:0; padding:0;}
-    .cedulas-toolbar{display:none;}
-    #cedulasContainer{gap:0; display:block;}
-
-    /* La hoja debe caber completa en una página tamaño carta horizontal
-       (720px de alto útil aprox. con margen de 6mm). Todo lo de abajo
-       comprime altura de filas/paddings SOLO para impresión — en
-       pantalla la cédula se sigue viendo igual que antes. */
-    .cedula-sheet{
-      width:100%; max-width:100%; border:1px solid #000;
-      margin:0 auto; padding:6px 10px; box-shadow:none;
-      page-break-after:always; break-after:page;
-      page-break-inside:avoid; break-inside:avoid;
-      -webkit-print-color-adjust:exact; print-color-adjust:exact;
-    }
-    .cedula-sheet:last-child{
-      page-break-after:auto; break-after:auto;
-    }
-    .cedula-header{padding-bottom:4px; margin-bottom:4px;}
-    .cedula-club-badge{width:24px; height:24px; font-size:13px;}
-    .cedula-club-nombre{font-size:9px;}
-    .cedula-club-sub{font-size:7.5px;}
-    .cedula-titulo-main{font-size:13px;}
-    .cedula-titulo-sub{font-size:9px;}
-    table.cedula-infogrid{font-size:8.5px; margin-bottom:4px;}
-    table.cedula-infogrid td{padding:0.5px 4px;}
-    .cedula-team-block{margin-bottom:3px;}
-    .cedula-team-title{padding:1px 5px; font-size:8px;}
-    table.cedula-detenciones{margin-bottom:1px;}
-    table.cedula-detenciones th{padding:0.5px; font-size:6.5px;}
-    table.cedula-detenciones td{padding:0.5px; height:8px; font-size:6.5px;}
-    table.cedula-jugadores{font-size:7.5px;}
-    table.cedula-jugadores th{padding:0.5px; font-size:6.5px;}
-    table.cedula-jugadores td{padding:0.5px 4px; height:9px;}
-    table.cedula-numtable{font-size:6.5px;}
-    table.cedula-numtable th{padding:0.5px 0; font-size:7px;}
-    table.cedula-numtable td{padding:0.5px 3px;}
-    table.cedula-marcador{font-size:7px; margin-top:4px;}
-    table.cedula-marcador td{padding:1px 4px; height:9px;}
-    .cedula-mvp-label, .cedula-vencedor{font-size:6.5px;}
-    .cedula-footer{margin-top:8px; font-size:7.5px;}
-    .lock-overlay{display:none !important;}
   }
 </style>
 </head>
@@ -659,14 +610,21 @@
 
   <!-- ============ TAB: CÉDULAS ============ -->
   <section class="view" id="view-cedulas">
-    <div class="card cedulas-toolbar">
-      <h2>Generar cédulas de juego</h2>
-      <label for="cedulaJornadaSelect">Semana</label>
-      <select id="cedulaJornadaSelect" onchange="renderCedulas()"></select>
-      <button class="save-btn" onclick="imprimirCedulas()">🖨️ Imprimir / Guardar PDF</button>
-      <div class="empty-state" style="text-align:left; padding:12px 0 0 0;">Se genera una cédula por cada partido de la jornada elegida. Usa el botón de imprimir de tu navegador y elige "Guardar como PDF" si prefieres un archivo en vez de papel.</div>
+    <div class="card">
+      <h2>Hoja digital</h2>
+      <div class="hd-barra">
+        <div>
+          <label for="hdPartidoSelect">Partido</label>
+          <select id="hdPartidoSelect" onchange="hdCambiarPartido()"></select>
+        </div>
+        <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
+      </div>
+      <div class="empty-state" id="hdAviso" style="text-align:left;padding:10px 0 0;">
+        Si un jugador se da de alta durante el partido, dale a <strong>Refrescar rosters</strong> y aparece.
+      </div>
     </div>
-    <div id="cedulasContainer"></div>
+
+    <div id="hdTablero"></div>
   </section>
 
   <!-- ============ TAB: INSCRIPCIONES ============ -->
@@ -1827,90 +1785,447 @@ function buildTeamBlockHtml(letra, nombreEquipo, jugadores){
     </div>`;
 }
 
-function buildCedulaHtml(match){
-  const jugadoresA = ROSTERS[match.local] || [];
-  const jugadoresB = ROSTERS[match.visit] || [];
+/* ============================================================
+   HOJA DIGITAL (antes "Cédulas")
+   ------------------------------------------------------------
+   Se usa EN VIVO, durante el partido, normalmente en una tablet en la mesa
+   de control. Dos decisiones de fondo:
 
-  return `
-    <div class="cedula-sheet">
-      <div class="cedula-header">
-        <div class="cedula-club">
-          <div class="cedula-club-badge">🏀</div>
-          <div>
-            <div class="cedula-club-nombre">${CONFIG.clubNombre.toUpperCase()}</div>
-            <div class="cedula-club-sub">${CONFIG.clubSubtitulo.toUpperCase()}</div>
-          </div>
-        </div>
-        <div class="cedula-titulo">
-          <div class="cedula-titulo-main">CEDULA OFICIAL DE JUEGO</div>
-          <div class="cedula-titulo-sub">${CONFIG.ligaNombreCedula}</div>
-        </div>
-      </div>
+   1) Nada se manda al servidor mientras se juega. Cada llamada al Apps
+      Script tarda 2.5–4 s y falla ~1 de cada 5 veces; esperar eso en cada
+      canasta sería imposible de usar. Todo vive en memoria y se guarda al
+      cerrar el partido.
+   2) Después de CADA acción se hace copia en el navegador. Si se cierra la
+      pestaña, se acaba la pila o alguien le pica sin querer, al volver a
+      entrar el partido sigue exactamente donde iba.
+   ============================================================ */
 
-      <table class="cedula-infogrid">
-        <tr>
-          <td class="cedula-info-label">Torneo:</td><td class="cedula-info-value">${(match.categoria || "").toUpperCase()}</td>
-          <td class="cedula-info-label">Semana:</td><td class="cedula-info-value">SEMANA ${match.jornada}</td>
-        </tr>
-        <tr>
-          <td class="cedula-info-label">División:</td><td class="cedula-info-value">${formatDivisionCedula(match.fecha)}</td>
-          <td class="cedula-info-label">Equipo A:</td><td class="cedula-info-value">${match.local.toUpperCase()}</td>
-        </tr>
-        <tr>
-          <td class="cedula-info-label">Grupo:</td><td class="cedula-info-value">${formatGrupoCedula(match.categoria)}</td>
-          <td class="cedula-info-label">Equipo B:</td><td class="cedula-info-value">${match.visit.toUpperCase()}</td>
-        </tr>
-        <tr>
-          <td class="cedula-info-label">Cancha:</td><td class="cedula-info-value">${match.sede || ""}</td>
-          <td class="cedula-info-label">Fha/Hora:</td><td class="cedula-info-value">${formatFechaHoraCedula(match.fecha, match.hora)}</td>
-        </tr>
-      </table>
+const HD_RESPALDO = "hojaDigital_v1";
+let HD = null;   // partido en curso
 
-      <div class="cedula-body">
-        <div class="cedula-left">
-          ${buildTeamBlockHtml("A", match.local, jugadoresA)}
-          ${buildTeamBlockHtml("B", match.visit, jugadoresB)}
-        </div>
-        <div class="cedula-right">
-          ${buildScoreGridHtml()}
-        </div>
-      </div>
-
-      <table class="cedula-marcador">
-        <tr><td class="cedula-marcador-label">Marcador 1° Cuarto</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td>
-            <td class="cedula-mvp-label" rowspan="5">MVP<br>A: <span class="cedula-line"></span><br>B: <span class="cedula-line"></span></td></tr>
-        <tr><td class="cedula-marcador-label">Marcador 2° Cuarto</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td></tr>
-        <tr><td class="cedula-marcador-label">Marcador 3° Cuarto</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td></tr>
-        <tr><td class="cedula-marcador-label">Marcador 4° Cuarto</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td></tr>
-        <tr><td class="cedula-marcador-label">Periodo extra</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td></tr>
-        <tr><td class="cedula-marcador-label cedula-final-label">MARCADOR FINAL</td><td class="cedula-ab-label">A</td><td class="cedula-box"></td><td class="cedula-ab-label">B</td><td class="cedula-box"></td>
-            <td class="cedula-vencedor">Equipo vencedor: <span class="cedula-line"></span></td></tr>
-      </table>
-
-      <div class="cedula-footer">
-        <div><span class="cedula-line-label">1er Árbitro</span><span class="cedula-line"></span></div>
-        <div><span class="cedula-line-label">2do Árbitro</span><span class="cedula-line"></span></div>
-        <div><span class="cedula-line-label">Anotador</span><span class="cedula-line"></span></div>
-      </div>
-    </div>`;
+function hdClaveDe(m){
+  return [m.jornada, m.categoria, m.local, m.visit].join("|");
 }
 
-function renderCedulas(){
-  const seleccion = document.getElementById("cedulaJornadaSelect").value;
-  const partidos = seleccion === "todas"
-    ? [...MATCHES].sort((a,b)=> a.jornada - b.jornada)
-    : MATCHES.filter(m=>m.jornada === Number(seleccion));
-  const el = document.getElementById("cedulasContainer");
-  if(partidos.length === 0){
-    el.innerHTML = '<div class="empty-state">No hay partidos para generar cédulas.</div>';
+/* Estructura de un jugador dentro del partido. */
+function hdNuevoJugador(nombre){
+  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0 };
+}
+
+function hdNuevoPartido(m){
+  const roster = (equipo)=> (ROSTERS[equipo] || []).map(n=> hdNuevoJugador(typeof n === "string" ? n : n.nombre));
+  return {
+    clave: hdClaveDe(m),
+    semana: m.jornada, fecha: m.fecha, hora: m.hora || "",
+    categoria: m.categoria, local: m.local, visit: m.visit,
+    cuarto: 0,              // 0 = todavía no arranca
+    cuartoMax: 0,           // hasta dónde se ha llegado: no se puede regresar
+    jugadores: { local: roster(m.local), visit: roster(m.visit) },
+    pendientes: { local: {1:0,2:0,3:0,4:0}, visit: {1:0,2:0,3:0,4:0} },
+    tiemposFuera: { local: {primera:0, segunda:0}, visit: {primera:0, segunda:0} },
+    faltasEquipo: { local: {1:0,2:0,3:0,4:0}, visit: {1:0,2:0,3:0,4:0} },
+    cerrado: false,
+    prorroga: false
+  };
+}
+
+function hdGuardarRespaldo(){
+  if(!HD) return;
+  try{ localStorage.setItem(HD_RESPALDO, JSON.stringify(HD)); }
+  catch(e){ console.warn("No se pudo respaldar la hoja digital:", e); }
+}
+
+function hdLeerRespaldo(clave){
+  try{
+    const crudo = localStorage.getItem(HD_RESPALDO);
+    if(!crudo) return null;
+    const guardado = JSON.parse(crudo);
+    return (guardado && guardado.clave === clave) ? guardado : null;
+  }catch(e){ return null; }
+}
+
+/* ---------- Selector de partido ---------- */
+function hdLlenarSelector(){
+  const sel = document.getElementById("hdPartidoSelect");
+  if(!sel) return;
+  const pendientes = MATCHES.filter(m=>m.estatus !== "Jugado");
+  const lista = pendientes.length ? pendientes : MATCHES;
+  sel.innerHTML = lista.length
+    ? lista.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} · ${m.categoria || ""} — ${m.local} vs ${m.visit}${m.fecha ? " ("+m.fecha+")" : ""}</option>`).join("")
+    : '<option value="">No hay partidos en el rol</option>';
+}
+
+function hdCambiarPartido(){
+  const sel = document.getElementById("hdPartidoSelect");
+  const idx = Number(sel.value);
+  const m = MATCHES[idx];
+  if(!m){ document.getElementById("hdTablero").innerHTML = ""; return; }
+
+  const clave = hdClaveDe(m);
+  // Si veníamos de otro partido a medias, se avisa antes de soltarlo.
+  if(HD && HD.clave !== clave && !HD.cerrado && hdTotal(HD, "local") + hdTotal(HD, "visit") > 0){
+    if(!confirm("Tienes el partido " + HD.local + " vs " + HD.visit + " a medias.\n\n¿Seguro que quieres cambiar? Se queda respaldado, pero solo se guarda un partido a la vez.")){
+      hdLlenarSelector();
+      return;
+    }
+  }
+  HD = hdLeerRespaldo(clave) || hdNuevoPartido(m);
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* Vuelve a leer los rosters del Sheet sin perder lo ya anotado. */
+async function hdRefrescarRosters(){
+  if(!HD){ alert("Primero elige un partido."); return; }
+  const aviso = document.getElementById("hdAviso");
+  if(aviso) aviso.textContent = "Actualizando rosters…";
+  await initData();
+  ["local","visit"].forEach(lado=>{
+    const equipo = HD[lado];
+    const yaEstan = new Set(HD.jugadores[lado].map(j=>j.nombre));
+    (ROSTERS[equipo] || []).forEach(n=>{
+      const nombre = typeof n === "string" ? n : n.nombre;
+      if(!yaEstan.has(nombre)) HD.jugadores[lado].push(hdNuevoJugador(nombre));
+    });
+  });
+  hdGuardarRespaldo();
+  hdRender();
+  if(aviso) aviso.innerHTML = "Rosters actualizados. Si alguien más se da de alta, vuelve a darle a <strong>Refrescar rosters</strong>.";
+}
+
+/* ---------- Cuentas ---------- */
+function hdPuntosJugador(j){ return j.q[1] + j.q[2] + j.q[3] + j.q[4]; }
+function hdPuntosCuarto(p, lado, c){
+  return p.jugadores[lado].reduce((s,j)=>s + j.q[c], 0) + p.pendientes[lado][c];
+}
+function hdTotal(p, lado){
+  return [1,2,3,4].reduce((s,c)=>s + hdPuntosCuarto(p, lado, c), 0);
+}
+function hdPendientesTotal(p, lado){
+  return [1,2,3,4].reduce((s,c)=>s + p.pendientes[lado][c], 0);
+}
+function hdFaltasEquipoCuarto(p, lado, c){ return p.faltasEquipo[lado][c]; }
+
+/* ---------- Cuartos ---------- */
+function hdSeleccionarCuarto(c){
+  if(!HD || HD.cerrado) return;
+  if(c < HD.cuartoMax){
+    alert("No se puede regresar al cuarto " + c + ".\n\nYa vas en el " + HD.cuartoMax + ". Esto es a propósito: así los puntos siempre quedan en el cuarto correcto.");
     return;
   }
-  el.innerHTML = partidos.map(buildCedulaHtml).join("");
+  HD.cuarto = c;
+  if(c > HD.cuartoMax) HD.cuartoMax = c;
+  hdGuardarRespaldo();
+  hdRender();
 }
 
-function imprimirCedulas(){
-  window.print();
+function hdExigeCuarto(){
+  if(!HD || HD.cuarto === 0){
+    alert("Primero selecciona el cuarto en el que va el partido.");
+    return false;
+  }
+  if(HD.cerrado){ alert("Este partido ya se cerró."); return false; }
+  return true;
 }
+
+/* ---------- Anotación ---------- */
+function hdAnotar(lado, indice, puntos){
+  if(!hdExigeCuarto()) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+  const c = HD.cuarto;
+  if(puntos < 0 && j.q[c] <= 0){
+    alert("No hay puntos que quitarle a " + j.nombre + " en el cuarto " + c + ".");
+    return;
+  }
+  j.q[c] += puntos;
+  if(puntos === 3) j.triples++;
+  if(puntos < 0 && j.triples > 0 && j.q[c] % 3 === 0) { /* el conteo de triples solo se corrige a mano */ }
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+function hdPendiente(lado, puntos){
+  if(!hdExigeCuarto()) return;
+  const c = HD.cuarto;
+  if(puntos < 0 && HD.pendientes[lado][c] <= 0) return;
+  HD.pendientes[lado][c] += puntos;
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* ---------- Faltas ---------- */
+function hdFalta(lado, indice, tipo){
+  if(!hdExigeCuarto()) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+  if(tipo === "fp") j.fp++; else j.ftf++;
+  HD.faltasEquipo[lado][HD.cuarto]++;
+
+  const totalFaltas = j.fp + j.ftf;
+  hdGuardarRespaldo();
+  hdRender();
+
+  if(totalFaltas === 5){
+    alert("🚨 " + j.nombre + " llegó a 5 faltas.\n\nQueda FUERA del partido.");
+  }
+  const faltasDelCuarto = HD.faltasEquipo[lado][HD.cuarto];
+  if(faltasDelCuarto === 5){
+    const rival = lado === "local" ? HD.visit : HD.local;
+    alert("⚠️ " + HD[lado] + " llegó a 5 faltas en el cuarto " + HD.cuarto + ".\n\n" + rival + " entra en BONUS (tiros libres).");
+  }
+}
+
+function hdQuitarFalta(lado, indice, tipo){
+  if(!HD || HD.cerrado) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+  if(tipo === "fp" && j.fp > 0) j.fp--;
+  else if(tipo === "ftf" && j.ftf > 0) j.ftf--;
+  else return;
+  if(HD.faltasEquipo[lado][HD.cuarto] > 0) HD.faltasEquipo[lado][HD.cuarto]--;
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* ---------- Tiempos fuera ---------- */
+function hdMitadActual(){ return (HD && HD.cuarto >= 3) ? "segunda" : "primera"; }
+function hdTiemposFueraTope(mitad){ return mitad === "primera" ? 2 : 3; }
+
+function hdTiempoFuera(lado){
+  if(!hdExigeCuarto()) return;
+  const mitad = hdMitadActual();
+  const tope = hdTiemposFueraTope(mitad);
+  const usados = HD.tiemposFuera[lado][mitad];
+  if(usados >= tope){
+    alert(HD[lado] + " ya usó sus " + tope + " tiempos fuera de la " + mitad + " mitad.");
+    return;
+  }
+  HD.tiemposFuera[lado][mitad]++;
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+function hdJersey(lado, indice, valor){
+  if(!HD) return;
+  HD.jugadores[lado][indice].jersey = String(valor).trim().slice(0,3);
+  hdGuardarRespaldo();
+}
+/* ---------- Pintado ---------- */
+function hdRender(){
+  const cont = document.getElementById("hdTablero");
+  if(!cont) return;
+  if(!HD){ cont.innerHTML = '<div class="card"><div class="empty-state">Elige un partido arriba.</div></div>'; return; }
+
+  const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
+
+  // Marcador
+  let html = `<div class="card">
+    <div class="hd-marcador">
+      <div>
+        <div class="hd-equipo-nombre">${HD.local}</div>
+        <div class="hd-puntos">${ptsL}</div>
+      </div>
+      <div class="hd-marcador-centro">
+        SEMANA ${HD.semana}<br>${HD.categoria || ""}<br>
+        ${HD.cuarto ? "CUARTO " + HD.cuarto : "SIN INICIAR"}
+      </div>
+      <div class="hd-lado-der">
+        <div class="hd-equipo-nombre">${HD.visit}</div>
+        <div class="hd-puntos">${ptsV}</div>
+      </div>
+    </div>`;
+
+  // Cuartos
+  html += '<div class="hd-cuartos">';
+  for(let c = 1; c <= 4; c++){
+    const activo = HD.cuarto === c ? " activo" : "";
+    const cerrado = (c < HD.cuartoMax) ? " cerrado" : "";
+    const bloqueado = (c < HD.cuartoMax || HD.cerrado) ? " disabled" : "";
+    html += `<button class="hd-cuarto-btn${activo}${cerrado}"${bloqueado} onclick="hdSeleccionarCuarto(${c})">${c}º cuarto</button>`;
+  }
+  html += '</div><p class="hd-nota">Selecciona el cuarto en el que va el partido. Una vez que avanzas ya no puedes regresar: así los puntos siempre quedan en el cuarto correcto.</p>';
+
+  // Puntos por cuarto
+  html += `<table class="hd-porcuarto"><tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>`;
+  ["local","visit"].forEach(lado=>{
+    html += `<tr><td class="eq">${HD[lado]}</td>` +
+      [1,2,3,4].map(c=>`<td>${hdPuntosCuarto(HD, lado, c)}</td>`).join("") +
+      `<td><strong>${hdTotal(HD, lado)}</strong></td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // Los dos equipos
+  html += '<div class="hd-split">';
+  ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
+  html += '</div>';
+
+  // Cierre
+  html += `<div class="card">`;
+  if(HD.cerrado){
+    html += `<div class="hd-prorroga" style="background:#0f3d1c;border-color:#2f5;color:#8f8;">
+      Partido cerrado y guardado. ${HD.local} ${ptsL} — ${ptsV} ${HD.visit}</div>`;
+  }else{
+    if(HD.prorroga){
+      html += `<div class="hd-prorroga">⏸️ PRÓRROGA PEDIDA — el resultado NO se publica hasta que se asignen los puntos pendientes.</div>`;
+    }
+    html += `<div class="hd-cierre">
+      <button class="save-btn" onclick="hdFinalizar()">Finalizar y guardar partido</button>
+      <button class="mini-btn" onclick="hdBorrarPartido()">Descartar este partido</button>
+    </div>`;
+  }
+  html += `</div>`;
+
+  cont.innerHTML = html;
+}
+
+function hdColumnaEquipo(lado){
+  const equipo = HD[lado];
+  const rival = lado === "local" ? "visit" : "local";
+  const mitad = hdMitadActual();
+  const tope = hdTiemposFueraTope(mitad);
+  const usados = HD.tiemposFuera[lado][mitad];
+  const faltasCuarto = HD.cuarto ? hdFaltasEquipoCuarto(HD, lado, HD.cuarto) : 0;
+  // El BONUS es para MI equipo cuando el RIVAL ya cometió 5 faltas en el cuarto.
+  const faltasRival = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) : 0;
+  const enBonus = faltasRival >= 5;
+  const pend = HD.cuarto ? HD.pendientes[lado][HD.cuarto] : 0;
+
+  let html = `<div class="hd-col">
+    <h3>${equipo}</h3>
+    <div class="hd-col-sub">
+      ${hdTotal(HD, lado)} pts · faltas de equipo en el cuarto: ${faltasCuarto}
+      ${hdPendientesTotal(HD, lado) ? ' · <span style="color:#e0a63c;font-weight:800;">' + hdPendientesTotal(HD, lado) + ' pts pendientes</span>' : ''}
+    </div>
+    <div class="hd-acciones-equipo">
+      <button class="hd-tf-btn" ${usados >= tope ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')">
+        ⏱ Tiempo fuera (${usados}/${tope})
+      </button>
+      ${enBonus ? '<span class="hd-bonus">BONUS a favor</span>' : ''}
+      <span class="hd-pend">
+        <span class="hd-pend-label">Puntos pendientes${HD.cuarto ? " (C" + HD.cuarto + "): " + pend : ""}</span>
+        <button class="hd-b mas" onclick="hdPendiente('${lado}',1)">+1</button>
+        <button class="hd-b mas" onclick="hdPendiente('${lado}',2)">+2</button>
+        <button class="hd-b mas" onclick="hdPendiente('${lado}',3)">+3</button>
+        <button class="hd-b menos" onclick="hdPendiente('${lado}',-1)">−1</button>
+      </span>
+    </div>`;
+
+  const jugadores = HD.jugadores[lado];
+  if(!jugadores.length){
+    html += '<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta. Diles que se registren y dale a Refrescar rosters.</div></div>';
+    return html;
+  }
+
+  jugadores.forEach((j, i)=>{
+    const faltas = j.fp + j.ftf;
+    const fuera = faltas >= 5;
+    html += `<div class="hd-jug${fuera ? " expulsado" : ""}">
+      <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
+             onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
+      <div>
+        <div class="hd-jug-nombre">${j.nombre}${fuera ? ' <span style="color:#ff6b6b;">· FUERA</span>' : ''}</div>
+        <div class="hd-jug-datos">
+          <b>${hdPuntosJugador(j)}</b> pts · ${j.triples} triples ·
+          <span class="${faltas >= 4 ? "falta-alta" : ""}">FP ${j.fp} · FTF ${j.ftf}</span>
+        </div>
+      </div>
+      <div class="hd-btns">
+        <button class="hd-b mas" ${fuera ? "disabled" : ""} onclick="hdAnotar('${lado}',${i},1)">+1</button>
+        <button class="hd-b mas" ${fuera ? "disabled" : ""} onclick="hdAnotar('${lado}',${i},2)">+2</button>
+        <button class="hd-b mas" ${fuera ? "disabled" : ""} onclick="hdAnotar('${lado}',${i},3)">+3</button>
+        <button class="hd-b menos" onclick="hdAnotar('${lado}',${i},-1)">−1</button>
+        <button class="hd-b falta" ${fuera ? "disabled" : ""} onclick="hdFalta('${lado}',${i},'fp')" title="Falta personal">FP</button>
+        <button class="hd-b falta" ${fuera ? "disabled" : ""} onclick="hdFalta('${lado}',${i},'ftf')" title="Falta técnica o flagrante">FTF</button>
+        <button class="hd-b" onclick="hdQuitarFalta('${lado}',${i},'fp')" title="Quitar una falta personal">−FP</button>
+      </div>
+    </div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function hdBorrarPartido(){
+  if(!HD) return;
+  if(!confirm("¿Descartar todo lo capturado de " + HD.local + " vs " + HD.visit + "?\n\nEsto no se puede deshacer.")) return;
+  try{ localStorage.removeItem(HD_RESPALDO); }catch(e){}
+  HD = null;
+  hdRender();
+}
+
+/* ---------- Cierre del partido ---------- */
+async function hdFinalizar(){
+  if(!HD || HD.cerrado) return;
+
+  // 1) Puntos pendientes: hay que resolverlos antes de publicar.
+  const pendL = hdPendientesTotal(HD, "local");
+  const pendV = hdPendientesTotal(HD, "visit");
+  if(pendL + pendV > 0){
+    const detalle = (pendL ? "\n· " + HD.local + ": " + pendL + " pts" : "") +
+                    (pendV ? "\n· " + HD.visit + ": " + pendV + " pts" : "");
+    const asignar = confirm(
+      "Hay PUNTOS PENDIENTES sin asignar a ningún jugador:" + detalle +
+      "\n\nAceptar = los asigno ahora (regreso a la hoja para dárselos a los jugadores)." +
+      "\nCancelar = pedir PRÓRROGA (el resultado NO se publica hasta asignarlos).");
+    if(asignar){
+      alert("Asígnalos con los botones de cada jugador y quítalos de 'Puntos pendientes' con el −1.\n\nCuando queden en cero, vuelve a darle a Finalizar.");
+      return;
+    }
+    HD.prorroga = true;
+    hdGuardarRespaldo();
+    hdRender();
+    alert("Quedó marcado como PRÓRROGA.\n\nEl partido NO se guardó ni se publicó. Cuando la mesa de control asigne los puntos, vuelve a entrar aquí y dale a Finalizar.");
+    return;
+  }
+
+  if(!confirm("Cerrar el partido y guardarlo\n\n" + HD.local + " " + hdTotal(HD,"local") +
+              " — " + hdTotal(HD,"visit") + " " + HD.visit + "\n\n¿Todo correcto?")) return;
+
+  const btnMsg = document.getElementById("hdAviso");
+  if(btnMsg) btnMsg.textContent = "Guardando el partido…";
+
+  const jugadoresPayload = [];
+  ["local","visit"].forEach(lado=>{
+    HD.jugadores[lado].forEach(j=>{
+      const total = hdPuntosJugador(j);
+      if(total === 0 && j.fp === 0 && j.ftf === 0 && !j.jersey) return; // no jugó
+      jugadoresPayload.push({
+        equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
+        q1: j.q[1], q2: j.q[2], q3: j.q[3], q4: j.q[4],
+        total, triples: j.triples, fp: j.fp, ftf: j.ftf
+      });
+    });
+  });
+
+  try{
+    await postAppsScript({
+      action: "guardarHojaDigital",
+      clave: CONFIG.adminPassword,
+      semana: HD.semana, fecha: HD.fecha, categoria: HD.categoria,
+      equipoLocal: HD.local, equipoVisit: HD.visit,
+      ptsLocal: hdTotal(HD, "local"), ptsVisit: hdTotal(HD, "visit"),
+      porCuarto: {
+        local: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"local",c)),
+        visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
+      },
+      jugadores: jugadoresPayload
+    });
+    HD.cerrado = true;
+    hdGuardarRespaldo();
+    hdRender();
+    if(btnMsg) btnMsg.textContent = "Partido guardado.";
+    alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit);
+  }catch(err){
+    if(btnMsg) btnMsg.textContent = "";
+    alert("No se pudo guardar: " + err.message +
+          "\n\nTRANQUILO: nada se perdió. El partido sigue respaldado en esta tablet; inténtalo otra vez en un momento.");
+  }
+}
+
+function renderCedulas(){ hdLlenarSelector(); hdRender(); }
+
+
 
 /* ============================================================
    CRUCES — rival de cada equipo en cada uno de sus 8 partidos

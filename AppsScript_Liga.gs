@@ -327,6 +327,8 @@ function doPost(e) {
       cambiarPasswordCapitan(ss, data);
     } else if (data.action === "leerPruebas") {
       resultado.hojas = leerPruebas(ss, data);
+    } else if (data.action === "guardarHojaDigital") {
+      resultado.partido = guardarHojaDigital(ss, data);
     } else if (data.action === "corregirCorreoJugador") {
       resultado.correccion = corregirCorreoJugador(ss, data);
     } else if (data.action === "reportarPruebas") {
@@ -1413,6 +1415,90 @@ var ROL_MESA_COL_ = 11;     // columna K
  * Consola ese número ES la semana. Por eso se acepta data.semana y, si no
  * viene, se cae a data.jornada por compatibilidad.
  */
+/**
+ * Guarda un partido capturado con la HOJA DIGITAL (pestaña Cédulas del
+ * Admin). Escribe en dos lados:
+ *
+ *  - "Resultados": el marcador final, igual que siempre, para que la Tabla
+ *    General y todo lo que ya existe siga funcionando sin cambios.
+ *  - "Estadísticas": un renglón POR JUGADOR con sus puntos en cada cuarto,
+ *    total, triples y faltas. Esta hoja se crea sola la primera vez.
+ *
+ * También marca el partido como "Jugado" en "Rol de Juego".
+ */
+var ESTADISTICAS_ENCABEZADOS_ = [
+  "Timestamp", "Semana", "Fecha", "Categoría", "Equipo", "Jugador", "Jersey",
+  "1º", "2º", "3º", "4º", "Total", "Triples", "FP", "FTF"
+];
+
+function guardarHojaDigital(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) throw new Error("No autorizado.");
+
+  var local = String(data.equipoLocal || "").trim();
+  var visit = String(data.equipoVisit || "").trim();
+  if (!local || !visit) throw new Error("Faltan los equipos del partido.");
+
+  var semana = data.semana;
+  var categoria = String(data.categoria || "").trim();
+  var fecha = String(data.fecha || "").trim();
+  var ptsLocal = Number(data.ptsLocal || 0);
+  var ptsVisit = Number(data.ptsVisit || 0);
+  var ahora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+
+  // --- 1) Marcador en "Resultados" ---
+  var hojaRes = ss.getSheetByName("Resultados");
+  if (!hojaRes) throw new Error("No existe la hoja 'Resultados'.");
+  // Esta hoja trae fórmulas precargadas (Ganador/Diferencia), así que se
+  // busca el primer renglón libre en vez de usar appendRow.
+  var maxRes = hojaRes.getMaxRows();
+  var colA = hojaRes.getRange(2, 1, maxRes - 1, 1).getValues();
+  var filaLibre = 0;
+  for (var i = 0; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() === "") { filaLibre = i + 2; break; }
+  }
+  if (!filaLibre) filaLibre = maxRes + 1;
+  hojaRes.getRange(filaLibre, 1, 1, 6).setValues([[semana, categoria, local, ptsLocal, visit, ptsVisit]]);
+
+  // --- 2) Detalle por jugador en "Estadísticas" ---
+  var hojaEst = ss.getSheetByName("Estadísticas");
+  if (!hojaEst) {
+    hojaEst = ss.insertSheet("Estadísticas");
+    hojaEst.appendRow(ESTADISTICAS_ENCABEZADOS_);
+    hojaEst.setFrozenRows(1);
+  }
+  if (String(hojaEst.getRange(1, 1).getValue()).trim() === "") {
+    hojaEst.getRange(1, 1, 1, ESTADISTICAS_ENCABEZADOS_.length).setValues([ESTADISTICAS_ENCABEZADOS_]);
+  }
+
+  var jugadores = data.jugadores || [];
+  if (jugadores.length) {
+    var filas = jugadores.map(function (j) {
+      return [
+        ahora, semana, fecha, categoria, j.equipo, j.jugador, j.jersey || "",
+        Number(j.q1 || 0), Number(j.q2 || 0), Number(j.q3 || 0), Number(j.q4 || 0),
+        Number(j.total || 0), Number(j.triples || 0), Number(j.fp || 0), Number(j.ftf || 0)
+      ];
+    });
+    hojaEst.getRange(hojaEst.getLastRow() + 1, 1, filas.length, ESTADISTICAS_ENCABEZADOS_.length)
+           .setValues(filas);
+  }
+
+  // --- 3) Marcar el partido como Jugado en el rol ---
+  try {
+    marcarRolComoJugado(ss, {
+      jornada: semana, equipoLocal: local, equipoVisit: visit
+    });
+  } catch (errRol) {
+    Logger.log("No se pudo marcar como Jugado en el rol: " + errRol);
+  }
+
+  return {
+    guardado: true,
+    marcador: local + " " + ptsLocal + " - " + ptsVisit + " " + visit,
+    jugadoresGuardados: jugadores.length
+  };
+}
+
 function programarPartido(ss, data) {
   var hoja = ss.getSheetByName("Rol de Juego");
   if (!hoja) throw new Error("No existe la hoja 'Rol de Juego'.");
