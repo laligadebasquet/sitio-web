@@ -327,6 +327,8 @@ function doPost(e) {
       cambiarPasswordCapitan(ss, data);
     } else if (data.action === "leerPruebas") {
       resultado.hojas = leerPruebas(ss, data);
+    } else if (data.action === "enviarReportePartido") {
+      resultado.reporte = enviarReportePartido(ss, data);
     } else if (data.action === "guardarHojaDigital") {
       resultado.partido = guardarHojaDigital(ss, data);
     } else if (data.action === "corregirCorreoJugador") {
@@ -1497,6 +1499,183 @@ function guardarHojaDigital(ss, data) {
     marcador: local + " " + ptsLocal + " - " + ptsVisit + " " + visit,
     jugadoresGuardados: jugadores.length
   };
+}
+
+/**
+ * Manda por correo el reporte de un partido, con la imagen de la liga
+ * (misma cabecera negra con la línea naranja y las redes al pie que usan
+ * los correos de bienvenida). Sirve tanto para partidos reales como para
+ * los de PRUEBA — en esos el asunto y una franja lo dejan bien claro, para
+ * que nadie confunda un ensayo con un resultado oficial.
+ */
+var REPORTE_CORREO_DESTINO_ = "oliverrmz15@gmail.com";
+
+function enviarReportePartido(ss, data) {
+  if (String(data.clave || "") !== ADMIN_CLAVE_) throw new Error("No autorizado.");
+
+  var esPrueba = !!data.esPrueba;
+  var local = String(data.equipoLocal || "").trim();
+  var visit = String(data.equipoVisit || "").trim();
+  var ptsL = Number(data.ptsLocal || 0);
+  var ptsV = Number(data.ptsVisit || 0);
+  var porCuarto = data.porCuarto || { local: [0,0,0,0], visit: [0,0,0,0] };
+  var jugadores = data.jugadores || [];
+
+  var ganador = ptsL > ptsV ? local : (ptsV > ptsL ? visit : "");
+  var estrella = "⭐ ";
+  var nombreLocal = (ganador === local ? estrella : "") + local;
+  var nombreVisit = (ganador === visit ? estrella : "") + visit;
+
+  // Tabla de jugadores de un equipo, ordenada por puntos de mayor a menor.
+  function tablaEquipo(nombreEquipo, esGanador) {
+    var delEquipo = jugadores.filter(function (j) { return j.equipo === nombreEquipo; })
+      .sort(function (a, b) { return Number(b.total || 0) - Number(a.total || 0); });
+    var filas = delEquipo.map(function (j) {
+      return '<tr>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #EEE;font-size:13px;">' +
+          (j.jersey ? '<strong style="color:#F37228;">#' + j.jersey + '</strong> ' : '') + j.jugador + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #EEE;font-size:13px;text-align:center;font-weight:800;">' + Number(j.total || 0) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #EEE;font-size:13px;text-align:center;">' + Number(j.triples || 0) + '</td>' +
+      '</tr>';
+    }).join("");
+    if (!filas) {
+      filas = '<tr><td colspan="3" style="padding:10px;font-size:13px;color:#888;">Sin anotaciones.</td></tr>';
+    }
+    return '<div style="margin:0 0 22px;">' +
+      '<p style="font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;' +
+        'color:' + (esGanador ? '#F37228' : '#111111') + ';">' +
+        (esGanador ? estrella : "") + nombreEquipo + '</p>' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+        'style="border:1px solid #E2E2E2;border-radius:8px;border-collapse:separate;">' +
+        '<tr style="background:#F5F5F5;">' +
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6B6B6B;">Jugador</th>' +
+          '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;color:#6B6B6B;">Puntos</th>' +
+          '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;color:#6B6B6B;">Triples</th>' +
+        '</tr>' + filas +
+      '</table></div>';
+  }
+
+  function filaCuartos(nombreEquipo, arr, esGanador) {
+    var celdas = [0,1,2,3].map(function (i) {
+      return '<td style="padding:8px;text-align:center;border-bottom:1px solid #EEE;font-size:14px;">' + Number(arr[i] || 0) + '</td>';
+    }).join("");
+    var total = [0,1,2,3].reduce(function (s, i) { return s + Number(arr[i] || 0); }, 0);
+    return '<tr>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #EEE;font-size:13px;font-weight:800;' +
+        (esGanador ? 'color:#F37228;' : '') + '">' + (esGanador ? estrella : "") + nombreEquipo + '</td>' +
+      celdas +
+      '<td style="padding:8px;text-align:center;border-bottom:1px solid #EEE;font-size:15px;font-weight:900;">' + total + '</td>' +
+    '</tr>';
+  }
+
+  var dato = function (etiqueta, valor) {
+    return '<tr><td style="padding:7px 12px;border-bottom:1px solid #E2E2E2;font-size:11px;font-weight:700;' +
+      'color:#6B6B6B;text-transform:uppercase;">' + etiqueta + '</td>' +
+      '<td style="padding:7px 12px;border-bottom:1px solid #E2E2E2;font-size:14px;font-weight:700;text-align:right;">' +
+      (valor || "—") + '</td></tr>';
+  };
+
+  var htmlBody =
+    '<div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;color:#111111;">' +
+      '<div style="background:#000000;padding:20px;text-align:center;border-bottom:4px solid #F37228;">' +
+        '<div style="color:#ffffff;font-weight:900;font-size:18px;letter-spacing:-.3px;">LA LIGA DE BASQUET</div>' +
+        '<div style="color:#ffffff;font-weight:400;font-size:10px;letter-spacing:3px;margin-top:4px;">GANTE SAN PEDRO</div>' +
+      '</div>' +
+      '<div style="padding:24px 20px;">' +
+        (esPrueba
+          ? '<p style="background:#FFF4E0;border:1px solid #E8912E;color:#8a5a10;border-radius:8px;' +
+            'padding:11px 14px;font-size:13px;font-weight:800;margin:0 0 18px;text-align:center;">' +
+            '🧪 PARTIDO DE PRUEBA — no cuenta para la temporada</p>'
+          : '') +
+
+        '<p style="font-size:16px;font-weight:900;margin:0 0 4px;">Reporte del partido</p>' +
+
+        // --- Marcador final ---
+        '<div style="background:#000000;border-radius:12px;padding:20px;margin:16px 0 20px;text-align:center;">' +
+          '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+            '<td style="text-align:center;width:42%;">' +
+              '<div style="color:#ffffff;font-size:13px;font-weight:800;text-transform:uppercase;">' + nombreLocal + '</div>' +
+              '<div style="color:#ffffff;font-size:44px;font-weight:900;line-height:1.1;">' + ptsL + '</div>' +
+            '</td>' +
+            '<td style="text-align:center;width:16%;color:#F37228;font-size:12px;font-weight:900;">VS</td>' +
+            '<td style="text-align:center;width:42%;">' +
+              '<div style="color:#ffffff;font-size:13px;font-weight:800;text-transform:uppercase;">' + nombreVisit + '</div>' +
+              '<div style="color:#ffffff;font-size:44px;font-weight:900;line-height:1.1;">' + ptsV + '</div>' +
+            '</td>' +
+          '</tr></table>' +
+          '<p style="color:#F37228;font-size:13px;font-weight:800;margin:14px 0 0;text-transform:uppercase;">' +
+            (ganador ? '⭐ Ganador: ' + ganador : 'Empate') + '</p>' +
+        '</div>' +
+
+        // --- Datos del partido ---
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+          'style="border:1px solid #E2E2E2;border-radius:8px;margin-bottom:22px;">' +
+          dato("Fecha del partido", data.fecha) +
+          dato("Categoría", data.categoria) +
+          dato("Mesa de control", data.mesa) +
+          dato("Árbitro 1", data.arbitro1) +
+          dato("Árbitro 2", data.arbitro2) +
+        '</table>' +
+
+        // --- Jugadores ---
+        tablaEquipo(local, ganador === local) +
+        tablaEquipo(visit, ganador === visit) +
+
+        // --- Puntos por cuarto ---
+        '<p style="font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;">Puntos por cuarto</p>' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+          'style="border:1px solid #E2E2E2;border-radius:8px;border-collapse:separate;margin-bottom:8px;">' +
+          '<tr style="background:#F5F5F5;">' +
+            '<th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6B6B6B;">Equipo</th>' +
+            '<th style="padding:7px;font-size:10px;color:#6B6B6B;">1º</th>' +
+            '<th style="padding:7px;font-size:10px;color:#6B6B6B;">2º</th>' +
+            '<th style="padding:7px;font-size:10px;color:#6B6B6B;">3º</th>' +
+            '<th style="padding:7px;font-size:10px;color:#6B6B6B;">4º</th>' +
+            '<th style="padding:7px;font-size:10px;color:#6B6B6B;">Total</th>' +
+          '</tr>' +
+          filaCuartos(local, porCuarto.local || [], ganador === local) +
+          filaCuartos(visit, porCuarto.visit || [], ganador === visit) +
+        '</table>' +
+
+        '<div style="border-top:1px solid #E2E2E2;margin-top:24px;padding-top:16px;font-size:13px;color:#6B6B6B;">' +
+          '<p style="margin:0 0 4px;"><strong>Contacto</strong></p>' +
+          '<p style="margin:0;">81 1781 7451 · control@laligadebasquet.com</p>' +
+          '<p style="margin:12px 0 0;">' +
+            '<a href="https://www.facebook.com/laligadebasquet/" style="color:#F37228;font-weight:700;text-decoration:none;">Facebook</a>' +
+            '&nbsp;·&nbsp;' +
+            '<a href="https://www.instagram.com/laligadebasquet/" style="color:#F37228;font-weight:700;text-decoration:none;">Instagram</a>' +
+            '&nbsp;·&nbsp;' +
+            '<a href="https://www.tiktok.com/@laligadebasquet?lang=es-419" style="color:#F37228;font-weight:700;text-decoration:none;">TikTok</a>' +
+            '&nbsp;·&nbsp;' +
+            '<a href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" style="color:#F37228;font-weight:700;text-decoration:none;">YouTube</a>' +
+          '</p>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var asunto = (esPrueba ? "[PRUEBA] " : "") + "Reporte: " + local + " " + ptsL + " - " + ptsV + " " + visit +
+               (data.categoria ? " · " + data.categoria : "");
+
+  var apiKeyResend = PropertiesService.getScriptProperties().getProperty("RESEND_API_KEY");
+  if (!apiKeyResend) throw new Error("Falta configurar RESEND_API_KEY en las Propiedades del script.");
+
+  var respuesta = UrlFetchApp.fetch("https://api.resend.com/emails", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + apiKeyResend },
+    payload: JSON.stringify({
+      from: "La Liga de Basquet · Gante San Pedro <control@laligadebasquet.com>",
+      to: String(data.destino || REPORTE_CORREO_DESTINO_).trim(),
+      subject: asunto,
+      html: htmlBody
+    }),
+    muteHttpExceptions: true
+  });
+  var codigo = respuesta.getResponseCode();
+  if (codigo < 200 || codigo >= 300) {
+    throw new Error("Resend respondió " + codigo + ": " + respuesta.getContentText());
+  }
+  return { enviado: true, para: String(data.destino || REPORTE_CORREO_DESTINO_).trim(), ganador: ganador };
 }
 
 function programarPartido(ss, data) {

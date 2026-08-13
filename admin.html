@@ -133,6 +133,10 @@
   .hd-puntos{font-size:52px;font-weight:900;line-height:1;color:#fff;}
   .hd-marcador-centro{text-align:center;color:#777;font-size:11px;font-weight:800;letter-spacing:1px;}
   .hd-lado-der{text-align:right;}
+  .hd-oficiales{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .hd-oficiales > div{flex:1;min-width:150px;}
+  .hd-oficiales label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#888;}
+  .hd-oficiales select{width:100%;}
   /* Cuartos */
   .hd-cuartos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
   .hd-cuarto-btn{
@@ -843,6 +847,8 @@ const CONFIG = {
   arbitros1: ["Francisco", "Jairo", "Esteban"],
   arbitros2: ["Francisco", "Jairo", "Esteban", "Braulio"],
   mesa: ["Michelle", "Eduardo", "Juan", "Miguel", "Mesa de control"],
+  // A dónde se manda el reporte del partido al cerrar la hoja digital.
+  correoReportes: "oliverrmz15@gmail.com",
 };
 
 function intentarAcceso(){
@@ -1845,6 +1851,9 @@ function hdNuevoPartido(m){
     clave: hdClaveDe(m),
     semana: m.jornada, fecha: m.fecha, hora: m.hora || "",
     categoria: m.categoria, local: m.local, visit: m.visit,
+    // Vienen del rol cuando el partido está programado; en un partido de
+    // prueba llegan vacíos y se eligen a mano en la propia hoja.
+    arbitro1: m.arbitro || "", arbitro2: m.arbitro2 || "", mesa: m.mesa || "",
     cuarto: 0,              // 0 = todavía no arranca
     cuartoMax: 0,           // hasta dónde se ha llegado: no se puede regresar
     jugadores: { local: roster(m.local), visit: roster(m.visit) },
@@ -2084,6 +2093,13 @@ function hdTiempoFuera(lado){
   hdRender();
 }
 
+/* Árbitros y mesa: se guardan en el partido y salen en el reporte. */
+function hdOficial(campo, valor){
+  if(!HD) return;
+  HD[campo] = valor;
+  hdGuardarRespaldo();
+}
+
 function hdJersey(lado, indice, valor){
   if(!HD) return;
   HD.jugadores[lado][indice].jersey = String(valor).trim().slice(0,3);
@@ -2126,6 +2142,18 @@ function hdRender(){
         <div class="hd-puntos">${ptsV}</div>
       </div>
     </div>`;
+
+  // Mesa y árbitros: van en el reporte que se manda por correo al cerrar.
+  const opts = (lista, sel)=> '<option value="">—</option>' +
+    lista.map(v=>`<option value="${v}"${v===sel?" selected":""}>${v}</option>`).join("");
+  html += `<div class="hd-oficiales">
+    <div><label>Árbitro 1</label>
+      <select onchange="hdOficial('arbitro1',this.value)">${opts(CONFIG.arbitros1, HD.arbitro1)}</select></div>
+    <div><label>Árbitro 2</label>
+      <select onchange="hdOficial('arbitro2',this.value)">${opts(CONFIG.arbitros2, HD.arbitro2)}</select></div>
+    <div><label>Mesa de control</label>
+      <select onchange="hdOficial('mesa',this.value)">${opts(CONFIG.mesa, HD.mesa)}</select></div>
+  </div>`;
 
   // Cuartos
   html += '<div class="hd-cuartos">';
@@ -2270,7 +2298,30 @@ async function hdFinalizar(){
     return;
   }
 
-  // 2) Si es prueba, se muestra el resumen y NO se manda nada al servidor.
+  // Datos que van al reporte por correo (los mismos para prueba y real).
+  const datosReporte = ()=>({
+    action: "enviarReportePartido",
+    clave: CONFIG.adminPassword,
+    esPrueba: !!HD.esPrueba,
+    destino: CONFIG.correoReportes,
+    fecha: HD.fecha, categoria: HD.categoria,
+    mesa: HD.mesa, arbitro1: HD.arbitro1, arbitro2: HD.arbitro2,
+    equipoLocal: HD.local, equipoVisit: HD.visit,
+    ptsLocal: hdTotal(HD, "local"), ptsVisit: hdTotal(HD, "visit"),
+    porCuarto: {
+      local: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"local",c)),
+      visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
+    },
+    jugadores: ["local","visit"].flatMap(lado=>
+      HD.jugadores[lado]
+        .filter(j=>hdPuntosJugador(j) > 0 || j.fp || j.ftf)
+        .map(j=>({ equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
+                   total: hdPuntosJugador(j), triples: j.triples, fp: j.fp, ftf: j.ftf })))
+  });
+
+  // 2) Si es prueba, se muestra el resumen y NO se guarda nada en el Sheet
+  //    (pero sí se manda el reporte por correo, que es justo lo que se
+  //    quiere revisar al hacer una prueba).
   if(HD.esPrueba){
     const linea = (lado)=> HD[lado] + ": " +
       [1,2,3,4].map(c=>"C"+c+" "+hdPuntosCuarto(HD,lado,c)).join("  ") +
@@ -2279,11 +2330,18 @@ async function hdFinalizar(){
       HD.jugadores[lado].filter(j=>hdPuntosJugador(j)>0 || j.fp || j.ftf)
         .map(j=>"  · " + (j.jersey ? "#"+j.jersey+" " : "") + j.nombre +
                " — " + hdPuntosJugador(j) + " pts, " + j.triples + " triples, FP " + j.fp + ", FTF " + j.ftf));
+    let avisoCorreo = "";
+    try{
+      const r = await postAppsScript(datosReporte());
+      avisoCorreo = "\n\n📧 Reporte enviado a " + ((r.reporte && r.reporte.para) || CONFIG.correoReportes) + ".";
+    }catch(errCorreo){
+      avisoCorreo = "\n\n⚠️ No se pudo enviar el reporte por correo: " + errCorreo.message;
+    }
     alert(
       "🧪 RESUMEN DE LA PRUEBA (no se guardó nada)\n\n" +
       HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit + "\n\n" +
       linea("local") + "\n" + linea("visit") + "\n\n" +
-      (anotadores.length ? "Jugadores:\n" + anotadores.join("\n") : "Nadie anotó."));
+      (anotadores.length ? "Jugadores:\n" + anotadores.join("\n") : "Nadie anotó.") + avisoCorreo);
     if(confirm("¿Descartar la prueba y dejar la hoja limpia?")){
       try{ localStorage.removeItem(hdClaveRespaldo(true)); }catch(e){}
       HD = null;
@@ -2328,7 +2386,16 @@ async function hdFinalizar(){
     hdGuardarRespaldo();
     hdRender();
     if(btnMsg) btnMsg.textContent = "Partido guardado.";
-    alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit);
+    // El reporte va aparte: si falla el correo, el partido YA quedó
+    // guardado y eso es lo que no se puede perder.
+    let avisoCorreo = "";
+    try{
+      const r = await postAppsScript(datosReporte());
+      avisoCorreo = "\n\n📧 Reporte enviado a " + ((r.reporte && r.reporte.para) || CONFIG.correoReportes) + ".";
+    }catch(errCorreo){
+      avisoCorreo = "\n\n⚠️ El partido se guardó bien, pero no se pudo enviar el reporte por correo.";
+    }
+    alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit + avisoCorreo);
   }catch(err){
     if(btnMsg) btnMsg.textContent = "";
     alert("No se pudo guardar: " + err.message +
