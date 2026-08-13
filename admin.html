@@ -216,6 +216,16 @@
   }
   .cat-btn:hover{border-color:#666;color:#fff;}
   .cat-btn.active{background:#E8365D;border-color:#E8365D;color:#fff;}
+
+  /* Pestaña EQUIPOS: tarjetas de conteo arriba de la tabla. */
+  .equipos-resumen{display:flex;gap:10px;flex-wrap:wrap;}
+  .eq-chip{
+    background:#1A1A1A;border:1px solid #333;border-radius:10px;
+    padding:12px 16px;min-width:110px;
+  }
+  .eq-chip .n{font-size:26px;font-weight:900;line-height:1;}
+  .eq-chip .t{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-top:5px;}
+  .eq-chip.alerta .n{color:#F3A128;}
   .rol-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;}
   @media(max-width:1100px){ .rol-split{grid-template-columns:1fr;} }
   .rol-col{min-width:0;}
@@ -399,6 +409,7 @@
   </div>
   <nav class="tabs">
     <button data-view="rol" class="active">Rol de Juego</button>
+    <button data-view="equipos">Equipos</button>
     <button data-view="captura">Resultado y Asistencia</button>
     <button data-view="pasado">Pasado</button>
     <button data-view="cruces">Cruces</button>
@@ -658,6 +669,26 @@
     <div id="hdTablero"></div>
   </section>
 
+  <!-- ============ TAB: EQUIPOS ============ -->
+  <section class="view" id="view-equipos">
+    <div class="card">
+      <h2>Equipos por categoría</h2>
+      <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+        Cómo va el cuadro de cada categoría: quiénes están inscritos, cuántos
+        jugadores lleva cada equipo y si ya están aprobados.
+      </div>
+      <div class="cat-botones" id="catBotonesEquipos"></div>
+      <div id="equiposResumen" class="equipos-resumen"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;" id="equiposTituloTabla">Equipos</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="equiposTable"></table>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ TAB: INSCRIPCIONES ============ -->
   <section class="view" id="view-inscripciones">
     <div class="card">
@@ -863,13 +894,14 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", captura: "view-captura", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", captura: "view-captura", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
     document.querySelectorAll("section.view").forEach(s=>s.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
+    if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
     if(btn.dataset.view === "cedulas") renderCedulas();
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
@@ -886,6 +918,7 @@ function repintarVistaActual(){
   const vista = activo ? activo.dataset.view : null;
   try{
     if(vista === "cedulas") renderCedulas();
+    else if(vista === "equipos") renderEquiposPorCategoria();
     else if(vista === "cruces") renderCruces();
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
@@ -2506,10 +2539,13 @@ function renderInscripciones(){
       const color = i.estatus === "Aprobado" ? "#2E7D32"
                   : i.estatus === "Rechazado" ? "#C62828" : "#B26A00";
       const eq = i.equipo.replace(/'/g,"\\'");
-      const acciones = esPend
+      const estatusBtns = esPend
         ? `<button class="save-btn" style="padding:6px 12px;font-size:12px;" onclick="cambiarEstatusInscripcion('${eq}','Aprobado')">Aprobar</button>
            <button class="save-btn" style="padding:6px 12px;font-size:12px;background:#5A5A5A;margin-left:6px;" onclick="cambiarEstatusInscripcion('${eq}','Rechazado')">Rechazar</button>`
         : `<button class="save-btn" style="padding:6px 12px;font-size:12px;background:#5A5A5A;" onclick="cambiarEstatusInscripcion('${eq}','Pendiente')">Regresar a pendiente</button>`;
+      // Eliminar va aparte y en rojo: rechazar es reversible, esto no.
+      const acciones = estatusBtns +
+        `<button class="save-btn" style="padding:6px 12px;font-size:12px;background:#8E1B1B;margin-left:6px;" onclick="eliminarEquipoInscrito('${eq}')">Eliminar</button>`;
       const colorMenores = i.menores === "Sí" ? "#B26A00" : "#5A5A5A";
       html += `<tr>
         <td>${i.timestamp || ""}</td>
@@ -2526,6 +2562,95 @@ function renderInscripciones(){
   }
 
   renderAltasJugadores();
+}
+
+/* ============================================================
+   PESTAÑA EQUIPOS: cómo va el cuadro de cada categoría
+   ============================================================ */
+
+/* Categoría elegida en la pestaña Equipos. Va aparte de CATEGORIA_ROL
+   a propósito: son dos pantallas distintas y es molesto que cambiar el
+   filtro en una te mueva la otra. */
+let CATEGORIA_EQUIPOS = "todas";
+
+function renderBotonesCategoriaEquipos(){
+  const cont = document.getElementById("catBotonesEquipos");
+  if(!cont) return;
+  const cats = ["todas"].concat(CONFIG.categorias);
+  cont.innerHTML = cats.map(c=>{
+    const activo = (CATEGORIA_EQUIPOS === c) ? " active" : "";
+    const texto = c === "todas" ? "Todas" : c;
+    return `<button type="button" class="cat-btn${activo}" onclick="seleccionarCategoriaEquipos('${c}')">${texto}</button>`;
+  }).join("");
+}
+
+function seleccionarCategoriaEquipos(cat){
+  CATEGORIA_EQUIPOS = cat;
+  renderEquiposPorCategoria();
+}
+
+function renderEquiposPorCategoria(){
+  renderBotonesCategoriaEquipos();
+  const cat = CATEGORIA_EQUIPOS;
+  const tabla = document.getElementById("equiposTable");
+  const resumen = document.getElementById("equiposResumen");
+  const titulo = document.getElementById("equiposTituloTabla");
+  if(!tabla) return;
+
+  titulo.textContent = (cat === "todas") ? "Todos los equipos" : "Equipos de " + cat;
+
+  /* La fuente de verdad son las INSCRIPCIONES: traen capitán, código y
+     estatus. EQUIPOS (la hoja) solo tiene nombres. */
+  const lista = INSCRIPCIONES
+    .filter(i => cat === "todas" || (i.categoria || "") === cat)
+    .map(i => ({ ...i, jugadores: (ROSTERS[i.equipo] || []).length }))
+    .sort((a,b)=>{
+      const d = (b.jugadores - a.jugadores);
+      return d !== 0 ? d : String(a.equipo).localeCompare(String(b.equipo));
+    });
+
+  // Tarjetas de conteo
+  const aprobados = lista.filter(i=>i.estatus === "Aprobado").length;
+  const pendientes = lista.filter(i=>i.estatus === "Pendiente").length;
+  const totalJug = lista.reduce((n,i)=>n + i.jugadores, 0);
+  const sinJugadores = lista.filter(i=>i.jugadores === 0).length;
+  resumen.innerHTML = `
+    <div class="eq-chip"><div class="n">${lista.length}</div><div class="t">Equipos</div></div>
+    <div class="eq-chip"><div class="n">${aprobados}</div><div class="t">Aprobados</div></div>
+    <div class="eq-chip${pendientes ? " alerta" : ""}"><div class="n">${pendientes}</div><div class="t">Pendientes</div></div>
+    <div class="eq-chip"><div class="n">${totalJug}</div><div class="t">Jugadores</div></div>
+    <div class="eq-chip${sinJugadores ? " alerta" : ""}"><div class="n">${sinJugadores}</div><div class="t">Sin altas</div></div>`;
+
+  if(lista.length === 0){
+    tabla.innerHTML = CARGANDO
+      ? FILA_CARGANDO
+      : (INSCRIPCIONES_CARGADAS
+          ? `<tr><td class="empty-state">Todavía no hay equipos${cat === "todas" ? "" : " en " + cat}.</td></tr>`
+          : '<tr><td class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar los equipos. Se está reintentando solo…</td></tr>');
+    return;
+  }
+
+  let html = `<tr>
+    <th>#</th><th>Equipo</th><th>Categoría</th><th>Capitán / Sub-capitán</th>
+    <th>Jugadores</th><th>Código</th><th>Menores</th><th>Estatus</th>
+  </tr>`;
+  lista.forEach((i, n)=>{
+    const color = i.estatus === "Aprobado" ? "#2E7D32"
+                : i.estatus === "Rechazado" ? "#C62828" : "#B26A00";
+    // Cero jugadores se resalta: es el equipo que hay que ir a perseguir.
+    const colorJug = i.jugadores === 0 ? "#F3A128" : "#DDD";
+    html += `<tr>
+      <td style="color:#666;">${n + 1}</td>
+      <td><strong>${i.equipo}</strong></td>
+      <td>${i.categoria || "—"}</td>
+      <td>${i.capSub || "—"}</td>
+      <td style="font-weight:800;color:${colorJug};">${i.jugadores}</td>
+      <td style="font-weight:700;letter-spacing:1px;">${i.codigo || "—"}</td>
+      <td style="color:${i.menores === "Sí" ? "#B26A00" : "#5A5A5A"};font-weight:700;">${i.menores === "Sí" ? "⚠️ Sí" : "No"}</td>
+      <td style="color:${color};font-weight:700;">${i.estatus}</td>
+    </tr>`;
+  });
+  tabla.innerHTML = html;
 }
 
 /* Muestra la foto del jugador (la misma que sale en su credencial).
@@ -2771,6 +2896,74 @@ async function cambiarEstatusInscripcion(equipo, estatus){
   }catch(err){
     msg.className = "msg err";
     msg.textContent = "No se pudo guardar: " + err.message + ". Revisa CONFIG.appsScriptUrl.";
+  }
+}
+
+/* Elimina un equipo de toda la liga. No se puede deshacer, así que primero
+   se le pregunta al servidor QUÉ se va a llevar (jugadores, pagos, partidos)
+   y eso se le enseña al organizador antes de que confirme. Después pide
+   escribir ELIMINAR: un "¿estás seguro?" a estas alturas se acepta en
+   automático sin leerlo. */
+async function eliminarEquipoInscrito(equipo){
+  const msg = document.getElementById("inscMsg");
+  msg.style.display = "block";
+  msg.className = "msg";
+  msg.textContent = "Revisando qué se borraría de " + equipo + "…";
+
+  let previo;
+  try{
+    const data = await postAppsScript({action:"previoEliminarEquipo", clave: CONFIG.adminPassword, nombreEquipo: equipo});
+    previo = data.previo || {};
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo revisar el equipo: " + err.message;
+    return;
+  }
+
+  const detalle = [
+    previo.jugadores  ? `· ${previo.jugadores} jugador(es) dados de alta` : null,
+    previo.pagos      ? `· ${previo.pagos} pago(s) registrados` : null,
+    previo.partidos   ? `· ${previo.partidos} partido(s) en el rol` : null,
+    previo.resultados ? `· ${previo.resultados} resultado(s) ya guardados` : null
+  ].filter(Boolean).join("\n");
+
+  const aviso =
+    `ELIMINAR "${equipo}" DE LA LIGA\n\n` +
+    `Esto borra su inscripción y todo lo que cuelga de él:\n` +
+    (detalle || "· (todavía no tiene jugadores ni movimientos)") +
+    `\n\nNo se puede deshacer.\n\n` +
+    `Si estás seguro, escribe ELIMINAR:`;
+
+  const respuesta = prompt(aviso, "");
+  if(String(respuesta || "").trim().toUpperCase() !== "ELIMINAR"){
+    msg.className = "msg";
+    msg.textContent = "Cancelado. No se borró nada.";
+    return;
+  }
+
+  msg.textContent = "Eliminando " + equipo + "…";
+  try{
+    const data = await postAppsScript({
+      action: "eliminarEquipo", clave: CONFIG.adminPassword,
+      nombreEquipo: equipo, confirmar: "ELIMINAR"
+    });
+    const r = data.eliminado || {};
+
+    // Se quita de lo que ya está en memoria para que la pantalla no mienta
+    // mientras llega la siguiente lectura del Sheet.
+    INSCRIPCIONES = INSCRIPCIONES.filter(i => i.equipo !== equipo);
+    EQUIPOS = EQUIPOS.filter(e => e !== equipo);
+    delete ROSTERS[equipo];
+    delete CATEGORIA_POR_EQUIPO[equipo];
+
+    msg.className = "msg ok";
+    msg.textContent = `Se eliminó "${equipo}"` +
+      (r.jugadoresEliminados ? ` junto con ${r.jugadoresEliminados} jugador(es).` : ".");
+    renderInscripciones();
+    if(typeof renderEquiposPorCategoria === "function") renderEquiposPorCategoria();
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo eliminar: " + err.message;
   }
 }
 
