@@ -173,11 +173,46 @@
   }
   /* Jugadores */
   .hd-jug{
-    display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;
+    display:grid;grid-template-columns:26px 52px 1fr auto;gap:8px;align-items:center;
     padding:8px 6px;border-bottom:1px solid #1e1e1e;
   }
   .hd-jug:last-child{border-bottom:none;}
   .hd-jug.expulsado{background:rgba(226,59,59,.12);}
+  /* Los cinco de cancha se distinguen de un vistazo: es la información que
+     la mesa necesita sin leer, nada más de reojo. */
+  .hd-jug.en-cancha{background:rgba(46,125,70,.16);}
+  .hd-circulo{
+    width:20px;height:20px;border-radius:50%;padding:0;cursor:pointer;
+    background:transparent;border:2px solid #555;transition:background .12s,border-color .12s;
+  }
+  .hd-circulo:hover{border-color:#9a9a9a;}
+  .hd-circulo.on{background:#2E7D46;border-color:#49c46f;box-shadow:0 0 0 3px rgba(73,196,111,.2);}
+  .hd-cancha-head{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:8px 6px 6px;border-bottom:1px solid #2a2a2a;margin-bottom:2px;
+  }
+  .hd-cancha-tit{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:#ddd;}
+  .hd-cancha-cont{
+    font-size:11px;font-weight:900;color:#e0a63c;background:#2a2113;
+    border:1px solid #6b5320;border-radius:20px;padding:2px 9px;
+  }
+  .hd-cancha-cont.completo{color:#8fe0a6;background:#12301c;border-color:#2f6b42;}
+  .hd-cancha-ayuda{font-size:10px;color:#777;flex:1 1 100%;}
+  .hd-banca-sep{
+    font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
+    color:#777;padding:8px 6px 4px;border-top:1px dashed #333;margin-top:4px;
+  }
+  .hd-nombre-link{cursor:pointer;border-bottom:1px dotted #666;}
+  .hd-nombre-link:hover{color:#fff;border-bottom-color:#aaa;}
+  /* Recordatorio de cambiar de cuarto: se ve, pero no tapa nada ni obliga a
+     cerrarlo — la mesa puede seguir capturando mientras. */
+  .hd-aviso-cuarto{
+    background:#3a2a08;border:1px solid #E8912E;border-left:5px solid #E8912E;
+    color:#ffd79a;border-radius:10px;padding:12px 14px;margin-bottom:14px;
+    font-size:13px;font-weight:700;animation:hdParpadeo 1.6s ease-in-out infinite;
+  }
+  @keyframes hdParpadeo{ 0%,100%{opacity:1;} 50%{opacity:.62;} }
+  @media (prefers-reduced-motion: reduce){ .hd-aviso-cuarto{animation:none;} }
   .hd-jersey{
     width:48px;padding:6px 4px;text-align:center;font-weight:900;font-size:15px;
     background:#000;border:1px solid #444;border-radius:7px;color:#fff;
@@ -1874,9 +1909,13 @@ function hdClaveDe(m){
 }
 
 /* Estructura de un jugador dentro del partido. */
+/* "encancha" es el círculo del quinteto: los que lo traen prendido suben al
+   principio de su columna. */
 function hdNuevoJugador(nombre){
-  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0 };
+  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0, encancha: false };
 }
+
+const HD_EN_CANCHA = 5;
 
 function hdNuevoPartido(m){
   const roster = (equipo)=> (ROSTERS[equipo] || []).map(n=> hdNuevoJugador(typeof n === "string" ? n : n.nombre));
@@ -1959,6 +1998,7 @@ function hdIniciarPrueba(){
   });
   HD.esPrueba = true;
   HD.clave = "PRUEBA|" + cat + "|" + local + "|" + visit;
+  hdApagarReloj();
   hdGuardarRespaldo();
   document.getElementById("hdPruebaForm").style.display = "none";
   hdRender();
@@ -1990,6 +2030,7 @@ function hdCambiarPartido(){
     }
   }
   HD = hdLeerRespaldo(clave) || hdNuevoPartido(m);
+  hdArrancarReloj();
   hdGuardarRespaldo();
   hdRender();
 }
@@ -2026,6 +2067,38 @@ function hdPendientesTotal(p, lado){
 }
 function hdFaltasEquipoCuarto(p, lado, c){ return p.faltasEquipo[lado][c]; }
 
+/* ---------- Reloj discreto del cuarto ----------
+   Un cuarto dura 10 minutos de reloj corrido, pero con tiempos fuera y
+   paradas se estira. A los 12:30 reales ya debería haber terminado, así que
+   si la mesa sigue en el mismo cuarto es casi seguro que se les olvidó
+   cambiarlo — y todos los puntos de aquí en adelante se estarían anotando
+   en el cuarto equivocado.
+
+   No bloquea nada: solo aparece una franja arriba. Cambiar de cuarto la
+   apaga. El aviso NO se guarda en el respaldo: si recargan la página el
+   reloj vuelve a arrancar desde ese momento, que es lo correcto — no
+   sabemos cuánto llevaban. */
+const HD_AVISO_CUARTO_MS = 12.5 * 60 * 1000;   // 12:30
+let HD_RELOJ = null;          // id del setTimeout en curso
+let HD_AVISO_VISIBLE = false; // si la franja está puesta
+
+function hdApagarReloj(){
+  if(HD_RELOJ){ clearTimeout(HD_RELOJ); HD_RELOJ = null; }
+  HD_AVISO_VISIBLE = false;
+}
+
+function hdArrancarReloj(){
+  hdApagarReloj();
+  if(!HD || HD.cerrado || !HD.cuarto) return;
+  const cuartoAlArrancar = HD.cuarto;
+  HD_RELOJ = setTimeout(function(){
+    // Si ya cambiaron de cuarto mientras tanto, no hay nada que recordar.
+    if(!HD || HD.cerrado || HD.cuarto !== cuartoAlArrancar) return;
+    HD_AVISO_VISIBLE = true;
+    hdRender();
+  }, HD_AVISO_CUARTO_MS);
+}
+
 /* ---------- Cuartos ---------- */
 function hdSeleccionarCuarto(c){
   if(!HD || HD.cerrado) return;
@@ -2035,6 +2108,7 @@ function hdSeleccionarCuarto(c){
   }
   HD.cuarto = c;
   if(c > HD.cuartoMax) HD.cuartoMax = c;
+  hdArrancarReloj();
   hdGuardarRespaldo();
   hdRender();
 }
@@ -2138,6 +2212,62 @@ function hdJersey(lado, indice, valor){
   HD.jugadores[lado][indice].jersey = String(valor).trim().slice(0,3);
   hdGuardarRespaldo();
 }
+
+/* ---------- Quinteto en cancha ----------
+   El círculo prende o apaga a un jugador. Los prendidos se pintan primero,
+   así la mesa siempre tiene arriba a los cinco que están jugando y no anda
+   buscando nombres en una lista de quince.
+
+   Un cambio es: apago al que sale, prendo al que entra. No dejamos pasar de
+   cinco a propósito — si dejáramos marcar un sexto, la lista de arriba
+   dejaría de significar "los que están en cancha" y no serviría de nada. */
+function hdEnCancha(lado){
+  return HD ? HD.jugadores[lado].filter(j=>j.encancha).length : 0;
+}
+
+function hdCambiarCancha(lado, indice){
+  if(!HD || HD.cerrado) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+
+  if(j.encancha){
+    j.encancha = false;                  // sale a la banca
+  }else{
+    if(hdEnCancha(lado) >= HD_EN_CANCHA){
+      alert("Ya hay " + HD_EN_CANCHA + " jugadores en cancha de " + HD[lado] + ".\n\n" +
+            "Para hacer un cambio, primero apaga el círculo del que sale y luego prende el del que entra.");
+      return;
+    }
+    j.encancha = true;                   // entra a la cancha
+  }
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* Los que están en cancha van arriba; el resto conserva su orden.
+   Devuelve pares {j, i} porque los botones necesitan el índice REAL dentro
+   de HD.jugadores, no la posición en pantalla. */
+function hdOrdenados(lado){
+  const lista = HD.jugadores[lado].map((j, i)=>({ j, i }));
+  return lista.filter(x=>x.j.encancha).concat(lista.filter(x=>!x.j.encancha));
+}
+
+/* La foto no vive en el partido sino en las altas de jugadores. Se busca por
+   nombre dentro del equipo para no confundir dos tocayos de equipos
+   distintos. */
+function hdFotoDe(lado, indice){
+  const j = HD && HD.jugadores[lado][indice];
+  if(!j) return;
+  const equipo = HD[lado];
+  const norm = s => String(s || "").trim().toLowerCase();
+  let pos = (ALTAS_JUGADORES || []).findIndex(a => norm(a.nombre) === norm(j.nombre) && norm(a.equipo) === norm(equipo));
+  if(pos === -1) pos = (ALTAS_JUGADORES || []).findIndex(a => norm(a.nombre) === norm(j.nombre));
+  if(pos === -1){
+    alert("No encontré el alta de " + j.nombre + ", así que no tengo su foto.");
+    return;
+  }
+  verFotoJugador(pos);
+}
 /* ---------- Pintado ---------- */
 function hdRender(){
   const cont = document.getElementById("hdTablero");
@@ -2147,6 +2277,15 @@ function hdRender(){
   const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
 
   let html = "";
+
+  // Recordatorio del cuarto: solo si el reloj ya se pasó de los 12:30.
+  if(HD_AVISO_VISIBLE && !HD.cerrado){
+    html += `<div class="hd-aviso-cuarto">
+      ⏰ Llevas más de 12:30 en el <strong>${HD.cuarto}º cuarto</strong>.
+      ¿Ya terminó? Selecciona el siguiente cuarto para que los puntos no se vayan al equivocado.
+    </div>`;
+  }
+
   if(HD.esPrueba){
     html += `<div class="card" style="border-left-color:#e0a63c;">
       <div style="color:#e0a63c;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.5px;">
@@ -2197,20 +2336,25 @@ function hdRender(){
     html += `<button class="hd-cuarto-btn${activo}${cerrado}"${bloqueado} onclick="hdSeleccionarCuarto(${c})">${c}º cuarto</button>`;
   }
   html += '</div><p class="hd-nota">Selecciona el cuarto en el que va el partido. Una vez que avanzas ya no puedes regresar: así los puntos siempre quedan en el cuarto correcto.</p>';
+  html += `</div>`;
 
-  // Puntos por cuarto
-  html += `<table class="hd-porcuarto"><tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>`;
+  // Los dos equipos
+  html += '<div class="hd-split">';
+  ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
+  html += '</div>';
+
+  // Parcial por cuartos: va al final, debajo de los rosters. Durante el
+  // partido lo que se usa a cada rato son los botones de los jugadores; el
+  // parcial es para revisarlo de vez en cuando, no estorba abajo.
+  html += `<div class="card">
+    <h3 style="margin:0 0 10px 0;">Parcial por cuartos</h3>
+    <table class="hd-porcuarto"><tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>`;
   ["local","visit"].forEach(lado=>{
     html += `<tr><td class="eq">${HD[lado]}</td>` +
       [1,2,3,4].map(c=>`<td>${hdPuntosCuarto(HD, lado, c)}</td>`).join("") +
       `<td><strong>${hdTotal(HD, lado)}</strong></td></tr>`;
   });
   html += `</table></div>`;
-
-  // Los dos equipos
-  html += '<div class="hd-split">';
-  ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
-  html += '</div>';
 
   // Cierre
   html += `<div class="card">`;
@@ -2269,14 +2413,34 @@ function hdColumnaEquipo(lado){
     return html;
   }
 
-  jugadores.forEach((j, i)=>{
+  const dentro = hdEnCancha(lado);
+  html += `<div class="hd-cancha-head">
+    <span class="hd-cancha-tit">En cancha</span>
+    <span class="hd-cancha-cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA}</span>
+    <span class="hd-cancha-ayuda">Prende el círculo de los que están jugando. Para un cambio: apaga al que sale y prende al que entra.</span>
+  </div>`;
+
+  let ultimoEnCancha = true;
+  hdOrdenados(lado).forEach(({j, i})=>{
     const faltas = j.fp + j.ftf;
     const fuera = faltas >= 5;
-    html += `<div class="hd-jug${fuera ? " expulsado" : ""}">
+
+    // Línea divisoria entre el quinteto y la banca.
+    if(ultimoEnCancha && !j.encancha){
+      html += `<div class="hd-banca-sep">Banca</div>`;
+      ultimoEnCancha = false;
+    }
+
+    html += `<div class="hd-jug${fuera ? " expulsado" : ""}${j.encancha ? " en-cancha" : ""}">
+      <button class="hd-circulo${j.encancha ? " on" : ""}" onclick="hdCambiarCancha('${lado}',${i})"
+              title="${j.encancha ? "Sacar a " + j.nombre : "Meter a " + j.nombre}"
+              aria-label="${j.encancha ? "En cancha" : "En banca"}"></button>
       <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
              onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
       <div>
-        <div class="hd-jug-nombre">${j.nombre}${fuera ? ' <span style="color:#ff6b6b;">· FUERA</span>' : ''}</div>
+        <div class="hd-jug-nombre">
+          <span class="hd-nombre-link" onclick="hdFotoDe('${lado}',${i})" title="Ver la foto de ${j.nombre}">${j.nombre}</span>${fuera ? ' <span style="color:#ff6b6b;">· FUERA</span>' : ''}
+        </div>
         <div class="hd-jug-datos">
           <b>${hdPuntosJugador(j)}</b> pts · ${j.triples} triples ·
           <span class="${faltas >= 4 ? "falta-alta" : ""}">FP ${j.fp} · FTF ${j.ftf}</span>
@@ -2302,6 +2466,7 @@ function hdBorrarPartido(){
   if(!HD) return;
   if(!confirm("¿Descartar todo lo capturado de " + HD.local + " vs " + HD.visit + "?\n\nEsto no se puede deshacer.")) return;
   try{ localStorage.removeItem(hdClaveRespaldo(HD.esPrueba)); }catch(e){}
+  hdApagarReloj();
   HD = null;
   hdRender();
 }
@@ -2377,6 +2542,7 @@ async function hdFinalizar(){
       (anotadores.length ? "Jugadores:\n" + anotadores.join("\n") : "Nadie anotó.") + avisoCorreo);
     if(confirm("¿Descartar la prueba y dejar la hoja limpia?")){
       try{ localStorage.removeItem(hdClaveRespaldo(true)); }catch(e){}
+      hdApagarReloj();
       HD = null;
       hdRender();
     }
@@ -2416,6 +2582,7 @@ async function hdFinalizar(){
       jugadores: jugadoresPayload
     });
     HD.cerrado = true;
+    hdApagarReloj();
     hdGuardarRespaldo();
     hdRender();
     if(btnMsg) btnMsg.textContent = "Partido guardado.";
