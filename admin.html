@@ -264,6 +264,60 @@
   .eq-chip .n{font-size:26px;font-weight:900;line-height:1;}
   .eq-chip .t{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-top:5px;}
   .eq-chip.alerta .n{color:#F3A128;}
+
+  /* Plantilla de un equipo: ficha por jugador con su foto */
+  .roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .roster-card{
+    background:#141416;border:1px solid #2C2C30;border-radius:12px;
+    padding:12px;display:flex;gap:12px;align-items:flex-start;
+  }
+  .roster-card.menor{border-color:#6b5320;}
+  .roster-foto{
+    width:56px;height:56px;border-radius:10px;object-fit:cover;
+    background:#000;border:1px solid #333;flex:none;cursor:pointer;
+  }
+  .roster-foto.sin{
+    display:flex;align-items:center;justify-content:center;
+    color:#555;font-size:20px;font-weight:900;cursor:default;
+  }
+  .roster-datos{min-width:0;}
+  .roster-nombre{font-size:13px;font-weight:800;color:#eee;line-height:1.25;}
+  .roster-linea{font-size:11px;color:#888;margin-top:3px;word-break:break-word;}
+  .roster-badge{
+    display:inline-block;font-size:9px;font-weight:900;text-transform:uppercase;
+    letter-spacing:.5px;padding:2px 7px;border-radius:20px;margin-top:5px;
+    background:#2a2113;color:#e0a63c;border:1px solid #6b5320;
+  }
+  .fila-equipo{cursor:pointer;}
+  .fila-equipo:hover{background:#1A1A1A;}
+  .fila-equipo.abierto{background:#20201f;}
+
+  /* Sub-pestañas dentro de Pagos */
+  .sub-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .sub-tab{
+    background:#141416;border:1px solid #333;color:#aaa;border-radius:8px;
+    padding:8px 16px;font-size:12px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;cursor:pointer;
+  }
+  .sub-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  /* Configuración de costos */
+  .fin-config{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+  .fin-campo label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px;}
+  .fin-campo input{
+    width:100%;padding:8px 10px;background:#000;border:1px solid #444;
+    border-radius:7px;color:#fff;font-size:14px;font-weight:700;
+  }
+  .fin-tabla{width:100%;border-collapse:collapse;font-size:13px;}
+  .fin-tabla td{padding:9px 10px;border-bottom:1px solid #222;}
+  .fin-tabla td.n{text-align:right;font-weight:800;white-space:nowrap;}
+  .fin-tabla td.detalle{color:#777;font-size:11px;}
+  .fin-tabla tr.total td{border-top:2px solid #444;border-bottom:none;font-size:15px;font-weight:900;padding-top:12px;}
+  .fin-egreso{color:#e2544a;}
+  .fin-ingreso{color:#4caf74;}
+  .fin-cuota{
+    width:110px;padding:6px 8px;background:#000;border:1px solid #444;
+    border-radius:6px;color:#fff;font-size:13px;font-weight:700;text-align:right;
+  }
   .rol-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;}
   @media(max-width:1100px){ .rol-split{grid-template-columns:1fr;} }
   .rol-col{min-width:0;}
@@ -625,9 +679,46 @@
   <!-- ============ TAB: PAGOS ============ -->
   <section class="view" id="view-pagos">
     <div class="card">
-      <h2>Pagos por equipo</h2>
-      <div class="cruces-scroll">
-        <table class="cruces-table" id="pagosTable"></table>
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="pagosSubTab('equipos')" id="stPagosEquipos">Por equipo</button>
+        <button class="sub-tab" onclick="pagosSubTab('general')" id="stPagosGeneral">General</button>
+      </div>
+    </div>
+
+    <div id="pagosSubEquipos">
+      <div class="card">
+        <h2>Pagos por equipo</h2>
+        <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+          La cuota de cada equipo la pones tú. Se guarda en el Sheet, así que la ves
+          desde cualquier dispositivo.
+        </div>
+        <div class="cat-botones" id="catBotonesPagos"></div>
+        <div class="cruces-scroll">
+          <table class="cruces-table" id="pagosTable"></table>
+        </div>
+        <div class="msg" id="pagosMsg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div id="pagosSubGeneral" style="display:none;">
+      <div class="card">
+        <h2>Números de la temporada</h2>
+        <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+          Todo se recalcula solo con los equipos que estén inscritos. Los costos son
+          editables: cambia cualquiera y los totales se ajustan al momento.
+        </div>
+        <div class="fin-config" id="finConfig"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 10px 0;">Entra y sale</h3>
+        <div id="finResumen"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 4px 0;">Calendario de la temporada</h3>
+        <div class="empty-state" style="text-align:left; padding:0 0 12px 0;" id="finCalendarioNota"></div>
+        <div class="cruces-scroll">
+          <table class="cruces-table" id="finCalendario"></table>
+        </div>
       </div>
     </div>
   </section>
@@ -695,6 +786,12 @@
       <div class="cruces-scroll">
         <table class="cruces-table" id="equiposTable"></table>
       </div>
+    </div>
+
+    <div class="card" id="equipoRosterCard" style="display:none;">
+      <h3 style="margin:0 0 4px 0;" id="rosterTitulo">Plantilla</h3>
+      <div class="empty-state" style="text-align:left; padding:0 0 12px 0;" id="rosterSub"></div>
+      <div class="roster-grid" id="rosterGrid"></div>
     </div>
   </section>
 
@@ -1195,7 +1292,10 @@ function mapAltasJugadores(rows){
       equipo: r["Equipo"] || "",
       correo: r["Correo"] || "",
       foto: r["Foto"] || "",
-      ts: r["Timestamp"] || ""
+      ts: r["Timestamp"] || "",
+      fechaNac: r["Fecha de Nacimiento"] || "",
+      menor: r["Es Menor de Edad"] || "",
+      tutor: r["Nombre del Tutor"] || ""
     }))
     .sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
 }
@@ -1811,8 +1911,8 @@ function hdClaveDe(m){
   return [m.jornada, m.categoria, m.local, m.visit].join("|");
 }
 
-/* Estructura de un jugador dentro del partido. */
-/* "encancha" es el círculo del quinteto: los que lo traen prendido suben al
+/* Estructura de un jugador dentro del partido.
+   "encancha" es el círculo del quinteto: los que lo traen prendido suben al
    principio de su columna. */
 function hdNuevoJugador(nombre){
   return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0, encancha: false };
@@ -2279,7 +2379,10 @@ function hdRender(){
     html += `<div class="hd-prorroga" style="background:#0f3d1c;border-color:#2f5;color:#8f8;">
       Partido cerrado y guardado. ${HD.local} ${ptsL} — ${ptsV} ${HD.visit}</div>`;
   }else{
-    if(HD.prorroga){
+    if(HD.cedulaPendiente){
+      html += `<div class="hd-prorroga">📋 PARTIDO INCOMPLETO — el marcador ya se guardó, pero faltan puntos por asignar a un jugador.
+        La cédula no se ha mandado a nadie: sale en cuanto los asignes y le des Finalizar otra vez.</div>`;
+    }else if(HD.prorroga){
       html += `<div class="hd-prorroga">⏸️ PRÓRROGA PEDIDA — el resultado NO se publica hasta que se asignen los puntos pendientes.</div>`;
     }
     html += `<div class="hd-cierre">
@@ -2334,14 +2437,13 @@ function hdColumnaEquipo(lado){
   html += `<div class="hd-cancha-head">
     <span class="hd-cancha-tit">En cancha</span>
     <span class="hd-cancha-cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA}</span>
-    <span class="hd-cancha-ayuda">Prende el círculo de los que están jugando. Para un cambio: apaga al que sale y prende al que entra.</span>
+    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los que están jugando. El número es lo que registra la asistencia. Para un cambio: apaga al que sale y prende al que entra.</span>
   </div>`;
 
   let ultimoEnCancha = true;
   hdOrdenados(lado).forEach(({j, i})=>{
     const faltas = j.fp + j.ftf;
     const fuera = faltas >= 5;
-
     const sinNumero = !String(j.jersey || "").trim();
 
     // Línea divisoria entre el quinteto y la banca.
@@ -2394,25 +2496,30 @@ function hdBorrarPartido(){
 async function hdFinalizar(){
   if(!HD || HD.cerrado) return;
 
-  // 1) Puntos pendientes: hay que resolverlos antes de publicar.
+  /* 1) Puntos pendientes: son puntos que ya cuentan en el marcador pero que
+     nadie sabe quién los metió. El marcador sí se puede guardar así — lo que
+     NO se puede es mandar la cédula, porque las estadísticas de esos
+     jugadores estarían incompletas. */
   const pendL = hdPendientesTotal(HD, "local");
   const pendV = hdPendientesTotal(HD, "visit");
-  if(pendL + pendV > 0){
+  const hayPendientes = (pendL + pendV) > 0;
+  let cedulaIncompleta = false;
+
+  if(hayPendientes){
     const detalle = (pendL ? "\n· " + HD.local + ": " + pendL + " pts" : "") +
                     (pendV ? "\n· " + HD.visit + ": " + pendV + " pts" : "");
-    const asignar = confirm(
-      "Hay PUNTOS PENDIENTES sin asignar a ningún jugador:" + detalle +
-      "\n\nAceptar = los asigno ahora (regreso a la hoja para dárselos a los jugadores)." +
-      "\nCancelar = pedir PRÓRROGA (el resultado NO se publica hasta asignarlos).");
-    if(asignar){
+    const ahora = confirm(
+      "HAY PUNTOS ANOTADOS SIN ASIGNACIÓN DE JUGADOR" + detalle +
+      "\n\nRecuerda que puedes ver el video en YouTube para estas ocasiones." +
+      "\n\nHasta que ingreses los jugadores que encestaron esos puntos, el partido estará completo." +
+      "\n\nAceptar = HACERLO AHORA\nCancelar = HACERLO MÁS TARDE");
+    if(ahora){
       alert("Asígnalos con los botones de cada jugador y quítalos de 'Puntos pendientes' con el −1.\n\nCuando queden en cero, vuelve a darle a Finalizar.");
       return;
     }
-    HD.prorroga = true;
-    hdGuardarRespaldo();
-    hdRender();
-    alert("Quedó marcado como PRÓRROGA.\n\nEl partido NO se guardó ni se publicó. Cuando la mesa de control asigne los puntos, vuelve a entrar aquí y dale a Finalizar.");
-    return;
+    // Más tarde: el marcador se guarda igual (para que no se pierda), pero la
+    // cédula no sale hasta que la información esté completa.
+    cedulaIncompleta = true;
   }
 
   // Datos que van al reporte por correo (los mismos para prueba y real).
@@ -2468,8 +2575,12 @@ async function hdFinalizar(){
     return;
   }
 
-  if(!confirm("Cerrar el partido y guardarlo\n\n" + HD.local + " " + hdTotal(HD,"local") +
-              " — " + hdTotal(HD,"visit") + " " + HD.visit + "\n\n¿Todo correcto?")) return;
+  const marcadorTexto = HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit;
+  if(!confirm(
+      (cedulaIncompleta
+        ? "Guardar el marcador (el partido queda incompleto)\n\n"
+        : "Cerrar el partido y guardarlo\n\n") +
+      marcadorTexto + "\n\n¿Todo correcto?")) return;
 
   const btnMsg = document.getElementById("hdAviso");
   if(btnMsg) btnMsg.textContent = "Guardando el partido…";
@@ -2513,21 +2624,45 @@ async function hdFinalizar(){
         visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
       },
       jugadores: jugadoresPayload,
-      asistencia: asistenciaPayload
+      asistencia: asistenciaPayload,
+      // Con puntos sin asignar solo se guarda el marcador; las estadísticas
+      // y la asistencia esperan a que la información esté completa.
+      soloMarcador: cedulaIncompleta,
+      // Si el marcador ya se había guardado antes, no se vuelve a escribir.
+      sinMarcador: !!HD.marcadorGuardado
     });
+
+    if(cedulaIncompleta){
+      /* El partido NO se cierra: la mesa tiene que poder volver, asignar los
+         puntos y darle Finalizar otra vez. La cédula no sale hasta entonces. */
+      HD.marcadorGuardado = true;
+      HD.cedulaPendiente = true;
+      hdGuardarRespaldo();
+      hdRender();
+      if(btnMsg) btnMsg.textContent = "Marcador guardado. Falta asignar puntos.";
+      alert("Listo, el marcador ya quedó guardado.\n\n" +
+            HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit +
+            "\n\nEL PARTIDO TODAVÍA NO ESTÁ COMPLETO: faltan puntos por asignar a un jugador, " +
+            "así que NO se mandó la cédula a nadie.\n\n" +
+            "Cuando los asignes (puedes apoyarte en el video de YouTube), vuelve a entrar aquí " +
+            "y dale a Finalizar. Ahí sí sale la cédula.");
+      return;
+    }
+
     HD.cerrado = true;
+    HD.cedulaPendiente = false;
     hdApagarReloj();
     hdGuardarRespaldo();
     hdRender();
     if(btnMsg) btnMsg.textContent = "Partido guardado.";
-    // El reporte va aparte: si falla el correo, el partido YA quedó
+    // La cédula va aparte: si falla el correo, el partido YA quedó
     // guardado y eso es lo que no se puede perder.
     let avisoCorreo = "";
     try{
       const r = await postAppsScript(datosReporte());
-      avisoCorreo = "\n\n📧 Reporte enviado a " + ((r.reporte && r.reporte.para) || CONFIG.correoReportes) + ".";
+      avisoCorreo = "\n\n📧 Cédula enviada a " + ((r.reporte && r.reporte.para) || CONFIG.correoReportes) + ".";
     }catch(errCorreo){
-      avisoCorreo = "\n\n⚠️ El partido se guardó bien, pero no se pudo enviar el reporte por correo.";
+      avisoCorreo = "\n\n⚠️ El partido se guardó bien, pero no se pudo enviar la cédula por correo.";
     }
     alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit + avisoCorreo);
   }catch(err){
@@ -2673,6 +2808,83 @@ function renderInscripciones(){
    a propósito: son dos pantallas distintas y es molesto que cambiar el
    filtro en una te mueva la otra. */
 let CATEGORIA_EQUIPOS = "todas";
+/* Equipo cuya plantilla se está viendo abajo de la tabla. null = ninguna. */
+let EQUIPO_ROSTER = null;
+
+/* Edad a día de hoy. La fecha viene del Sheet como AAAA-MM-DD. */
+function edadDe(fechaNac){
+  const t = String(fechaNac || "").trim();
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return null;
+  const nac = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if(isNaN(nac.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const cumpleYa = (hoy.getMonth() > nac.getMonth()) ||
+                   (hoy.getMonth() === nac.getMonth() && hoy.getDate() >= nac.getDate());
+  if(!cumpleYa) edad--;
+  return (edad >= 0 && edad < 120) ? edad : null;
+}
+
+/* Plantilla de un equipo: foto, nombre y datos de cada jugador dado de alta.
+   Se vuelve a picar el mismo equipo y se cierra. */
+function verRosterEquipo(equipo){
+  EQUIPO_ROSTER = (EQUIPO_ROSTER === equipo) ? null : equipo;
+  renderEquiposPorCategoria();
+  const card = document.getElementById("equipoRosterCard");
+  if(card && EQUIPO_ROSTER) card.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+function renderRosterEquipo(){
+  const card = document.getElementById("equipoRosterCard");
+  if(!card) return;
+  if(!EQUIPO_ROSTER){ card.style.display = "none"; return; }
+  card.style.display = "block";
+
+  const norm = s => String(s || "").trim().toLowerCase();
+  /* Se parte de ROSTERS (los nombres que están en Integrantes) y se le pega el
+     detalle del alta. Así aparece hasta quien se registró sin foto. */
+  const nombres = (ROSTERS[EQUIPO_ROSTER] || []).map(p => typeof p === "string" ? p : p.nombre);
+  const jugadores = nombres.map(nombre=>{
+    const pos = (ALTAS_JUGADORES || []).findIndex(a =>
+      norm(a.nombre) === norm(nombre) && norm(a.equipo) === norm(EQUIPO_ROSTER));
+    return { nombre, pos, alta: pos > -1 ? ALTAS_JUGADORES[pos] : null };
+  });
+
+  const menores = jugadores.filter(j => j.alta && j.alta.menor === "Sí").length;
+  const conFoto = jugadores.filter(j => j.alta && j.alta.foto).length;
+
+  document.getElementById("rosterTitulo").textContent = EQUIPO_ROSTER;
+  document.getElementById("rosterSub").innerHTML =
+    (CATEGORIA_POR_EQUIPO[EQUIPO_ROSTER] || "Sin categoría") + " · " +
+    jugadores.length + " jugador(es) · " + conFoto + " con foto" +
+    (menores ? ' · <span style="color:#e0a63c;font-weight:700;">' + menores + ' menor(es) de edad</span>' : "") +
+    ' · <span style="color:#666;">vuelve a picar el equipo para cerrar</span>';
+
+  const grid = document.getElementById("rosterGrid");
+  if(!jugadores.length){
+    grid.innerHTML = '<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta.</div>';
+    return;
+  }
+
+  grid.innerHTML = jugadores.map(j=>{
+    const a = j.alta;
+    const edad = a ? edadDe(a.fechaNac) : null;
+    const esMenor = a && a.menor === "Sí";
+    const foto = (a && a.foto)
+      ? `<img class="roster-foto" src="${a.foto}" alt="Foto de ${j.nombre}" onclick="verFotoJugador(${j.pos})" title="Ver la foto en grande">`
+      : `<div class="roster-foto sin" title="Sin foto">?</div>`;
+    return `<div class="roster-card${esMenor ? " menor" : ""}">
+      ${foto}
+      <div class="roster-datos">
+        <div class="roster-nombre">${j.nombre}</div>
+        <div class="roster-linea">${a ? (a.correo || "sin correo") : "sin alta registrada"}</div>
+        <div class="roster-linea">${edad !== null ? edad + " años" : "edad —"}${a && a.ts ? " · alta " + a.ts : ""}</div>
+        ${esMenor ? `<span class="roster-badge">⚠️ Menor · tutor: ${a.tutor || "sin datos"}</span>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
 
 function renderBotonesCategoriaEquipos(){
   const cont = document.getElementById("catBotonesEquipos");
@@ -2687,6 +2899,11 @@ function renderBotonesCategoriaEquipos(){
 
 function seleccionarCategoriaEquipos(cat){
   CATEGORIA_EQUIPOS = cat;
+  // Si el equipo abierto no es de esta categoría, se cierra su plantilla:
+  // dejarla colgando debajo de una tabla donde ya no aparece confunde.
+  if(EQUIPO_ROSTER && cat !== "todas" && (CATEGORIA_POR_EQUIPO[EQUIPO_ROSTER] || "") !== cat){
+    EQUIPO_ROSTER = null;
+  }
   renderEquiposPorCategoria();
 }
 
@@ -2728,6 +2945,8 @@ function renderEquiposPorCategoria(){
       : (INSCRIPCIONES_CARGADAS
           ? `<tr><td class="empty-state">Todavía no hay equipos${cat === "todas" ? "" : " en " + cat}.</td></tr>`
           : '<tr><td class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar los equipos. Se está reintentando solo…</td></tr>');
+    EQUIPO_ROSTER = null;
+    renderRosterEquipo();
     return;
   }
 
@@ -2740,7 +2959,9 @@ function renderEquiposPorCategoria(){
                 : i.estatus === "Rechazado" ? "#C62828" : "#B26A00";
     // Cero jugadores se resalta: es el equipo que hay que ir a perseguir.
     const colorJug = i.jugadores === 0 ? "#F3A128" : "#DDD";
-    html += `<tr>
+    const eq = String(i.equipo).replace(/'/g, "\\'");
+    const abierto = (EQUIPO_ROSTER === i.equipo) ? " abierto" : "";
+    html += `<tr class="fila-equipo${abierto}" onclick="verRosterEquipo('${eq}')" title="Ver la plantilla de ${i.equipo}">
       <td style="color:#666;">${n + 1}</td>
       <td><strong>${i.equipo}</strong></td>
       <td>${i.categoria || "—"}</td>
@@ -2752,7 +2973,239 @@ function renderEquiposPorCategoria(){
     </tr>`;
   });
   tabla.innerHTML = html;
+  renderRosterEquipo();
 }
+
+/* ============================================================
+   PAGOS — cuota por equipo y números de la temporada
+   ============================================================ */
+
+let CATEGORIA_PAGOS = "todas";
+const FIN_CONFIG_KEY = "finanzas_v1";
+
+/* Valores de arranque. Todos editables desde la pestaña General; lo que se
+   cambie se recuerda en este navegador. Los partidos por día vienen de los
+   horarios reales: entre semana 8:10, 9:10 y 10:10 pm (3), y el sábado de
+   12 a 5 pm (5). */
+const FIN_DEFAULT = {
+  partidosPorEquipo: 8,
+  costoArbitraje: 600,
+  costoVideo: 100,
+  pagoCoordinador: 300,
+  rentaPorEquipo: 3900,
+  trofeos: 12000,
+  partidosEntreSemana: 3,
+  partidosSabado: 5,
+  inicio: "2026-08-17"
+};
+
+function finLeerConfig(){
+  try{
+    const g = JSON.parse(localStorage.getItem(FIN_CONFIG_KEY) || "{}");
+    return Object.assign({}, FIN_DEFAULT, g);
+  }catch(e){ return Object.assign({}, FIN_DEFAULT); }
+}
+function finGuardarConfig(c){
+  try{ localStorage.setItem(FIN_CONFIG_KEY, JSON.stringify(c)); }catch(e){}
+}
+function finCambiar(campo, valor){
+  const c = finLeerConfig();
+  c[campo] = (campo === "inicio") ? String(valor) : Math.max(0, Number(valor) || 0);
+  finGuardarConfig(c);
+  renderFinanzas();
+}
+
+const pesos = n => "$" + Math.round(Number(n) || 0).toLocaleString("es-MX");
+
+/* Partidos de la temporada. Los equipos solo juegan DENTRO de su categoría,
+   así que se cuenta categoría por categoría: cada equipo juega N partidos y
+   en cada partido hay dos equipos, de ahí el ÷2. */
+function finPartidos(cfg){
+  const porCat = {};
+  INSCRIPCIONES.forEach(i=>{
+    const cat = i.categoria || "Sin categoría";
+    porCat[cat] = (porCat[cat] || 0) + 1;
+  });
+  let total = 0;
+  const detalle = Object.keys(porCat).sort().map(cat=>{
+    const equipos = porCat[cat];
+    const partidos = Math.round(equipos * cfg.partidosPorEquipo / 2);
+    total += partidos;
+    return { cat, equipos, partidos };
+  });
+  return { total, detalle, equipos: INSCRIPCIONES.length };
+}
+
+/* Calendario: lunes a jueves y sábado, hasta que se acaben los partidos.
+   Devuelve los días de juego con cuántos partidos toca en cada uno. */
+function finCalendario(cfg, totalPartidos){
+  const dias = [];
+  if(!totalPartidos) return dias;
+  const partes = String(cfg.inicio || FIN_DEFAULT.inicio).split("-");
+  let d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+  let quedan = totalPartidos;
+  let guarda = 0;
+  while(quedan > 0 && guarda < 400){
+    guarda++;
+    const dow = d.getDay();                    // 0 domingo … 6 sábado
+    const esEntreSemana = dow >= 1 && dow <= 4; // lunes a jueves
+    const esSabado = dow === 6;
+    if(esEntreSemana || esSabado){
+      const cupo = esSabado ? cfg.partidosSabado : cfg.partidosEntreSemana;
+      if(cupo > 0){
+        const juegos = Math.min(cupo, quedan);
+        quedan -= juegos;
+        dias.push({ fecha: new Date(d.getTime()), juegos, sabado: esSabado });
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return dias;
+}
+
+function finNumeros(){
+  const cfg = finLeerConfig();
+  const p = finPartidos(cfg);
+  const dias = finCalendario(cfg, p.total);
+
+  const arbitraje  = p.total * cfg.costoArbitraje;
+  const video      = p.total * cfg.costoVideo;
+  const renta      = p.equipos * cfg.rentaPorEquipo;
+  const coordinador= dias.length * cfg.pagoCoordinador;
+  const trofeos    = cfg.trofeos;
+  const egresos    = arbitraje + video + renta + coordinador + trofeos;
+
+  // Lo que entra: la cuota que tú le pusiste a cada equipo.
+  const ingresos = INSCRIPCIONES.reduce((s,i)=>s + (Number(i.cuota) || 0), 0);
+  const sinCuota = INSCRIPCIONES.filter(i=>!Number(i.cuota)).length;
+
+  return { cfg, p, dias, arbitraje, video, renta, coordinador, trofeos, egresos, ingresos, sinCuota };
+}
+
+function pagosSubTab(cual){
+  const esGeneral = cual === "general";
+  document.getElementById("pagosSubEquipos").style.display = esGeneral ? "none" : "block";
+  document.getElementById("pagosSubGeneral").style.display = esGeneral ? "block" : "none";
+  document.getElementById("stPagosEquipos").classList.toggle("active", !esGeneral);
+  document.getElementById("stPagosGeneral").classList.toggle("active", esGeneral);
+  if(esGeneral) renderFinanzas(); else renderPagos();
+}
+
+function renderFinanzas(){
+  const cont = document.getElementById("finConfig");
+  if(!cont) return;
+  const f = finNumeros();
+  const c = f.cfg;
+
+  const campo = (id, etiqueta, valor, tipo)=>`
+    <div class="fin-campo">
+      <label for="fin_${id}">${etiqueta}</label>
+      <input id="fin_${id}" type="${tipo || "number"}" min="0" value="${valor}"
+             onchange="finCambiar('${id}', this.value)">
+    </div>`;
+  cont.innerHTML =
+    campo("partidosPorEquipo", "Partidos por equipo", c.partidosPorEquipo) +
+    campo("costoArbitraje", "Arbitraje por partido", c.costoArbitraje) +
+    campo("costoVideo", "Video por partido", c.costoVideo) +
+    campo("pagoCoordinador", "Coordinador por día", c.pagoCoordinador) +
+    campo("rentaPorEquipo", "Renta por equipo", c.rentaPorEquipo) +
+    campo("trofeos", "Trofeos (fijo)", c.trofeos) +
+    campo("partidosEntreSemana", "Partidos lun–jue", c.partidosEntreSemana) +
+    campo("partidosSabado", "Partidos sábado", c.partidosSabado) +
+    campo("inicio", "Arranca", c.inicio, "date");
+
+  // --- Entra y sale ---
+  const fila = (etiqueta, detalle, monto, clase)=>`
+    <tr><td>${etiqueta}<div class="detalle">${detalle}</div></td>
+    <td class="n ${clase || ""}">${pesos(monto)}</td></tr>`;
+  const balance = f.ingresos - f.egresos;
+
+  document.getElementById("finResumen").innerHTML = `
+    <table class="fin-tabla">
+      <tr><td colspan="2" style="color:#4caf74;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding-bottom:4px;">Entra</td></tr>
+      ${fila("Cuotas de los equipos",
+             f.p.equipos + " equipos inscritos" + (f.sinCuota ? " · " + f.sinCuota + " todavía sin cuota puesta" : ""),
+             f.ingresos, "fin-ingreso")}
+      <tr><td colspan="2" style="color:#e2544a;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:14px 10px 4px;">Sale</td></tr>
+      ${fila("Arbitraje", f.p.total + " partidos × " + pesos(c.costoArbitraje), f.arbitraje, "fin-egreso")}
+      ${fila("Video", f.p.total + " partidos × " + pesos(c.costoVideo), f.video, "fin-egreso")}
+      ${fila("Renta", f.p.equipos + " equipos × " + pesos(c.rentaPorEquipo), f.renta, "fin-egreso")}
+      ${fila("Coordinador", f.dias.length + " días de juego × " + pesos(c.pagoCoordinador), f.coordinador, "fin-egreso")}
+      ${fila("Trofeos", "monto fijo", f.trofeos, "fin-egreso")}
+      ${fila("Total de gastos", "", f.egresos, "fin-egreso")}
+      <tr class="total"><td>Balance</td>
+        <td class="n ${balance >= 0 ? "fin-ingreso" : "fin-egreso"}">${pesos(balance)}</td></tr>
+    </table>
+    <table class="fin-tabla" style="margin-top:16px;">
+      <tr><td colspan="3" style="color:#888;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Partidos por categoría</td></tr>
+      ${f.p.detalle.map(d=>`<tr><td>${d.cat}</td><td class="n" style="color:#888;">${d.equipos} equipos</td><td class="n">${d.partidos} partidos</td></tr>`).join("")}
+      <tr class="total"><td>Total</td><td class="n" style="color:#888;">${f.p.equipos} equipos</td><td class="n">${f.p.total} partidos</td></tr>
+    </table>`;
+
+  // --- Calendario ---
+  const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const tabla = document.getElementById("finCalendario");
+  const nota = document.getElementById("finCalendarioNota");
+
+  if(!f.dias.length){
+    nota.textContent = "Todavía no hay equipos inscritos, así que no hay nada que calendarizar.";
+    tabla.innerHTML = "";
+    return;
+  }
+  const ultimo = f.dias[f.dias.length - 1].fecha;
+  const semanas = Math.ceil(f.dias.length / 5);
+  nota.innerHTML = `Lunes a jueves ${c.partidosEntreSemana} partidos (8:10, 9:10 y 10:10 pm) y sábado ${c.partidosSabado}
+    (12:00 a 5:00 pm). Son <strong>${f.p.total} partidos</strong> en <strong>${f.dias.length} días de juego</strong>
+    (unas ${semanas} semanas), y el último cae el
+    <strong>${DIAS[ultimo.getDay()]} ${ultimo.getDate()} de ${MESES[ultimo.getMonth()]}</strong>.`;
+
+  let html = `<tr><th>#</th><th>Día</th><th>Fecha</th><th>Partidos</th><th>Horarios</th></tr>`;
+  const horasSemana = ["8:10 pm","9:10 pm","10:10 pm"];
+  const horasSabado = ["12:00","1:00","2:00","3:00","4:00"];
+  f.dias.forEach((d, i)=>{
+    const horas = (d.sabado ? horasSabado : horasSemana).slice(0, d.juegos).join(" · ");
+    html += `<tr>
+      <td style="color:#666;">${i + 1}</td>
+      <td style="${d.sabado ? "color:#F3A128;font-weight:700;" : ""}">${DIAS[d.fecha.getDay()]}</td>
+      <td>${d.fecha.getDate()} de ${MESES[d.fecha.getMonth()]}</td>
+      <td style="font-weight:800;">${d.juegos}</td>
+      <td style="color:#888;font-size:11px;">${horas || "—"}</td>
+    </tr>`;
+  });
+  tabla.innerHTML = html;
+}
+
+/* La cuota que se le cobra a cada equipo. Se guarda en el Sheet para que no
+   dependa de la computadora desde la que se abra el Admin. */
+async function guardarCuota(equipo, valor){
+  const msg = document.getElementById("pagosMsg");
+  const monto = Math.max(0, Number(valor) || 0);
+  const insc = INSCRIPCIONES.find(i=>i.equipo === equipo);
+  if(insc) insc.cuota = monto;          // se pinta al momento, sin esperar al servidor
+  msg.style.display = "block";
+  msg.className = "msg";
+  msg.textContent = "Guardando la cuota de " + equipo + "…";
+  try{
+    await postAppsScript({action:"guardarCuotaEquipo", clave: CONFIG.adminPassword,
+                          nombreEquipo: equipo, cuota: monto});
+    msg.className = "msg ok";
+    msg.textContent = equipo + ": cuota de " + pesos(monto) + " guardada.";
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo guardar la cuota de " + equipo + ": " + err.message;
+  }
+}
+
+function renderBotonesCategoriaPagos(){
+  const cont = document.getElementById("catBotonesPagos");
+  if(!cont) return;
+  cont.innerHTML = ["todas"].concat(CONFIG.categorias).map(c=>{
+    const activo = (CATEGORIA_PAGOS === c) ? " active" : "";
+    return `<button type="button" class="cat-btn${activo}" onclick="seleccionarCategoriaPagos('${c}')">${c === "todas" ? "Todas" : c}</button>`;
+  }).join("");
+}
+function seleccionarCategoriaPagos(cat){ CATEGORIA_PAGOS = cat; renderPagos(); }
 
 /* ============================================================
    PESTAÑA ASISTENCIA: cómo van de asistencia por categoría
@@ -3177,6 +3630,7 @@ function mapInscripcionesCsv(rows){
     timestamp: r["Timestamp"] || "",
     equipo:    r["Nombre del Equipo"],
     categoria: r["Categoría"] || "",
+    cuota:     Number(String(r["Cuota"] || "").replace(/[^0-9.]/g, "")) || 0,
     capSub:    r["Capitán / Sub-capitán"] || "",
     estatus:   r["Estatus"] || "Pendiente",
     codigo:    r["Código"] || "",
@@ -3184,38 +3638,69 @@ function mapInscripcionesCsv(rows){
   }));
 }
 
+/* La cuota de un equipo: la que se le puso a mano. Si todavía no tiene, se
+   usa la de CONFIG para no dejar la columna vacía. */
+function cuotaDe(equipo){
+  const insc = INSCRIPCIONES.find(i=>i.equipo === equipo);
+  const puesta = insc && Number(insc.cuota);
+  return puesta > 0 ? puesta : 0;
+}
+
 function renderPagos(){
+  renderBotonesCategoriaPagos();
   const tabla = document.getElementById("pagosTable");
-  if(EQUIPOS.length === 0){
-    tabla.innerHTML = CARGANDO ? FILA_CARGANDO : '<tr><td class="empty-state">Todavía no hay equipos.</td></tr>';
+  if(!tabla) return;
+
+  const lista = INSCRIPCIONES
+    .filter(i => CATEGORIA_PAGOS === "todas" || (i.categoria || "") === CATEGORIA_PAGOS)
+    .map(i => i.equipo);
+
+  if(lista.length === 0){
+    tabla.innerHTML = CARGANDO ? FILA_CARGANDO
+      : '<tr><td class="empty-state">Todavía no hay equipos' +
+        (CATEGORIA_PAGOS === "todas" ? "" : " en " + CATEGORIA_PAGOS) + '.</td></tr>';
     return;
   }
 
   let html = `<thead><tr>
     <th class="cruces-team-col">Equipo</th>
+    <th>Categoría</th>
     <th>Cuota</th>
     <th>Pagado</th>
     <th>Saldo</th>
     <th>Estatus</th>
+    <th></th>
   </tr></thead><tbody>`;
 
-  EQUIPOS.forEach(equipo=>{
+  let totalCuota = 0, totalPagado = 0;
+  lista.forEach(equipo=>{
     const pagado = PAGOS.filter(p=>p.equipo === equipo).reduce((suma,p)=>suma + p.monto, 0);
-    const cuota = CONFIG.cuotaEquipo;
+    const cuota = cuotaDe(equipo);
     const saldo = cuota - pagado;
+    totalCuota += cuota; totalPagado += pagado;
+
     let estatus = "Pendiente", claseFila = "cruces-loss";
-    if(pagado >= cuota){ estatus = "Pagado"; claseFila = "cruces-win"; }
+    if(!cuota){ estatus = "Sin cuota"; claseFila = ""; }
+    else if(pagado >= cuota){ estatus = "Pagado"; claseFila = "cruces-win"; }
     else if(pagado > 0){ estatus = "Parcial"; claseFila = "cruces-pending"; }
 
-    html += `<tr class="pago-row" onclick="abrirDetallePago('${equipo.replace(/'/g,"\\'")}')">
+    const eq = equipo.replace(/'/g,"\\'");
+    html += `<tr>
       <td class="cruces-team-col">${equipo}</td>
-      <td>$${cuota.toLocaleString("es-MX")}</td>
-      <td>$${pagado.toLocaleString("es-MX")}</td>
-      <td>$${saldo.toLocaleString("es-MX")}</td>
+      <td style="color:#888;">${CATEGORIA_POR_EQUIPO[equipo] || "—"}</td>
+      <td><input class="fin-cuota" type="number" min="0" value="${cuota || ""}" placeholder="0"
+                 onchange="guardarCuota('${eq}', this.value)"></td>
+      <td>${pesos(pagado)}</td>
+      <td>${cuota ? pesos(saldo) : "—"}</td>
       <td class="${claseFila}">${estatus}</td>
+      <td><button class="mini-btn" onclick="abrirDetallePago('${eq}')">Ver pagos</button></td>
     </tr>`;
   });
 
+  html += `<tr class="total"><td class="cruces-team-col"><strong>Total</strong></td><td></td>
+    <td><strong>${pesos(totalCuota)}</strong></td>
+    <td><strong>${pesos(totalPagado)}</strong></td>
+    <td><strong>${pesos(totalCuota - totalPagado)}</strong></td><td></td><td></td></tr>`;
   html += "</tbody>";
   tabla.innerHTML = html;
 }
