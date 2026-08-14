@@ -1267,13 +1267,11 @@ async function initData(){
   if(jugados.length) renderMatchPasado();
   else document.getElementById("saveBtnPasado").disabled = true;
 
-  // --- Tab Cédulas ---
-  const jornadaSelect = document.getElementById("cedulaJornadaSelect");
-  const jornadas = [...new Set(MATCHES.map(m=>m.jornada))].sort((a,b)=>a-b);
-  jornadaSelect.innerHTML = '<option value="todas">Todas las semanas</option>' +
-    jornadas.map(j=>`<option value="${j}">Semana ${j}</option>`).join("");
-  const programadas = MATCHES.filter(m=>m.estatus === "Programado").map(m=>m.jornada);
-  jornadaSelect.value = programadas.length ? Math.min(...programadas) : (jornadas[jornadas.length - 1] || "todas");
+  // La pestaña Cédulas ya no tiene selector de semana: la hoja digital elige
+  // el partido con su propio menú. Esas líneas quedaron huérfanas cuando se
+  // reemplazó la cédula impresa y estaban tronando initData ANTES de llegar a
+  // CARGANDO = false, así que la pantalla se quedaba en "Cargando datos…" y
+  // el reintento automático nunca se armaba.
 
   CARGANDO = false;
   repintarVistaActual();   // cambia "Cargando datos…" por los datos reales
