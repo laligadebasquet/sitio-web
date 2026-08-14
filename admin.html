@@ -187,6 +187,9 @@
   }
   .hd-circulo:hover{border-color:#9a9a9a;}
   .hd-circulo.on{background:#2E7D46;border-color:#49c46f;box-shadow:0 0 0 3px rgba(73,196,111,.2);}
+  /* Sin número todavía no se puede meter: se ve apagado para que la mesa
+     entienda que primero va el jersey. */
+  .hd-circulo.sin-numero{border-style:dashed;border-color:#3a3a3a;cursor:not-allowed;}
   .hd-cancha-head{
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     padding:8px 6px 6px;border-bottom:1px solid #2a2a2a;margin-bottom:2px;
@@ -445,8 +448,8 @@
   <nav class="tabs">
     <button data-view="rol" class="active">Rol de Juego</button>
     <button data-view="equipos">Equipos</button>
-    <button data-view="captura">Resultado y Asistencia</button>
-    <button data-view="pasado">Pasado</button>
+    <button data-view="asistencia">Asistencia</button>
+    <button data-view="pasado">Resultados</button>
     <button data-view="cruces">Cruces</button>
     <button data-view="pagos">Pagos</button>
     <button data-view="cedulas">Cédulas</button>
@@ -537,53 +540,24 @@
     </div>
   </section>
 
-  <!-- ============ TAB: RESULTADO Y ASISTENCIA ============ -->
-  <section class="view" id="view-captura">
+  <!-- ============ TAB: ASISTENCIA ============ -->
+  <section class="view" id="view-asistencia">
     <div class="card">
-      <h2>1. Selecciona el partido</h2>
-      <label for="matchSelect">Semana / Partido</label>
-      <select id="matchSelect"></select>
+      <h2>Asistencia</h2>
+      <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+        Se llena sola: cuando la mesa le pone número de jersey a un jugador en la
+        hoja digital, ese jugador queda como presente en ese partido.
+      </div>
+      <div class="cat-botones" id="catBotonesAsistencia"></div>
+      <div id="asistenciaResumen" class="equipos-resumen"></div>
     </div>
 
     <div class="card">
-      <h2>2. Marcador final</h2>
-      <div class="matchup">
-        <div class="team-score">
-          <div class="team-name" id="nombreLocal">—</div>
-          <input type="number" id="scoreLocal" min="0" placeholder="0">
-        </div>
-        <div class="vs">VS</div>
-        <div class="team-score">
-          <div class="team-name" id="nombreVisit">—</div>
-          <input type="number" id="scoreVisit" min="0" placeholder="0">
-        </div>
+      <h3 style="margin:0 0 10px 0;" id="asistenciaTitulo">Jugadores</h3>
+      <div class="cruces-scroll">
+        <table class="cruces-table" id="asistenciaTable"></table>
       </div>
     </div>
-
-    <div class="card">
-      <h2>3. Asistencia — marca quién sí jugó</h2>
-      <div class="roster-columns">
-        <div class="roster-col">
-          <h3 id="rosterLocalTitle">Equipo Local</h3>
-          <div class="roster-toolbar">
-            <button type="button" onclick="toggleAll('rosterLocal', true)">Marcar todos</button>
-            <button type="button" onclick="toggleAll('rosterLocal', false)">Ninguno</button>
-          </div>
-          <div class="roster-list" id="rosterLocal"></div>
-        </div>
-        <div class="roster-col">
-          <h3 id="rosterVisitTitle">Equipo Visitante</h3>
-          <div class="roster-toolbar">
-            <button type="button" onclick="toggleAll('rosterVisit', true)">Marcar todos</button>
-            <button type="button" onclick="toggleAll('rosterVisit', false)">Ninguno</button>
-          </div>
-          <div class="roster-list" id="rosterVisit"></div>
-        </div>
-      </div>
-    </div>
-
-    <button class="save-btn" id="saveBtn" onclick="guardarResultado()">Guardar resultado y asistencia</button>
-    <div class="msg" id="msg"></div>
   </section>
 
   <!-- ============ TAB: PASADO (editar partidos ya jugados) ============ -->
@@ -929,7 +903,7 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", captura: "view-captura", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -937,6 +911,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
     if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
+    if(btn.dataset.view === "asistencia") renderAsistencia();
     if(btn.dataset.view === "cedulas") renderCedulas();
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
@@ -954,6 +929,7 @@ function repintarVistaActual(){
   try{
     if(vista === "cedulas") renderCedulas();
     else if(vista === "equipos") renderEquiposPorCategoria();
+    else if(vista === "asistencia") renderAsistencia();
     else if(vista === "cruces") renderCruces();
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
@@ -1269,7 +1245,6 @@ async function initData(){
 
   if(!CONFIG.appsScriptUrl){
     document.getElementById("configWarning").style.display = "block";
-    document.getElementById("saveBtn").disabled = true;
     document.getElementById("saveBtnPasado").disabled = true;
     document.getElementById("scheduleBtn").disabled = true;
   }
@@ -1281,16 +1256,6 @@ async function initData(){
   renderRolSemanal();
   renderCrucesCategoria();
   renderScheduleList();
-
-  // --- Tab Captura (solo partidos que AÚN no se han jugado / subido) ---
-  const pendientes = MATCHES.filter(m=>m.estatus !== "Jugado");
-  const select = document.getElementById("matchSelect");
-  select.innerHTML = pendientes.length
-    ? pendientes.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
-    : '<option value="">No hay partidos pendientes de capturar</option>';
-  select.addEventListener("change", renderMatch);
-  if(pendientes.length) renderMatch();
-  else document.getElementById("saveBtn").disabled = true;
 
   // --- Tab Pasado (solo partidos que YA se jugaron / subieron) ---
   const jugados = MATCHES.filter(m=>m.estatus === "Jugado");
@@ -1651,72 +1616,12 @@ function toggleAll(containerId, checked){
   document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb=>cb.checked = checked);
 }
 
-function renderMatch(){
-  const select = document.getElementById("matchSelect");
-  const m = MATCHES[Number(select.value)];
-  if(!m) return;
-  document.getElementById("nombreLocal").textContent = m.local;
-  document.getElementById("nombreVisit").textContent = m.visit;
-  document.getElementById("rosterLocalTitle").textContent = m.local;
-  document.getElementById("rosterVisitTitle").textContent = m.visit;
-  document.getElementById("scoreLocal").value = "";
-  document.getElementById("scoreVisit").value = "";
-  renderRosterList("rosterLocal", m.local);
-  renderRosterList("rosterVisit", m.visit);
-}
-
 function collectAsistencia(containerId, teamName){
   const out = [];
   document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb=>{
     out.push({equipo: teamName, jugador: cb.dataset.player, asistio: cb.checked ? "Sí" : "No"});
   });
   return out;
-}
-
-async function guardarResultado(){
-  const select = document.getElementById("matchSelect");
-  const m = MATCHES[Number(select.value)];
-  const scoreLocal = document.getElementById("scoreLocal").value;
-  const scoreVisit = document.getElementById("scoreVisit").value;
-  const msg = document.getElementById("msg");
-  msg.className = "msg";
-
-  if(scoreLocal === "" || scoreVisit === ""){
-    msg.className = "msg err";
-    msg.textContent = "Falta capturar el marcador de ambos equipos.";
-    return;
-  }
-
-  const payload = {
-    action: "resultado",
-    jornada: m.jornada, fecha: m.fecha, sede: m.sede,
-    equipoLocal: m.local, ptsLocal: Number(scoreLocal),
-    equipoVisit: m.visit, ptsVisit: Number(scoreVisit),
-    asistencia: [
-      ...collectAsistencia("rosterLocal", m.local),
-      ...collectAsistencia("rosterVisit", m.visit),
-    ]
-  };
-
-  const btn = document.getElementById("saveBtn");
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
-
-  try{
-    const data = await postAppsScript(payload);
-    if(data.ok){
-      msg.className = "msg ok";
-      msg.textContent = "Guardado: " + m.local + " " + scoreLocal + " - " + scoreVisit + " " + m.visit + ". Asistencia registrada.";
-    }else{
-      throw new Error(data.error || "Error desconocido");
-    }
-  }catch(err){
-    msg.className = "msg err";
-    msg.textContent = "No se pudo guardar: " + err.message + ". Revisa CONFIG.appsScriptUrl.";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Guardar resultado y asistencia";
-  }
 }
 
 /* ============================================================
@@ -2209,8 +2114,14 @@ function hdOficial(campo, valor){
 
 function hdJersey(lado, indice, valor){
   if(!HD) return;
-  HD.jugadores[lado][indice].jersey = String(valor).trim().slice(0,3);
+  const j = HD.jugadores[lado][indice];
+  j.jersey = String(valor).trim().slice(0,3);
+  // Si le borran el número a alguien que estaba en cancha, sale: sin número
+  // no hay constancia de que haya asistido, y no queremos un jugador dentro
+  // que al final no cuente como presente.
+  if(!j.jersey && j.encancha) j.encancha = false;
   hdGuardarRespaldo();
+  hdRender();   // el círculo se habilita (o se apaga) al momento
 }
 
 /* ---------- Quinteto en cancha ----------
@@ -2233,6 +2144,14 @@ function hdCambiarCancha(lado, indice){
   if(j.encancha){
     j.encancha = false;                  // sale a la banca
   }else{
+    // El número de jersey ES el registro de asistencia: si la mesa se lo puso,
+    // el jugador estuvo. Por eso no se puede meter a cancha a alguien sin
+    // número — quedaría jugando un fantasma que después aparece como faltista.
+    if(!String(j.jersey || "").trim()){
+      alert("Antes de meter a " + j.nombre + " ponle su número de jersey.\n\n" +
+            "El número es lo que registra que sí vino al partido.");
+      return;
+    }
     if(hdEnCancha(lado) >= HD_EN_CANCHA){
       alert("Ya hay " + HD_EN_CANCHA + " jugadores en cancha de " + HD[lado] + ".\n\n" +
             "Para hacer un cambio, primero apaga el círculo del que sale y luego prende el del que entra.");
@@ -2425,6 +2344,8 @@ function hdColumnaEquipo(lado){
     const faltas = j.fp + j.ftf;
     const fuera = faltas >= 5;
 
+    const sinNumero = !String(j.jersey || "").trim();
+
     // Línea divisoria entre el quinteto y la banca.
     if(ultimoEnCancha && !j.encancha){
       html += `<div class="hd-banca-sep">Banca</div>`;
@@ -2432,8 +2353,8 @@ function hdColumnaEquipo(lado){
     }
 
     html += `<div class="hd-jug${fuera ? " expulsado" : ""}${j.encancha ? " en-cancha" : ""}">
-      <button class="hd-circulo${j.encancha ? " on" : ""}" onclick="hdCambiarCancha('${lado}',${i})"
-              title="${j.encancha ? "Sacar a " + j.nombre : "Meter a " + j.nombre}"
+      <button class="hd-circulo${j.encancha ? " on" : ""}${sinNumero ? " sin-numero" : ""}" onclick="hdCambiarCancha('${lado}',${i})"
+              title="${sinNumero ? "Ponle su número de jersey para poder meterlo" : (j.encancha ? "Sacar a " + j.nombre : "Meter a " + j.nombre)}"
               aria-label="${j.encancha ? "En cancha" : "En banca"}"></button>
       <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
              onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
@@ -2568,6 +2489,20 @@ async function hdFinalizar(){
     });
   });
 
+  /* Asistencia: se manda TODO el roster de ambos equipos. Traer número de
+     jersey es lo que significa "sí vino"; sin número es "no vino". Se manda
+     también a los que no vinieron para poder distinguir después una falta
+     real de un partido que nadie capturó. */
+  const asistenciaPayload = [];
+  ["local","visit"].forEach(lado=>{
+    HD.jugadores[lado].forEach(j=>{
+      asistenciaPayload.push({
+        equipo: HD[lado], jugador: j.nombre,
+        asistio: String(j.jersey || "").trim() ? "Sí" : "No"
+      });
+    });
+  });
+
   try{
     await postAppsScript({
       action: "guardarHojaDigital",
@@ -2579,7 +2514,8 @@ async function hdFinalizar(){
         local: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"local",c)),
         visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
       },
-      jugadores: jugadoresPayload
+      jugadores: jugadoresPayload,
+      asistencia: asistenciaPayload
     });
     HD.cerrado = true;
     hdApagarReloj();
@@ -2815,6 +2751,110 @@ function renderEquiposPorCategoria(){
       <td style="font-weight:700;letter-spacing:1px;">${i.codigo || "—"}</td>
       <td style="color:${i.menores === "Sí" ? "#B26A00" : "#5A5A5A"};font-weight:700;">${i.menores === "Sí" ? "⚠️ Sí" : "No"}</td>
       <td style="color:${color};font-weight:700;">${i.estatus}</td>
+    </tr>`;
+  });
+  tabla.innerHTML = html;
+}
+
+/* ============================================================
+   PESTAÑA ASISTENCIA: cómo van de asistencia por categoría
+   ============================================================ */
+
+let CATEGORIA_ASISTENCIA = "todas";
+
+function renderBotonesCategoriaAsistencia(){
+  const cont = document.getElementById("catBotonesAsistencia");
+  if(!cont) return;
+  cont.innerHTML = ["todas"].concat(CONFIG.categorias).map(c=>{
+    const activo = (CATEGORIA_ASISTENCIA === c) ? " active" : "";
+    return `<button type="button" class="cat-btn${activo}" onclick="seleccionarCategoriaAsistencia('${c}')">${c === "todas" ? "Todas" : c}</button>`;
+  }).join("");
+}
+
+function seleccionarCategoriaAsistencia(cat){
+  CATEGORIA_ASISTENCIA = cat;
+  renderAsistencia();
+}
+
+/* Recorre la hoja "Asistencia" y saca, por jugador, a cuántos partidos de su
+   equipo fue. El denominador son los partidos en los que ese equipo aparece
+   registrado — no el total de semanas — porque un equipo que todavía no
+   juega no debe salir con 0%. */
+function resumenAsistencia(cat){
+  const porEquipo = {};   // equipo -> Set de jornadas registradas
+  const porJugador = {};  // "equipo|jugador" -> {equipo, jugador, si, no}
+
+  Object.keys(ASISTENCIA).forEach(clave=>{
+    const partes = clave.split("|");
+    if(partes.length < 3) return;
+    const jornada = partes[0], equipo = partes[1], jugador = partes.slice(2).join("|");
+    if(cat !== "todas" && (CATEGORIA_POR_EQUIPO[equipo] || "") !== cat) return;
+
+    if(!porEquipo[equipo]) porEquipo[equipo] = new Set();
+    porEquipo[equipo].add(jornada);
+
+    const k = equipo + "|" + jugador;
+    if(!porJugador[k]) porJugador[k] = { equipo, jugador, si: 0, no: 0 };
+    if(ASISTENCIA[clave] === "Sí") porJugador[k].si++; else porJugador[k].no++;
+  });
+
+  return Object.keys(porJugador).map(k=>{
+    const r = porJugador[k];
+    const partidos = porEquipo[r.equipo] ? porEquipo[r.equipo].size : (r.si + r.no);
+    return Object.assign({}, r, {
+      partidos,
+      pct: partidos ? Math.round((r.si / partidos) * 100) : 0
+    });
+  }).sort((a,b)=>{
+    const d = String(a.equipo).localeCompare(String(b.equipo));
+    return d !== 0 ? d : (b.si - a.si);
+  });
+}
+
+function renderAsistencia(){
+  renderBotonesCategoriaAsistencia();
+  const cat = CATEGORIA_ASISTENCIA;
+  const tabla = document.getElementById("asistenciaTable");
+  const resumen = document.getElementById("asistenciaResumen");
+  const titulo = document.getElementById("asistenciaTitulo");
+  if(!tabla) return;
+
+  titulo.textContent = (cat === "todas") ? "Todos los jugadores" : "Jugadores de " + cat;
+  const lista = resumenAsistencia(cat);
+
+  if(lista.length === 0){
+    resumen.innerHTML = "";
+    tabla.innerHTML = CARGANDO
+      ? FILA_CARGANDO
+      : '<tr><td class="empty-state">Todavía no hay asistencia registrada. Se llena sola cuando se cierre el primer partido en la hoja digital.</td></tr>';
+    return;
+  }
+
+  const equipos = new Set(lista.map(r=>r.equipo));
+  const totalSi = lista.reduce((n,r)=>n + r.si, 0);
+  const totalReg = lista.reduce((n,r)=>n + r.si + r.no, 0);
+  const flojos = lista.filter(r=>r.pct < 50).length;
+  resumen.innerHTML = `
+    <div class="eq-chip"><div class="n">${equipos.size}</div><div class="t">Equipos</div></div>
+    <div class="eq-chip"><div class="n">${lista.length}</div><div class="t">Jugadores</div></div>
+    <div class="eq-chip"><div class="n">${totalReg ? Math.round((totalSi/totalReg)*100) : 0}%</div><div class="t">Asistencia general</div></div>
+    <div class="eq-chip${flojos ? " alerta" : ""}"><div class="n">${flojos}</div><div class="t">Abajo del 50%</div></div>`;
+
+  let html = `<tr><th>Equipo</th><th>Jugador</th><th>Asistió</th><th>Faltó</th><th>Partidos</th><th>%</th></tr>`;
+  let equipoAnterior = null;
+  lista.forEach(r=>{
+    // Solo se repite el nombre del equipo cuando cambia: la tabla se lee mucho
+    // mejor agrupada que con el equipo en todos los renglones.
+    const mostrarEquipo = r.equipo !== equipoAnterior;
+    equipoAnterior = r.equipo;
+    const color = r.pct >= 80 ? "#4caf74" : r.pct >= 50 ? "#e0a63c" : "#e2544a";
+    html += `<tr>
+      <td>${mostrarEquipo ? "<strong>" + r.equipo + "</strong>" : ""}</td>
+      <td>${r.jugador}</td>
+      <td style="font-weight:800;">${r.si}</td>
+      <td style="color:${r.no ? "#e2544a" : "#666"};">${r.no}</td>
+      <td style="color:#888;">${r.partidos}</td>
+      <td style="font-weight:900;color:${color};">${r.pct}%</td>
     </tr>`;
   });
   tabla.innerHTML = html;
