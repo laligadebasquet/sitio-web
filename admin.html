@@ -1416,22 +1416,40 @@ async function initData(){
   repintarVistaActual();   // muestra "Cargando datos…" de inmediato
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
+    // Lo que NO es privado se lee por la vía abierta (rápida, sin contraseña).
     const datos = await leerDelSheetConReintentos([
-      "Equipos","Rol de Juego","Integrantes","Resultados",
-      "Asistencia","Pagos"
+      "Equipos","Rol de Juego","Resultados","Asistencia"
     ]);
     if(datos){
       if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
                                 CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
       if(datos["Rol de Juego"])             MATCHES = mapRolCsv(datos["Rol de Juego"]);
-      if(datos["Integrantes"]){             ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
-                                     ALTAS_JUGADORES = mapAltasJugadores(datos["Integrantes"]); }
       if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Asistencia"])            ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
-      if(datos["Pagos"])                      PAGOS = mapPagosCsv(datos["Pagos"]);
     } else {
       usedFallback = true;
-      ERRORES_CARGA.push("equipos y jugadores");
+      ERRORES_CARGA.push("equipos y calendario");
+    }
+
+    /* Integrantes y Pagos traen datos privados: correos, fechas de nacimiento,
+       tutores, INE de menores y montos. Por eso NO salen por la dirección
+       abierta del Apps Script — se piden aparte, con la contraseña de este
+       Admin, igual que "Inscripción de Equipos". */
+    try{
+      const priv = await postAppsScript({
+        action: "leerHojasAdmin",
+        clave: CONFIG.adminPassword,
+        hojas: ["Integrantes", "Pagos"]
+      });
+      const hojasPriv = (priv && priv.hojas) || {};
+      if(hojasPriv["Integrantes"]){
+        ROSTERS = mapIntegrantesCsv(hojasPriv["Integrantes"]);
+        ALTAS_JUGADORES = mapAltasJugadores(hojasPriv["Integrantes"]);
+      }
+      if(hojasPriv["Pagos"]) PAGOS = mapPagosCsv(hojasPriv["Pagos"]);
+    }catch(err){
+      ERRORES_CARGA.push("jugadores y pagos");
+      console.warn("No se pudieron leer los datos privados:", err);
     }
     // "Inscripción de Equipos" tiene teléfonos y códigos de equipo, así que
     // no está en la lista blanca pública de doGet — se pide aparte por POST
