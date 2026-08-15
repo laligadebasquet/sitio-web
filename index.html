@@ -468,10 +468,37 @@
     letter-spacing:.6px;margin-bottom:2px;
   }
   .dia-btn .dia-num{display:block;font-size:23px;font-weight:900;color:var(--navy);}
+  .dia-btn .dia-mes{
+    display:block;font-size:10px;font-weight:700;color:#8A8A92;
+    letter-spacing:.6px;text-transform:uppercase;margin-top:1px;
+  }
   .dia-btn:hover{border-color:#F37228;}
   .dia-btn.active{background:#F37228;border-color:#F37228;}
-  .dia-btn.active .dia-nom{color:rgba(255,255,255,.85);}
+  .dia-btn.active .dia-nom,
+  .dia-btn.active .dia-mes{color:rgba(255,255,255,.85);}
   .dia-btn.active .dia-num{color:#fff;}
+
+  /* Rejilla de equipos de la pestaña JUGADORES */
+  .equipos-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:10px;margin-bottom:24px;
+  }
+  .equipo-btn{
+    text-align:left;background:#fff;border:1px solid var(--gray-line);
+    border-radius:12px;padding:14px 16px;cursor:pointer;
+  }
+  .equipo-btn:hover{border-color:#F37228;}
+  .equipo-btn.abierto{border-color:#F37228;background:#FFF7F2;}
+  .equipo-btn .eq-nom{
+    display:block;font-weight:900;font-size:15px;color:var(--navy);
+    text-transform:uppercase;letter-spacing:.3px;line-height:1.25;
+  }
+  .equipo-btn .eq-sub{display:block;font-size:12px;color:#8A8A92;margin-top:3px;}
+  /* Las credenciales del equipo elegido */
+  .roster-credenciales{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+    gap:18px;justify-items:center;
+  }
 
   /* Cada partido en tres filas: izquierda, centro y derecha. */
   .partido-fila{
@@ -1519,7 +1546,9 @@
         <button data-view="sanciones">Sanciones</button>
       </div>
     </div>
-    <button data-view="credencial">Credencial</button>
+    <!-- Por dentro la vista se sigue llamando "credencial" (así estaba desde
+         el principio); en pantalla ahora dice Jugadores. -->
+    <button data-view="credencial">Jugadores</button>
     <button data-view="tendencias">Tendencias</button>
     <button data-view="inscripcion">Inscripción</button>
     <div class="nav-dropdown" id="navDropInfo">
@@ -2006,7 +2035,7 @@ async function init(){
   renderPlayoffs();
   renderConcentrado();
   renderSanciones();
-  renderCredencial();
+  renderJugadores();
 }
 
 /* ============================================================
@@ -2020,8 +2049,11 @@ async function init(){
    temporada todavía no empieza o ya terminó, la más cercana.
    ============================================================ */
 
-const CATS_ROL = ["Femenil A", "Varonil A", "Femenil B", "Varonil B"];
+/* El orden de los botones lo puso Mauricio y es el mismo en toda la página. */
+const CATS_ROL = ["Femenil A", "Varonil A", "Varonil B", "Femenil B"];
 const DIA_CORTO = ["Dom", "Lun", "Mar", "Mier", "Jue", "Vie", "Sab"];
+const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 let ROL_INICIO_CAT = "general";   // "general" = todas las categorías
 let ROL_INICIO_DIA = null;        // fecha "AAAA-MM-DD" del día elegido
@@ -2124,10 +2156,12 @@ function renderRolInicio(){
     const d = fechaLocal(f);
     const nom = d ? DIA_CORTO[d.getDay()] : "";
     const num = d ? d.getDate() : "";
+    const mes = d ? MES_CORTO[d.getMonth()] : "";
     return `<button type="button" class="dia-btn${f === ROL_INICIO_DIA ? " active" : ""}"
       onclick="elegirDiaRol('${f}')">
         <span class="dia-nom">${nom}</span>
         <span class="dia-num">${num}</span>
+        <span class="dia-mes">${mes}</span>
       </button>`;
   }).join("");
 
@@ -2159,6 +2193,59 @@ function horaBonita(hora){
   if(h === 0) h = 12;
   else if(h > 12) h -= 12;
   return `${h}:${m[2]} ${sufijo}`;
+}
+
+/* ============================================================
+   FILTRO POR CATEGORÍA — los mismos botones en varias pestañas
+
+   Rol de Juego, Resultados, Tabla de Posiciones, Playoffs y Jugadores
+   comparten esta botonera. Cada pestaña recuerda su propia selección, así
+   que filtrar el rol por Femenil A no te cambia lo que estabas viendo en la
+   tabla.
+   ============================================================ */
+
+let CAT_VISTA = {
+  rol: "general", resultados: "general", tabla: "general",
+  playoffs: "general", jugadores: "general"
+};
+
+/** Categoría de un equipo, según la hoja "Equipos". */
+function categoriaDeEquipo(nombre){
+  const e = EQUIPOS.find(t => t.nombre === nombre);
+  return e ? e.categoria : "";
+}
+
+/* Un partido entra si CUALQUIERA de los dos equipos es de esa categoría.
+   En la práctica los dos lo son, pero así no se pierde nada si un equipo
+   todavía no tiene categoría capturada. */
+function pasaCategoria(vista, ...equipos){
+  const cat = CAT_VISTA[vista];
+  if(cat === "general") return true;
+  return equipos.some(e => categoriaDeEquipo(e) === cat);
+}
+
+function botonesCategoria(vista){
+  const actual = CAT_VISTA[vista];
+  const lista = [["general", "General"]].concat(CATS_ROL.map(c => [c, c]));
+  return '<div class="rol-cats">' + lista.map(([valor, texto])=>
+    `<button type="button" class="rol-cat-btn${actual === valor ? " active" : ""}"
+       onclick="filtrarCategoria('${vista}','${valor}')">${texto}</button>`
+  ).join("") + '</div>';
+}
+
+function filtrarCategoria(vista, cat){
+  CAT_VISTA[vista] = cat;
+  if(vista === "rol")             renderRol();
+  else if(vista === "resultados") renderResultados();
+  else if(vista === "tabla")      renderTabla();
+  else if(vista === "playoffs")   renderPlayoffs();
+  else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; renderJugadores(); }
+}
+
+/* Texto para cuando el filtro deja la pantalla vacía. */
+function enCategoria(vista){
+  const cat = CAT_VISTA[vista];
+  return cat === "general" ? "" : " en " + cat;
 }
 
 function groupByJornada(arr){
@@ -2321,14 +2408,17 @@ function cerrarRoster(){
 function renderResultados(){
   const el = document.getElementById("resultadosBox");
   const grouped = groupByJornada(RESULTADOS);
+  const encabezado = '<div class="section-heading">Resultados<span class="line"></span></div>' +
+                     botonesCategoria("resultados");
   if(grouped.length === 0){
-    el.innerHTML = '<div class="section-heading">Resultados<span class="line"></span></div><div class="empty-state">Todavía no hay resultados capturados.</div>';
+    el.innerHTML = encabezado + '<div class="empty-state">Todavía no hay resultados capturados.</div>';
     return;
   }
-  let html = '<div class="section-heading">Resultados<span class="line"></span></div>';
+  let html = encabezado;
   let any = false;
   grouped.forEach(g=>{
-    const visibleItems = g.items.filter(m=>matchesSearch(m.local, m.visitante));
+    const visibleItems = g.items.filter(m=>
+      matchesSearch(m.local, m.visitante) && pasaCategoria("resultados", m.local, m.visitante));
     if(visibleItems.length === 0) return;
     any = true;
     html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
@@ -2410,14 +2500,16 @@ function renderProximos(){
 
 function renderRol(){
   const el = document.getElementById("view-rol");
+  const botones = botonesCategoria("rol");
   const grouped = groupByJornada(ROL);
   if(grouped.length === 0){
-    el.innerHTML = '<div class="empty-state">Todavía no hay partidos programados.</div>';
+    el.innerHTML = botones + '<div class="empty-state">Todavía no hay partidos programados.</div>';
     return;
   }
-  let html = "";
+  let html = botones;
   grouped.forEach(g=>{
-    const visibleItems = g.items.filter(m=>matchesSearch(m.local, m.visitante));
+    const visibleItems = g.items.filter(m=>
+      matchesSearch(m.local, m.visitante) && pasaCategoria("rol", m.local, m.visitante));
     if(visibleItems.length === 0) return;
     html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
     html += '<div class="cards-grid">';
@@ -2433,7 +2525,9 @@ function renderRol(){
     });
     html += "</div>";
   });
-  el.innerHTML = html || '<div class="empty-state">No hay partidos para ese equipo.</div>';
+  el.innerHTML = (html === botones)
+    ? botones + `<div class="empty-state">No hay partidos${enCategoria("rol")}.</div>`
+    : html;
 }
 
 function computeStandings(){
@@ -2463,12 +2557,15 @@ function computeStandings(){
 
 function renderTabla(){
   const el = document.getElementById("view-tabla");
-  const standings = computeStandings().filter(t=>matchesSearch(t.equipo, ""));
+  const botones = botonesCategoria("tabla");
+  const standings = computeStandings()
+    .filter(t=>matchesSearch(t.equipo, "") && pasaCategoria("tabla", t.equipo));
   if(standings.length === 0){
-    el.innerHTML = '<div class="empty-state">Todavía no hay resultados para calcular la tabla.</div>';
+    el.innerHTML = botones +
+      `<div class="empty-state">Todavía no hay resultados para calcular la tabla${enCategoria("tabla")}.</div>`;
     return;
   }
-  let html = `<table class="standings">
+  let html = botones + `<table class="standings">
     <thead><tr>
       <th>Pos</th><th>Equipo</th><th>JJ</th><th>JG</th><th>JP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
     </tr></thead><tbody>`;
@@ -2618,7 +2715,9 @@ function renderRachas(){
    volver a activar el armado automático de llaves de abajo. */
 function renderPlayoffs(){
   const el = document.getElementById("view-playoffs");
-  el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div><div class="empty-state">Esta información estará disponible a partir de la semana 5 de juego.</div>';
+  el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div>' +
+    botonesCategoria("playoffs") +
+    '<div class="empty-state">Esta información estará disponible a partir de la semana 5 de juego.</div>';
   return;
 
   const standings = computeStandings();
@@ -2843,91 +2942,87 @@ ${o.incluirOptOutImagen ? '<p>En caso de que algún integrante no desee que su i
 const REGLAMENTO_VARONIL_HTML = construirReglamentoHTML({ cuota:10000, forma1:9000, forma2:10000, forma3:11000, incluirOptOutImagen:true });
 const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9000, forma1:8000, forma2:9000, forma3:10000, incluirOptOutImagen:false });
 
-function renderCredencial(){
+/* ============================================================
+   JUGADORES — antes "Credencial"
+
+   Se eligen los mismos botones de categoría de las demás pestañas, salen los
+   equipos inscritos de esa categoría, y al picar uno se abren las
+   credenciales de todo su roster.
+   ============================================================ */
+
+let JUGADORES_EQUIPO = null;   // el equipo abierto, o null
+
+function verRosterJugadores(equipo){
+  JUGADORES_EQUIPO = (JUGADORES_EQUIPO === equipo) ? null : equipo;
+  renderJugadores();
+  if(JUGADORES_EQUIPO){
+    const caja = document.getElementById("rosterCredenciales");
+    if(caja) caja.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+}
+
+function renderJugadores(){
   const el = document.getElementById("view-credencial");
-  el.innerHTML = `
-    <div class="section-heading">Credencial de Jugador<span class="line"></span></div>
-    <div class="config-note" style="margin:0 0 24px 0;padding:0;">
-      <p>Esta información estará habilitada a partir del 17 de agosto. Si ya te diste de alta como jugador, te llegó un correo con tu credencial. Si lo hiciste y no te llegó, manda un correo a control@laligadebasquet.com.</p>
-    </div>
-    <div class="credencial-selectors">
-      <div class="credencial-field">
-        <label for="credEquipo">Equipo</label>
-        <select id="credEquipo" disabled>
-          <option value="">Disponible a partir del 17 de agosto</option>
-        </select>
-      </div>
-      <div class="credencial-field">
-        <label for="credJugador">Jugador</label>
-        <select id="credJugador" disabled>
-          <option value="">Disponible a partir del 17 de agosto</option>
-        </select>
-      </div>
-    </div>
-    <button class="reglamento-volver" type="button" onclick="abrirEjemploCredencial()">Ver ejemplo de credencial</button>
-    <div class="credencial-card-wrap" id="credencialCardWrap"></div>
-  `;
-}
+  const botones = botonesCategoria("jugadores");
 
-function actualizarJugadoresCredencial(){
-  const equipo = document.getElementById("credEquipo").value;
-  const selJugador = document.getElementById("credJugador");
-  const wrap = document.getElementById("credencialCardWrap");
-  wrap.innerHTML = "";
-  if(!equipo){
-    selJugador.disabled = true;
-    selJugador.innerHTML = '<option value="">Primero elige un equipo</option>';
+  const equipos = EQUIPOS
+    .filter(t => pasaCategoria("jugadores", t.nombre))
+    .slice()
+    .sort((a,b)=> String(a.nombre).localeCompare(String(b.nombre)));
+
+  let html = '<div class="section-heading">Jugadores<span class="line"></span></div>' + botones;
+
+  if(!equipos.length){
+    html += `<div class="empty-state">Todavía no hay equipos inscritos${enCategoria("jugadores")}.</div>`;
+    el.innerHTML = html;
     return;
   }
-  const jugadores = (ROSTERS[equipo] || []).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  if(jugadores.length === 0){
-    selJugador.disabled = true;
-    selJugador.innerHTML = '<option value="">Este equipo no tiene roster</option>';
-    return;
+
+  html += '<div class="equipos-grid">';
+  equipos.forEach(t=>{
+    const cuantos = (ROSTERS[t.nombre] || []).length;
+    const eq = String(t.nombre).replace(/'/g, "\\'");
+    const abierto = (JUGADORES_EQUIPO === t.nombre) ? " abierto" : "";
+    html += `<button type="button" class="equipo-btn${abierto}" onclick="verRosterJugadores('${eq}')">
+      <span class="eq-nom">${t.nombre}</span>
+      <span class="eq-sub">${t.categoria || ""} · ${cuantos} jugador${cuantos === 1 ? "" : "es"}</span>
+    </button>`;
+  });
+  html += '</div>';
+
+  // Credenciales del equipo abierto
+  html += '<div id="rosterCredenciales">';
+  if(JUGADORES_EQUIPO){
+    const jugadores = (ROSTERS[JUGADORES_EQUIPO] || [])
+      .slice()
+      .sort((a,b)=> String(a.nombre).localeCompare(String(b.nombre)));
+    html += `<div class="jornada-heading">${JUGADORES_EQUIPO}<span class="line"></span></div>`;
+    html += jugadores.length
+      ? '<div class="roster-credenciales">' +
+          jugadores.map(j => credencialHTML(j, JUGADORES_EQUIPO)).join("") +
+        '</div>'
+      : '<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta.</div>';
   }
-  selJugador.disabled = false;
-  selJugador.innerHTML = '<option value="">Selecciona un jugador</option>' +
-    jugadores.map(j=>`<option value="${j.nombre.replace(/"/g,"&quot;")}">${j.nombre}</option>`).join("");
+  html += '</div>';
+
+  el.innerHTML = html;
 }
 
-/* Quita la palabra de género ("Varonil"/"Femenil") de la categoría y deja
-   solo la letra de nivel (A/B), tal como lo pidió Mauricio para el frente
-   de la credencial. */
-function categoriaCorta(categoria){
-  return (categoria || "").replace(/^(Varonil|Femenil)\s*/i, "").trim();
-}
+/* Se mantiene el nombre viejo porque hay llamadas regadas por el archivo. */
+function renderCredencial(){ renderJugadores(); }
 
-/* Fila de pelotas de basquet: una pelota por cada partido jugado, para que
-   se entienda de un vistazo que cada 🏀 representa un partido jugado. */
-function pelotasHTML(partidos){
-  const n = Number(partidos) || 0;
-  if(n <= 0) return '<span class="id-card-balls-empty">Sin partidos jugados todavía</span>';
-  return "🏀".repeat(Math.min(n, 20));
-}
-
-function mostrarCredencial(){
-  const equipo = document.getElementById("credEquipo").value;
-  const nombreJugador = document.getElementById("credJugador").value;
-  const wrap = document.getElementById("credencialCardWrap");
-  if(!equipo || !nombreJugador){
-    wrap.innerHTML = "";
-    return;
-  }
-  const jugadoresEquipo = ROSTERS[equipo] || [];
-  const jugador = jugadoresEquipo.find(j=>j.nombre === nombreJugador);
-  if(!jugador){
-    wrap.innerHTML = '<div class="empty-state">No se encontró al jugador.</div>';
-    return;
-  }
-  const equipoInfo = EQUIPOS.find(t=>t.nombre === equipo);
+/* La credencial de un jugador, en HTML. Se usa tanto en la lista del roster
+   como en cualquier otro lado donde haga falta una sola. */
+function credencialHTML(jugador, equipo){
+  const equipoInfo = EQUIPOS.find(t => t.nombre === equipo);
   const categoria = categoriaCorta(equipoInfo ? equipoInfo.categoria : "");
-  const partidos = (ASISTENCIA_JUGADOS[equipo] || {})[nombreJugador];
-  const puntos = (PUNTOS_JUGADOR[equipo] || {})[nombreJugador];
-  const puntosTexto = puntos !== undefined ? puntos : "—";
+  const partidos = (ASISTENCIA_JUGADOS[equipo] || {})[jugador.nombre];
+  const puntos = (PUNTOS_JUGADOR[equipo] || {})[jugador.nombre];
+  const puntosTexto = puntos !== undefined ? puntos : "\u2014";
   const avatar = jugador.foto
     ? `<img src="${jugador.foto}" alt="${jugador.nombre}">`
     : jugador.nombre.split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
-  wrap.innerHTML = `
+  return `
     <div class="id-card-flip-wrap">
       <div class="id-card-flip" onclick="this.classList.toggle('flipped')">
         <div class="id-card-inner">
@@ -2960,9 +3055,22 @@ function mostrarCredencial(){
           </div>
         </div>
       </div>
-    </div>
-    <span class="credencial-hint">Toca la credencial para ver tus puntos anotados</span>
-  `;
+    </div>`;
+}
+
+/* Quita la palabra de género ("Varonil"/"Femenil") de la categoría y deja
+   solo la letra de nivel (A/B), tal como lo pidió Mauricio para el frente
+   de la credencial. */
+function categoriaCorta(categoria){
+  return (categoria || "").replace(/^(Varonil|Femenil)\s*/i, "").trim();
+}
+
+/* Fila de pelotas de basquet: una pelota por cada partido jugado, para que
+   se entienda de un vistazo que cada 🏀 representa un partido jugado. */
+function pelotasHTML(partidos){
+  const n = Number(partidos) || 0;
+  if(n <= 0) return '<span class="id-card-balls-empty">Sin partidos jugados todavía</span>';
+  return "🏀".repeat(Math.min(n, 20));
 }
 
 /* Credencial de ejemplo (modal desde "Alta de Jugador"): mismo diseño que la
@@ -3995,7 +4103,7 @@ async function enviarAltaJugador(){
     const eq = EQUIPOS.find(t=>t.nombre === equipo);
     if(eq) eq.integrantes = (eq.integrantes || 0) + 1;
     _cacheJugadoresQuery = null; _cacheJugadoresSet = null;
-    renderCredencial();
+    renderJugadores();
     mostrarMsgInsc("iJgMsg","ok","¡Listo, " + nombre + "! Ya quedaste dado de alta en " + equipo + ". Te mandamos un correo de bienvenida a " + correo + ".");
     document.getElementById("iJgNombre").value = "";
     document.getElementById("iJgApellido").value = "";
