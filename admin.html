@@ -1263,9 +1263,41 @@ const DEMO_ASISTENCIA = {};
 /* Pagos ya registrados (abonos) — uno o varios por equipo, se suman al mostrar la tabla de Pagos. */
 const DEMO_PAGOS = [];
 
+/* ============================================================
+   NOMBRES — equipos y jugadores siempre igual en toda la liga
+
+   La gente escribe su equipo como se le ocurre. En pantalla y en los correos
+   SIEMPRE se ve en mayúsculas y sin acentos, para que el rol, la cédula y la
+   hoja digital se lean parejo. La hoja de cálculo no se toca: esto es solo
+   cómo se muestra. La Ñ se respeta: es una letra, no un acento.
+   ============================================================ */
+function aMayusSinAcentos(txt){
+  return String(txt || "")
+    .replace(/[\u00F1\u00D1]/g, "\u0001")   // la Ñ se aparta para que NFD no la parta
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u0001/g, "\u00D1")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+const nombreEquipo = aMayusSinAcentos;
+
+/* De cada jugador se queda SOLO el primer nombre y el primer apellido, sin
+   importar cuántos haya subido. La hoja guarda el apellido en su propia
+   columna, así que no hay que adivinar dónde termina el nombre. */
+function nombreJugador(nombreCompleto, apellido){
+  const completo = aMayusSinAcentos(nombreCompleto);
+  const ape = aMayusSinAcentos(apellido);
+  let pila = completo;
+  if(ape && completo.endsWith(" " + ape)) pila = completo.slice(0, -(ape.length + 1));
+  const primerNombre = (pila.split(" ")[0] || completo.split(" ")[0] || "");
+  const primerApellido = ape ? ape.split(" ")[0] : (completo.split(" ")[1] || "");
+  return (primerNombre + " " + primerApellido).trim();
+}
+
 function mapPagosCsv(rows){
   return rows.filter(r=>r["Equipo"]).map(r=>({
-    fecha: (r["Timestamp"] || "").split(" ")[0], equipo: r["Equipo"], categoria: r["Categoría"] || "",
+    fecha: (r["Timestamp"] || "").split(" ")[0], equipo: nombreEquipo(r["Equipo"]), categoria: r["Categoría"] || "",
     concepto: r["Concepto"] || "", monto: Number(r["Monto ($)"] || r["Monto"] || 0),
     metodoPago: r["Método de Pago"] || "", referencia: r["Referencia/Comprobante"] || "",
     quienRecibio: r["Registrado por / Quién recibió"] || "", notas: r["Notas"] || ""
@@ -1273,7 +1305,7 @@ function mapPagosCsv(rows){
 }
 
 function mapEquiposCsv(rows){
-  return rows.filter(r=>r["Nombre Equipo"]).map(r=>r["Nombre Equipo"]);
+  return rows.filter(r=>r["Nombre Equipo"]).map(r=>nombreEquipo(r["Nombre Equipo"]));
 }
 
 /* Categoría de cada equipo: { "KOOL AIDERS": "Varonil A", ... }
@@ -1282,7 +1314,7 @@ function mapEquiposCsv(rows){
 function mapCategoriaPorEquipo(rows){
   const map = {};
   (rows || []).filter(r=>r["Nombre Equipo"]).forEach(r=>{
-    map[r["Nombre Equipo"]] = String(r["Categoría"] || "").trim();
+    map[nombreEquipo(r["Nombre Equipo"])] = String(r["Categoría"] || "").trim();
   });
   return map;
 }
@@ -1300,7 +1332,7 @@ function mapRolCsv(rows){
     // la liga ESE número es la SEMANA. Se deja el nombre interno por
     // compatibilidad y en pantalla siempre se dice "Semana".
     jornada: Number(r["Jornada"]), fecha: r["Fecha"], hora: r["Hora"], sede: r["Sede/Cancha"],
-    categoria: r["Categoría"], local: r["Equipo Local"], visit: r["Equipo Visitante"],
+    categoria: r["Categoría"], local: nombreEquipo(r["Equipo Local"]), visit: nombreEquipo(r["Equipo Visitante"]),
     arbitro: r["Árbitro"], arbitro2: r["Árbitro 2"] || "", mesa: r["Mesa"] || "",
     instancia: r["Instancia"] || "temporada regular", estatus: r["Estatus"]
   }));
@@ -1309,24 +1341,24 @@ function mapRolCsv(rows){
 function mapIntegrantesCsv(rows){
   const rosters = {};
   rows.filter(r=>r["Nombre Completo"]).forEach(r=>{
-    const equipo = r["Equipo"];
+    const equipo = nombreEquipo(r["Equipo"]);
     if(!rosters[equipo]) rosters[equipo] = [];
-    rosters[equipo].push(r["Nombre Completo"]);
+    rosters[equipo].push(nombreJugador(r["Nombre Completo"], r["Apellido"]));
   });
   return rosters;
 }
 
 function mapResultadosCsv(rows){
   return rows.filter(r=>r["Equipo Local"]).map(r=>({
-    jornada: Number(r["Jornada"]), fecha: r["Fecha"], local: r["Equipo Local"],
-    ptsLocal: Number(r["Puntos Local"]), visit: r["Equipo Visitante"], ptsVisit: Number(r["Puntos Visitante"])
+    jornada: Number(r["Jornada"]), fecha: r["Fecha"], local: nombreEquipo(r["Equipo Local"]),
+    ptsLocal: Number(r["Puntos Local"]), visit: nombreEquipo(r["Equipo Visitante"]), ptsVisit: Number(r["Puntos Visitante"])
   }));
 }
 
 function mapAsistenciaCsv(rows){
   const map = {};
   rows.filter(r=>r["Jugador"]).forEach(r=>{
-    map[`${r["Jornada"]}|${r["Equipo"]}|${r["Jugador"]}`] = r["Asistió"];
+    map[`${r["Jornada"]}|${nombreEquipo(r["Equipo"])}|${nombreJugador(r["Jugador"], "")}`] = r["Asistió"];
   });
   return map;
 }
@@ -1365,8 +1397,8 @@ function mapAltasJugadores(rows){
   return (rows || [])
     .filter(r=>r["Nombre Completo"])
     .map(r=>({
-      nombre: r["Nombre Completo"],
-      equipo: r["Equipo"] || "",
+      nombre: nombreJugador(r["Nombre Completo"], r["Apellido"]),
+      equipo: nombreEquipo(r["Equipo"]),
       correo: r["Correo"] || "",
       foto: r["Foto"] || "",
       ts: r["Timestamp"] || "",
@@ -3928,7 +3960,7 @@ async function eliminarEquipoInscrito(equipo){
 function mapInscripcionesCsv(rows){
   return rows.filter(r=>r["Nombre del Equipo"]).map(r=>({
     timestamp: r["Timestamp"] || "",
-    equipo:    r["Nombre del Equipo"],
+    equipo:    nombreEquipo(r["Nombre del Equipo"]),
     categoria: r["Categoría"] || "",
     cuota:     Number(String(r["Cuota"] || "").replace(/[^0-9.]/g, "")) || 0,
     capSub:    r["Capitán / Sub-capitán"] || "",
