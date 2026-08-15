@@ -1854,36 +1854,6 @@ const OLIVER_SEMANAS = [
         {hora:"15:00", hTxt:"3:00 PM", cat:"Varonil B", local:"Limones", visit:"Olimpo"}
       ]}
     ]
-  },
-  {
-    semana:2, rango:"24 al 29 de agosto 2026",
-    dias:[
-      {dia:"LUNES", fecha:"2026-08-24", etiqueta:"24 de agosto", fuerza:"A", juegos:[
-        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"Fever", visit:"ExBorreguitas"},
-        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"ORLANDO MAGIC", visit:"WE THE SOUTH"},
-        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"Cosmonauticos", visit:"Lecheras"}
-      ]},
-      {dia:"MARTES", fecha:"2026-08-25", etiqueta:"25 de agosto", fuerza:"B", juegos:[
-        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Panthers", visit:"Comebacks"},
-        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil B", local:"Kool Aiders", visit:"P & THE DIDDIES"},
-        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Green Fn", visit:"Limones", nota:"solo entre semana"}
-      ]},
-      {dia:"MIÉRCOLES", fecha:"2026-08-26", etiqueta:"26 de agosto", fuerza:"A", juegos:[
-        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"BEETLES", visit:"EX UDEM", nota:"nunca lunes"},
-        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"swish kebabs", visit:"Glorious Kings"},
-        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"Sementeros", visit:"Clavadillas"}
-      ]},
-      {dia:"JUEVES", fecha:"2026-08-27", etiqueta:"27 de agosto", fuerza:"B", juegos:[
-        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Joe’s", visit:"Wolves"},
-        {hora:"21:10", hTxt:"9:10 PM", cat:"Femenil B", local:"Mavericks", visit:"Pink panthers"},
-        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Los Cangrejos de Santiago", visit:"Big dogs"}
-      ]},
-      {dia:"SÁBADO", fecha:"2026-08-29", etiqueta:"29 de agosto", fuerza:"B", descansa:"UNOS", juegos:[
-        {hora:"12:00", hTxt:"12:00 PM", cat:"Varonil B", local:"Hot Goofys", visit:"Olimpo"},
-        {hora:"13:00", hTxt:"1:00 PM", cat:"Varonil B", local:"2K ELITE", visit:"Chinolas"},
-        {hora:"14:00", hTxt:"2:00 PM", cat:"Varonil B", local:"Cordilleros", visit:"Wildcats"}
-      ]}
-    ]
   }
 ];
 
@@ -1980,10 +1950,13 @@ function renderOliverPreview(){
   });
 
   if(faltan.length){
+    const cuales = faltan.length === 1
+      ? `La semana ${faltan[0]} todavía no la armamos`
+      : `Las semanas ${faltan.slice(0,-1).join(", ")} y ${faltan[faltan.length-1]} todavía no las armamos`;
     html += `<div class="ol-aviso">
-      La semana ${faltan.join(" y la ")} todavía no la armamos juntos.
-      Escribe abajo las restricciones que te pidieron y pásamelas: con eso
-      la armo y queda cargada aquí para la próxima.
+      ${cuales} juntos. Escribe abajo las restricciones que te pidieron los
+      equipos para esas fechas y pásamelas: con eso las armo y quedan
+      cargadas aquí.
     </div>`;
   }
 
