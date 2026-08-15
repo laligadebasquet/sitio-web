@@ -255,6 +255,50 @@
   .cat-btn:hover{border-color:#666;color:#fff;}
   .cat-btn.active{background:#E8365D;border-color:#E8365D;color:#fff;}
 
+  /* ---- OLIVER: el generador de rol ---- */
+  .oliver-card{border:1px solid #33202A;}
+  .oliver-top{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+  .oliver-btn{
+    padding:18px 40px;border-radius:14px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,#E8365D,#FF7A3D);color:#fff;
+    font-size:26px;font-weight:900;letter-spacing:3px;text-transform:uppercase;
+    box-shadow:0 6px 22px rgba(232,54,93,.28);
+  }
+  .oliver-btn:hover{filter:brightness(1.08);}
+  .oliver-btn:disabled{opacity:.5;cursor:wait;box-shadow:none;}
+  .oliver-intro{flex:1;min-width:260px;}
+  .oliver-sub{font-size:12px;color:#888;line-height:1.5;}
+  .oliver-semanas label{display:block;margin-bottom:6px;}
+  .oliver-semanas .cat-botones{margin-bottom:0;}
+  .oliver-acciones{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+  .btn-sec{
+    padding:8px 16px;border-radius:8px;border:1px solid #3A3A40;background:#1A1A1C;
+    color:#DDD;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;
+    letter-spacing:.4px;
+  }
+  .btn-sec:hover{border-color:#666;color:#fff;}
+  /* Vista previa */
+  .ol-sem{margin-top:22px;border-top:1px solid #242428;padding-top:16px;}
+  .ol-sem-tit{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  .ol-sem-tit h3{margin:0;font-size:20px;color:#fff;}
+  .ol-dia{margin-bottom:12px;}
+  .ol-dia-tit{font-size:14px;font-weight:900;color:#fff;letter-spacing:.5px;margin-bottom:6px;}
+  .ol-dia-tit span{font-weight:400;color:#888;font-size:12px;letter-spacing:0;}
+  .ol-juego{
+    display:flex;align-items:center;gap:12px;background:#101010;border:1px solid #242428;
+    border-radius:10px;padding:9px 12px;margin-bottom:5px;border-left-width:5px;
+  }
+  .ol-hora{font-weight:800;font-size:13px;color:#EEE;min-width:74px;}
+  .ol-cat{font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.4px;}
+  .ol-vs{flex:1;text-align:center;font-size:14px;color:#EEE;}
+  .ol-vs em{font-style:normal;color:#777;font-size:11px;margin:0 8px;}
+  .ol-nota{font-size:10px;color:#B26A00;font-weight:700;text-transform:uppercase;}
+  .ol-descansa{font-size:11px;color:#B26A00;margin:2px 0 0 4px;}
+  .ol-aviso{
+    background:#1A1508;border:1px solid #4A3A10;border-radius:10px;padding:12px 14px;
+    color:#E3B341;font-size:13px;line-height:1.55;margin-top:14px;
+  }
+
   /* Pestaña EQUIPOS: tarjetas de conteo arriba de la tabla. */
   .equipos-resumen{display:flex;gap:10px;flex-wrap:wrap;}
   .eq-chip{
@@ -519,6 +563,38 @@
 
   <!-- ============ TAB: ROL DE JUEGO ============ -->
   <section class="view active" id="view-rol-admin">
+
+    <!-- OLIVER: arma el rol con la lógica de Mauricio. Primero enseña una
+         vista previa; nada toca la hoja hasta que él confirma. -->
+    <div class="card oliver-card">
+      <div class="oliver-top">
+        <button class="oliver-btn" onclick="oliverGenerar()">OLIVER</button>
+        <div class="oliver-intro">
+          <h2 style="margin:0 0 4px 0;">Generar el rol</h2>
+          <div class="oliver-sub">Arma el rol con tus reglas: fuerza A lunes y miércoles, fuerza B martes y jueves, femenil siempre en el primer horario, y el 10:10 pm para quien pide favores.</div>
+        </div>
+      </div>
+
+      <div class="oliver-semanas">
+        <label>¿Cuántas semanas quieres rolar?</label>
+        <div class="cat-botones" id="oliverSemanasBtns"></div>
+      </div>
+
+      <label for="oliverRestricciones" style="margin-top:14px;display:block;">
+        Restricciones de estas semanas
+      </label>
+      <div class="oliver-sub" style="margin-bottom:6px;">
+        Escríbelas como me las contarías. Ejemplo: “Green Fn solo puede entre semana”, “EX UDEM nunca los lunes”, “el sábado 12 de septiembre no hay cancha”.
+      </div>
+      <textarea id="oliverRestricciones" rows="5" placeholder="Una restricción por renglón…" oninput="oliverGuardarRestricciones()"></textarea>
+      <div class="oliver-acciones">
+        <button class="btn-sec" onclick="oliverCopiarRestricciones()">Copiar restricciones</button>
+        <span class="oliver-sub" id="oliverRestrMsg"></span>
+      </div>
+
+      <div id="oliverPreview"></div>
+    </div>
+
     <div class="card">
       <h2>Agregar partido al calendario</h2>
       <div class="grid-2">
@@ -1007,6 +1083,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     document.querySelectorAll("section.view").forEach(s=>s.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
+    if(btn.dataset.view === "rol"){ renderBotonesOliver(); oliverCargarRestricciones(); }
     if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
     if(btn.dataset.view === "asistencia") renderAsistencia();
     if(btn.dataset.view === "cedulas") renderCedulas();
@@ -1356,6 +1433,8 @@ async function initData(){
   renderRolSemanal();
   renderCrucesCategoria();
   renderScheduleList();
+  renderBotonesOliver();
+  oliverCargarRestricciones();
 
   // --- Tab Pasado (solo partidos que YA se jugaron / subieron) ---
   const jugados = MATCHES.filter(m=>m.estatus === "Jugado");
@@ -1720,6 +1799,254 @@ function collectAsistencia(containerId, teamName){
     out.push({equipo: teamName, jugador: cb.dataset.player, asistio: cb.checked ? "Sí" : "No"});
   });
   return out;
+}
+
+/* ============================================================
+   OLIVER — el generador de rol
+
+   La idea es que arme el rol como lo armaría Mauricio a mano. Por ahora
+   trae cargadas las semanas que ya afinamos juntos; conforme le vayamos
+   enseñando más reglas y restricciones, se van sumando aquí.
+
+   Reglas que ya sigue:
+     · Fuerza A (Varonil A + Femenil A) → lunes y miércoles
+     · Fuerza B (Varonil B + Femenil B) → martes y jueves
+     · Sábado → mixto, en hora cerrada (12, 1, 2, 3, 4 pm)
+     · Femenil SIEMPRE en el primer horario del día
+     · El 10:10 pm es la moneda de cambio: quien pide un favor, ahí juega
+     · Nadie repite rival ni juega dos veces en la misma semana
+   ============================================================ */
+
+const OL_COLOR = {
+  "Varonil A":{bg:"#FF1F5A",tx:"#FFF"}, "Femenil A":{bg:"#FF5C8A",tx:"#FFF"},
+  "Varonil B":{bg:"#F37228",tx:"#FFF"}, "Femenil B":{bg:"#31C48D",tx:"#06301F"}
+};
+
+/* Las semanas que ya armamos a mano. Cada una es lo que OLIVER devuelve
+   tal cual; las que todavía no existen se avisan en pantalla. */
+const OLIVER_SEMANAS = [
+  {
+    semana:1, rango:"17 al 22 de agosto 2026",
+    dias:[
+      {dia:"LUNES", fecha:"2026-08-17", etiqueta:"17 de agosto", fuerza:"A", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"BEETLES", visit:"Fever"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"swish kebabs", visit:"Sementeros"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"WE THE SOUTH", visit:"Lecheras"}
+      ]},
+      {dia:"MARTES", fecha:"2026-08-18", etiqueta:"18 de agosto", fuerza:"B", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Panthers", visit:"Joe’s"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil B", local:"Kool Aiders", visit:"Los Cangrejos de Santiago"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Green Fn", visit:"Hot Goofys", nota:"solo entre semana"}
+      ]},
+      {dia:"MIÉRCOLES", fecha:"2026-08-19", etiqueta:"19 de agosto", fuerza:"A", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Varonil A", local:"ORLANDO MAGIC", visit:"Glorious Kings"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"Cosmonauticos", visit:"Clavadillas"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"P & THE DIDDIES", visit:"Big dogs"}
+      ]},
+      {dia:"JUEVES", fecha:"2026-08-20", etiqueta:"20 de agosto", fuerza:"B", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Comebacks", visit:"Mavericks"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Femenil B", local:"Wolves", visit:"UNOS"}
+      ]},
+      {dia:"SÁBADO", fecha:"2026-08-22", etiqueta:"22 de agosto", fuerza:"A + B", descansa:"Pink panthers", juegos:[
+        {hora:"12:00", hTxt:"12:00 PM", cat:"Femenil A", local:"EX UDEM", visit:"ExBorreguitas", nota:"nunca lunes"},
+        {hora:"13:00", hTxt:"1:00 PM", cat:"Varonil B", local:"2K ELITE", visit:"Cordilleros"},
+        {hora:"14:00", hTxt:"2:00 PM", cat:"Varonil B", local:"Chinolas", visit:"Wildcats"},
+        {hora:"15:00", hTxt:"3:00 PM", cat:"Varonil B", local:"Limones", visit:"Olimpo"}
+      ]}
+    ]
+  },
+  {
+    semana:2, rango:"24 al 29 de agosto 2026",
+    dias:[
+      {dia:"LUNES", fecha:"2026-08-24", etiqueta:"24 de agosto", fuerza:"A", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"Fever", visit:"ExBorreguitas"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"ORLANDO MAGIC", visit:"WE THE SOUTH"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"Cosmonauticos", visit:"Lecheras"}
+      ]},
+      {dia:"MARTES", fecha:"2026-08-25", etiqueta:"25 de agosto", fuerza:"B", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Panthers", visit:"Comebacks"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil B", local:"Kool Aiders", visit:"P & THE DIDDIES"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Green Fn", visit:"Limones", nota:"solo entre semana"}
+      ]},
+      {dia:"MIÉRCOLES", fecha:"2026-08-26", etiqueta:"26 de agosto", fuerza:"A", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"BEETLES", visit:"EX UDEM", nota:"nunca lunes"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"swish kebabs", visit:"Glorious Kings"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"Sementeros", visit:"Clavadillas"}
+      ]},
+      {dia:"JUEVES", fecha:"2026-08-27", etiqueta:"27 de agosto", fuerza:"B", juegos:[
+        {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Joe’s", visit:"Wolves"},
+        {hora:"21:10", hTxt:"9:10 PM", cat:"Femenil B", local:"Mavericks", visit:"Pink panthers"},
+        {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Los Cangrejos de Santiago", visit:"Big dogs"}
+      ]},
+      {dia:"SÁBADO", fecha:"2026-08-29", etiqueta:"29 de agosto", fuerza:"B", descansa:"UNOS", juegos:[
+        {hora:"12:00", hTxt:"12:00 PM", cat:"Varonil B", local:"Hot Goofys", visit:"Olimpo"},
+        {hora:"13:00", hTxt:"1:00 PM", cat:"Varonil B", local:"2K ELITE", visit:"Chinolas"},
+        {hora:"14:00", hTxt:"2:00 PM", cat:"Varonil B", local:"Cordilleros", visit:"Wildcats"}
+      ]}
+    ]
+  }
+];
+
+const OL_RESTR_KEY = "oliverRestricciones_v1";
+let OLIVER_N = 1;          // cuántas semanas quiere rolar
+let OLIVER_GENERADO = null; // lo último que devolvió, para poder guardarlo
+
+function renderBotonesOliver(){
+  const cont = document.getElementById("oliverSemanasBtns");
+  if(!cont) return;
+  cont.innerHTML = [1,2,3,4].map(n =>
+    `<button class="cat-btn${OLIVER_N === n ? " active" : ""}" onclick="oliverSetSemanas(${n})">${n} ${n === 1 ? "semana" : "semanas"}</button>`
+  ).join("");
+}
+
+function oliverSetSemanas(n){
+  OLIVER_N = n;
+  renderBotonesOliver();
+}
+
+function oliverGuardarRestricciones(){
+  try{
+    localStorage.setItem(OL_RESTR_KEY, document.getElementById("oliverRestricciones").value);
+  }catch(e){ /* si el navegador no deja guardar, ni modo: no vale romper la vista */ }
+}
+
+function oliverCargarRestricciones(){
+  const ta = document.getElementById("oliverRestricciones");
+  if(!ta) return;
+  try{ ta.value = localStorage.getItem(OL_RESTR_KEY) || ""; }catch(e){}
+}
+
+function oliverCopiarRestricciones(){
+  const txt = document.getElementById("oliverRestricciones").value.trim();
+  const msg = document.getElementById("oliverRestrMsg");
+  if(!txt){ msg.textContent = "No has escrito ninguna restricción todavía."; return; }
+  navigator.clipboard.writeText(txt)
+    .then(()=>{ msg.textContent = "Copiadas. Pégamelas en el chat y las convierto en reglas."; })
+    .catch(()=>{ msg.textContent = "No se pudo copiar; selecciónalas a mano."; });
+}
+
+/* Devuelve las semanas pedidas. Las que todavía no hemos armado juntos
+   se reportan aparte para avisarlo en pantalla, en vez de inventarlas. */
+function oliverArmar(n){
+  const listas = OLIVER_SEMANAS.slice(0, n);
+  const faltan = [];
+  for(let s = listas.length + 1; s <= n; s++) faltan.push(s);
+  return { semanas: listas, faltan };
+}
+
+function oliverGenerar(){
+  const btn = document.querySelector(".oliver-btn");
+  btn.disabled = true; btn.textContent = "Armando…";
+  // Un respiro para que se vea el estado del botón antes de pintar.
+  setTimeout(()=>{
+    OLIVER_GENERADO = oliverArmar(OLIVER_N);
+    renderOliverPreview();
+    btn.disabled = false; btn.textContent = "OLIVER";
+  }, 120);
+}
+
+function renderOliverPreview(){
+  const cont = document.getElementById("oliverPreview");
+  if(!cont) return;
+  if(!OLIVER_GENERADO){ cont.innerHTML = ""; return; }
+
+  const { semanas, faltan } = OLIVER_GENERADO;
+  let html = "", totalPartidos = 0;
+
+  semanas.forEach(sem=>{
+    const nJuegos = sem.dias.reduce((n,d)=>n + d.juegos.length, 0);
+    totalPartidos += nJuegos;
+    html += `<div class="ol-sem">
+      <div class="ol-sem-tit">
+        <h3>Semana ${sem.semana}</h3>
+        <span class="oliver-sub">${sem.rango} · ${nJuegos} partidos</span>
+      </div>`;
+    sem.dias.forEach(d=>{
+      html += `<div class="ol-dia">
+        <div class="ol-dia-tit">${d.dia} <span>${d.etiqueta} · fuerza ${d.fuerza}</span></div>`;
+      d.juegos.forEach(j=>{
+        const c = OL_COLOR[j.cat] || {bg:"#666",tx:"#FFF"};
+        html += `<div class="ol-juego" style="border-left-color:${c.bg};">
+          <span class="ol-hora">${j.hTxt}</span>
+          <span class="ol-cat" style="background:${c.bg};color:${c.tx};">${j.cat.toUpperCase()}</span>
+          <span class="ol-vs"><strong>${j.local}</strong><em>vs</em><strong>${j.visit}</strong></span>
+          <span class="ol-nota">${j.nota || ""}</span>
+        </div>`;
+      });
+      if(d.descansa) html += `<div class="ol-descansa">Descansa: ${d.descansa}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+
+  if(faltan.length){
+    html += `<div class="ol-aviso">
+      La semana ${faltan.join(" y la ")} todavía no la armamos juntos.
+      Escribe abajo las restricciones que te pidieron y pásamelas: con eso
+      la armo y queda cargada aquí para la próxima.
+    </div>`;
+  }
+
+  if(totalPartidos){
+    html += `<div class="oliver-acciones" style="margin-top:16px;">
+      <button class="save-btn" id="oliverGuardarBtn" onclick="oliverGuardarEnRol()" style="margin:0;">
+        Guardar ${totalPartidos} partidos en Rol de Juego
+      </button>
+      <span class="msg" id="oliverGuardarMsg"></span>
+    </div>
+    <div class="oliver-sub" style="margin-top:6px;">
+      Hasta que le piques a este botón, nada se escribe en la hoja.
+    </div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+async function oliverGuardarEnRol(){
+  if(!OLIVER_GENERADO || !OLIVER_GENERADO.semanas.length) return;
+
+  const partidos = [];
+  OLIVER_GENERADO.semanas.forEach(sem=>{
+    sem.dias.forEach(d=>{
+      d.juegos.forEach(j=>{
+        partidos.push({
+          semana: sem.semana, fecha: d.fecha, hora: j.hora,
+          sede: (CONFIG.sedes && CONFIG.sedes[0]) || "",
+          categoria: j.cat, equipoLocal: j.local, equipoVisit: j.visit,
+          arbitro:"", arbitro2:"", mesa:""
+        });
+      });
+    });
+  });
+
+  const btn = document.getElementById("oliverGuardarBtn");
+  const msg = document.getElementById("oliverGuardarMsg");
+  msg.className = "msg";
+  if(!confirm(`Se van a programar ${partidos.length} partidos en la hoja "Rol de Juego".\n\n¿Le seguimos?`)) return;
+
+  btn.disabled = true; btn.textContent = "Guardando…";
+  try{
+    const data = await postAppsScript({ action:"programarLote", clave: CONFIG.adminPassword, partidos });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    const r = data.lote || {};
+    msg.className = "msg ok";
+    msg.textContent = `Listo: ${r.agregados} partidos programados` +
+      (r.omitidos ? ` (${r.omitidos} ya estaban y no se repitieron).` : ".");
+    // Se refleja en el calendario de abajo sin tener que recargar.
+    partidos.forEach(p=>{
+      MATCHES.push({ jornada:p.semana, fecha:p.fecha, hora:p.hora, sede:p.sede,
+                     categoria:p.categoria, local:p.equipoLocal, visit:p.equipoVisit,
+                     arbitro:"", arbitro2:"", mesa:"", estatus:"Programado" });
+    });
+    renderScheduleList();
+    renderCrucesCategoria();
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo guardar: " + err.message;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Guardar en Rol de Juego";
+  }
 }
 
 /* ============================================================
