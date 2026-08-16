@@ -381,6 +381,22 @@
     letter-spacing:1px;font-size:11px;padding:6px 8px;
   }
   .rol-tabla td.rol-cat{font-weight:700;white-space:nowrap;}
+  /* Lápiz para editar un partido: discreto hasta que le pasas encima. */
+  .btn-editar-partido{
+    background:transparent; border:1px solid transparent; border-radius:4px;
+    cursor:pointer; font-size:13px; line-height:1; padding:3px 5px; opacity:.45;
+    transition:opacity .12s, border-color .12s;
+  }
+  .rol-tabla tr:hover .btn-editar-partido{opacity:1;}
+  .btn-editar-partido:hover{border-color:var(--accent);}
+  /* Menú de fuerza dentro de la tabla de equipos. */
+  .sel-categoria{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--line);
+    border-radius:4px; padding:3px 6px; font-size:12px; font-family:inherit;
+    cursor:pointer; max-width:120px;
+  }
+  .sel-categoria:hover{border-color:var(--accent);}
+  .sel-categoria:disabled{opacity:.5; cursor:wait;}
   /* Cuadro de cruces (derecha) */
   .cruces-tabla{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;}
   .cruces-tabla th{
@@ -954,6 +970,64 @@
       <button class="modal-close" onclick="cerrarFotoJugador()">✕</button>
     </div>
     <div class="modal-body" id="fotoModalBody" style="text-align:center;"></div>
+  </div>
+</div>
+
+<!-- Editar un partido que ya está en el rol: día, hora, categoría y equipos. -->
+<div class="modal-overlay" id="editarPartidoModal" onclick="if(event.target===this) cerrarEditarPartido()">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-header">
+      <div>
+        <h3>Editar partido</h3>
+        <span id="editarPartidoSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarEditarPartido()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div>
+          <label for="ep_semana">Semana</label>
+          <input id="ep_semana" type="number" min="1">
+        </div>
+        <div>
+          <label for="ep_categoria">Categoría</label>
+          <select id="ep_categoria">
+            <option>Femenil A</option>
+            <option>Varonil A</option>
+            <option>Femenil B</option>
+            <option>Varonil B</option>
+          </select>
+        </div>
+        <div>
+          <label for="ep_fecha">Fecha</label>
+          <input id="ep_fecha" type="date">
+        </div>
+        <div>
+          <label for="ep_hora">Hora</label>
+          <select id="ep_hora">
+            <option value="20:10">8:10 pm</option>
+            <option value="21:10">9:10 pm</option>
+            <option value="22:10">10:10 pm</option>
+            <option value="12:00">12:00 pm</option>
+            <option value="13:00">1:00 pm</option>
+            <option value="14:00">2:00 pm</option>
+            <option value="15:00">3:00 pm</option>
+            <option value="16:00">4:00 pm</option>
+            <option value="17:00">5:00 pm</option>
+          </select>
+        </div>
+        <div>
+          <label for="ep_local">Equipo 1</label>
+          <select id="ep_local"></select>
+        </div>
+        <div>
+          <label for="ep_visit">Equipo 2</label>
+          <select id="ep_visit"></select>
+        </div>
+      </div>
+      <button class="save-btn" id="ep_guardar" onclick="guardarEdicionPartido()">Guardar cambios</button>
+      <div id="ep_estado" style="margin-top:10px;font-size:13px;"></div>
+    </div>
   </div>
 </div>
 
@@ -1628,13 +1702,17 @@ function renderRolSemanal(){
 
   let html = `<table class="rol-tabla"><tr>
       <th>categoría</th><th>instancia</th><th>semana</th>
-      <th>fecha</th><th>hora</th><th>equipo 1</th><th>equipo 2</th></tr>`;
+      <th>fecha</th><th>hora</th><th>equipo 1</th><th>equipo 2</th><th></th></tr>`;
   let semanaPrevia = null;
   orden.forEach(m=>{
     if(m.jornada !== semanaPrevia){
-      html += `<tr class="sep-semana"><td colspan="7">Semana ${m.jornada}</td></tr>`;
+      html += `<tr class="sep-semana"><td colspan="8">Semana ${m.jornada}</td></tr>`;
       semanaPrevia = m.jornada;
     }
+    const ref = JSON.stringify({
+      semana: m.jornada, local: m.local || "", visit: m.visit || "",
+      fecha: m.fecha || "", hora: m.hora || "", categoria: m.categoria || ""
+    }).replace(/"/g, "&quot;");
     html += `<tr>
       <td class="rol-cat">${(m.categoria || "").toUpperCase()}</td>
       <td>${m.instancia || "temporada regular"}</td>
@@ -1643,10 +1721,138 @@ function renderRolSemanal(){
       <td>${m.hora || ""}</td>
       <td>${m.local || ""}</td>
       <td>${m.visit || ""}</td>
+      <td><button class="btn-editar-partido" title="Editar este partido"
+            onclick='abrirEditarPartido(${ref})'>✏️</button></td>
     </tr>`;
   });
   html += "</table>";
   el.innerHTML = html;
+}
+
+/* ============================================================
+   EDITAR UN PARTIDO DEL ROL
+
+   El partido se identifica por la semana y los DOS equipos que tenía. Por eso
+   se guarda aquí lo original: si se cambia de rival, el backend todavía sabe
+   cuál renglón mover.
+   ============================================================ */
+
+let PARTIDO_EDITANDO = null;
+
+function abrirEditarPartido(p){
+  PARTIDO_EDITANDO = p;
+
+  const sub = document.getElementById("editarPartidoSub");
+  if(sub) sub.textContent = `Semana ${p.semana} · ${p.local} vs ${p.visit}`;
+
+  document.getElementById("ep_semana").value = p.semana || "";
+  document.getElementById("ep_fecha").value = (p.fecha || "").slice(0,10);
+  document.getElementById("ep_estado").textContent = "";
+
+  // Categoría: si la que trae no está en la lista, se deja la primera.
+  const selCat = document.getElementById("ep_categoria");
+  selCat.value = p.categoria || "";
+  if(!selCat.value) selCat.selectedIndex = 0;
+
+  // Hora: si es una hora fuera del menú, se agrega para no perderla.
+  const selHora = document.getElementById("ep_hora");
+  const horaActual = (p.hora || "").slice(0,5);
+  if(horaActual && ![...selHora.options].some(o=>o.value === horaActual)){
+    selHora.insertAdjacentHTML("afterbegin", `<option value="${horaActual}">${horaActual}</option>`);
+  }
+  selHora.value = horaActual;
+
+  // Equipos: todos los inscritos, con el actual seleccionado.
+  const equipos = [...new Set(INSCRIPCIONES.map(i=>i.equipo).filter(Boolean))].sort();
+  const opciones = (sel)=> equipos.map(e =>
+    `<option value="${e}"${e === sel ? " selected" : ""}>${e}</option>`).join("");
+  const selLocal = document.getElementById("ep_local");
+  const selVisit = document.getElementById("ep_visit");
+  selLocal.innerHTML = opciones(p.local);
+  selVisit.innerHTML = opciones(p.visit);
+  // Si el equipo del rol no está en la lista (nombre viejo), se agrega.
+  if(p.local && !equipos.includes(p.local)){
+    selLocal.insertAdjacentHTML("afterbegin", `<option value="${p.local}" selected>${p.local}</option>`);
+  }
+  if(p.visit && !equipos.includes(p.visit)){
+    selVisit.insertAdjacentHTML("afterbegin", `<option value="${p.visit}" selected>${p.visit}</option>`);
+  }
+
+  document.getElementById("editarPartidoModal").classList.add("open");
+}
+
+function cerrarEditarPartido(){
+  document.getElementById("editarPartidoModal").classList.remove("open");
+  PARTIDO_EDITANDO = null;
+}
+
+async function guardarEdicionPartido(){
+  if(!PARTIDO_EDITANDO) return;
+  const p = PARTIDO_EDITANDO;
+  const estado = document.getElementById("ep_estado");
+  const btn = document.getElementById("ep_guardar");
+
+  const nuevo = {
+    semana: document.getElementById("ep_semana").value,
+    fecha: document.getElementById("ep_fecha").value,
+    hora: document.getElementById("ep_hora").value,
+    categoria: document.getElementById("ep_categoria").value,
+    equipoLocal: document.getElementById("ep_local").value,
+    equipoVisit: document.getElementById("ep_visit").value
+  };
+
+  if(nuevo.equipoLocal === nuevo.equipoVisit){
+    estado.style.color = "#FF4D5E";
+    estado.textContent = "El equipo 1 y el equipo 2 no pueden ser el mismo.";
+    return;
+  }
+
+  // Solo se manda lo que de verdad cambió, así nada se pisa sin querer.
+  const cambios = {};
+  if(String(nuevo.semana) !== String(p.semana)) cambios.semana = Number(nuevo.semana);
+  if(nuevo.fecha && nuevo.fecha !== (p.fecha || "").slice(0,10)) cambios.fecha = nuevo.fecha;
+  if(nuevo.hora !== (p.hora || "").slice(0,5)) cambios.hora = nuevo.hora;
+  if(nuevo.categoria !== p.categoria) cambios.categoria = nuevo.categoria;
+  if(nuevo.equipoLocal !== p.local) cambios.equipoLocal = nuevo.equipoLocal;
+  if(nuevo.equipoVisit !== p.visit) cambios.equipoVisit = nuevo.equipoVisit;
+
+  if(!Object.keys(cambios).length){
+    estado.style.color = "#9A9AA2";
+    estado.textContent = "No cambiaste nada.";
+    return;
+  }
+
+  btn.disabled = true;
+  estado.style.color = "#9A9AA2";
+  estado.textContent = "Guardando…";
+  try{
+    await postAppsScript({
+      action: "editarPartido",
+      clave: CONFIG.adminPassword,
+      original: { semana: p.semana, equipoLocal: p.local, equipoVisit: p.visit },
+      cambios: cambios
+    });
+
+    // Se refleja de inmediato en la tabla, sin esperar a recargar.
+    const m = MATCHES.find(x => String(x.jornada) === String(p.semana) &&
+                                x.local === p.local && x.visit === p.visit);
+    if(m){
+      if(cambios.semana !== undefined) m.jornada = cambios.semana;
+      if(cambios.fecha) m.fecha = cambios.fecha;
+      if(cambios.hora) m.hora = cambios.hora;
+      if(cambios.categoria) m.categoria = cambios.categoria;
+      if(cambios.equipoLocal) m.local = cambios.equipoLocal;
+      if(cambios.equipoVisit) m.visit = cambios.equipoVisit;
+    }
+    renderRolSemanal();
+    if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+    cerrarEditarPartido();
+  }catch(err){
+    estado.style.color = "#FF4D5E";
+    estado.textContent = "No se pudo guardar: " + err.message;
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 /* ---------- DERECHA: cuadro de cruces de la categoría elegida ----------
@@ -3314,7 +3520,7 @@ function renderEquiposPorCategoria(){
     html += `<tr class="fila-equipo${abierto}" onclick="verRosterEquipo('${eq}')" title="Ver la plantilla de ${i.equipo}">
       <td style="color:#666;">${n + 1}</td>
       <td><strong>${i.equipo}</strong></td>
-      <td>${i.categoria || "—"}</td>
+      <td onclick="event.stopPropagation();">${selectorCategoriaEquipo(i.equipo, i.categoria)}</td>
       <td>${i.capSub || "—"}</td>
       <td style="font-weight:800;color:${colorJug};">${i.jugadores}</td>
       <td style="font-weight:700;letter-spacing:1px;">${i.codigo || "—"}</td>
@@ -3324,6 +3530,70 @@ function renderEquiposPorCategoria(){
   });
   tabla.innerHTML = html;
   renderRosterEquipo();
+}
+
+/* ============================================================
+   CAMBIAR UN EQUIPO DE FUERZA
+
+   La categoría vive en dos hojas: la de inscripciones (lo que ve este Admin)
+   y la de Equipos (lo que lee la página). El backend escribe en las dos de
+   una sola vez, para que nunca vuelva a pasar que un equipo salga en Varonil
+   A aquí y sin fuerza allá.
+   ============================================================ */
+
+const CATEGORIAS_LIGA = ["Femenil A", "Varonil A", "Femenil B", "Varonil B"];
+
+function selectorCategoriaEquipo(equipo, categoria){
+  const eq = String(equipo).replace(/"/g, "&quot;");
+  const actual = String(categoria || "");
+  const opciones = CATEGORIAS_LIGA.map(c =>
+    `<option value="${c}"${c === actual ? " selected" : ""}>${c}</option>`).join("");
+  const sinFuerza = actual ? "" : `<option value="" selected>— sin fuerza —</option>`;
+  return `<select class="sel-categoria" data-equipo="${eq}" data-actual="${actual}"
+            onchange="cambiarFuerzaEquipo(this)"
+            title="Cambiar de categoría a ${eq}">${sinFuerza}${opciones}</select>`;
+}
+
+async function cambiarFuerzaEquipo(sel){
+  const equipo = sel.dataset.equipo;
+  const anterior = sel.dataset.actual || "";
+  const nueva = sel.value;
+  if(!nueva || nueva === anterior){ sel.value = anterior; return; }
+
+  const deA = anterior ? `de ${anterior} a ${nueva}` : `a ${nueva}`;
+  if(!confirm(`¿Mover a ${equipo} ${deA}?\n\nSe actualiza en la página y en el Admin al mismo tiempo.`)){
+    sel.value = anterior;
+    return;
+  }
+
+  sel.disabled = true;
+  try{
+    const data = await postAppsScript({
+      action: "cambiarCategoriaEquipo",
+      clave: CONFIG.adminPassword,
+      equipo: equipo,
+      categoria: nueva
+    });
+
+    // Se refleja de inmediato, sin esperar a recargar todo.
+    const insc = INSCRIPCIONES.find(i => i.equipo === equipo);
+    if(insc) insc.categoria = nueva;
+    sel.dataset.actual = nueva;
+
+    const partidos = (data.cambio && data.cambio.partidos) || [];
+    if(partidos.length){
+      const lista = partidos.map(p =>
+        `  • Semana ${p.semana}: ${p.equipoLocal} vs ${p.equipoVisit} (${p.categoria || "sin categoría"})`
+      ).join("\n");
+      alert(`${equipo} ya está en ${nueva}.\n\nOJO: ya tiene ${partidos.length} partido(s) programado(s) con la categoría anterior:\n\n${lista}\n\nSi hay que moverlos, edítalos en Rol de Juego.`);
+    }
+    renderEquiposPorCategoria();
+  }catch(err){
+    alert("No se pudo cambiar la categoría de " + equipo + ".\n\n" + err.message);
+    sel.value = anterior;
+  }finally{
+    sel.disabled = false;
+  }
 }
 
 /* ============================================================
