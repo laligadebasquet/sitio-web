@@ -3215,8 +3215,11 @@ function sincronizarLinkPagos(){
   link.style.display = sel.value ? "" : "none";
 }
 
-function abrirPagos(){
-  const cat = (document.getElementById("iEqCategoria") || {}).value || "";
+/* catForzada: para abrir esta misma ventana desde fuera del formulario —
+   por ejemplo el link PAGOS del recordatorio de partido, que llega como
+   ?view=pagos&cat=varonil y ya sabe de qué rama es el equipo. */
+function abrirPagos(catForzada){
+  const cat = catForzada || (document.getElementById("iEqCategoria") || {}).value || "";
   const esFemenil = /femenil/i.test(cat);
   const esVaronil = /varonil/i.test(cat);
   const sub  = document.getElementById("pagosSubtitulo");
@@ -3388,6 +3391,16 @@ function aplicarDeepLink(){
   const params = new URLSearchParams(location.search);
   const view = params.get("view");
   if(!view) return;
+
+  // ?view=pagos&cat=varonil — abre directo la ventana de FORMAS DE PAGO.
+  // No es una pestaña del menú, es la misma ventana que sale al inscribir,
+  // así que se abre a mano y aquí se acaba.
+  if(view === "pagos"){
+    const rama = /femenil/i.test(params.get("cat") || "") ? "Femenil" : "Varonil";
+    abrirPagos(rama);
+    return;
+  }
+
   const btn = document.querySelector('nav.tabs button[data-view="' + view + '"]');
   if(!btn) return;
   btn.click();
