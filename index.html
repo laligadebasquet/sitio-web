@@ -699,6 +699,39 @@
     font-weight:700;
     margin-top:8px;
   }
+  /* --- Resultados recientes --- */
+  .res-fila .pf-vs.res-marcador{
+    font-size:20px;font-weight:900;color:var(--navy);white-space:nowrap;padding:0 10px;
+  }
+  .res-gana{color:var(--orange)!important;}
+  .res-botones{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+  .res-btn{
+    font-size:11px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;
+    padding:6px 10px;border-radius:6px;border:1px solid var(--gray-line);
+    background:#FFFFFF;color:var(--navy);cursor:pointer;text-decoration:none;
+    display:inline-block;white-space:nowrap;font-family:inherit;
+  }
+  .res-btn-yt{background:var(--orange);border-color:var(--orange);color:#FFFFFF;}
+  .res-btn-stat:hover{border-color:var(--orange);color:var(--orange);}
+  .res-btn-off{opacity:.45;cursor:default;}
+  /* --- Estadística de un partido --- */
+  .stat-equipo{margin-bottom:18px;}
+  .stat-equipo-nom{
+    font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--navy);margin-bottom:6px;
+  }
+  .stat-tabla{width:100%;border-collapse:collapse;font-size:13px;}
+  .stat-tabla th{
+    font-size:10px;text-transform:uppercase;color:#6B6B6B;font-weight:700;
+    padding:6px 6px;border-bottom:1px solid var(--gray-line);text-align:center;
+  }
+  .stat-tabla th:first-child, .stat-tabla td:first-child{text-align:left;}
+  .stat-tabla td{padding:6px 6px;border-bottom:1px solid #F0F0F0;text-align:center;color:#111111;}
+  .stat-tabla .stat-total{font-weight:900;}
+  @media (max-width:640px){
+    .res-botones{justify-content:flex-start;}
+    .res-fila .pf-vs.res-marcador{font-size:17px;}
+  }
   .modal-overlay{
     display:none;
     position:fixed; inset:0;
@@ -1612,6 +1645,12 @@
       <h2 class="rol-inicio-sub">Próximos partidos</h2>
       <div class="dias-tira" id="rolInicioDias"></div>
       <div id="rolInicioPartidos"></div>
+
+      <!-- Lo que ya se jugó: mismo calendario, pero con marcador, el botón
+           para ver el partido en YouTube y el de la estadística completa. -->
+      <h2 class="rol-inicio-sub">Resultados recientes</h2>
+      <div class="dias-tira" id="resInicioDias"></div>
+      <div id="resInicioPartidos"></div>
     </div>
 
     <!-- PATROCINADORES EN HOLD: Mauricio pidió quitarlos temporalmente.
@@ -1739,6 +1778,21 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Ventana de ESTADÍSTICA de un partido: la misma información que la
+     cédula que llega por correo. -->
+<div class="modal-overlay" id="statModal" onclick="if(event.target===this) cerrarEstadistica()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="statTitulo">Estadística</h3>
+        <span id="statSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarEstadistica()">✕</button>
+    </div>
+    <div class="modal-body" id="statBody"></div>
   </div>
 </div>
 
@@ -1940,6 +1994,37 @@ function nombreJugador(nombreCompleto, apellido){
   return (primerNombre + " " + primerApellido).trim();
 }
 
+/* Cédulas: de aquí sale el LINK del video de cada partido. */
+function mapCedulasCsv(rows){
+  return rows.filter(r=>r["Equipo Local"]).map(r=>({
+    semana: Number(r["Semana"]),
+    fecha: String(r["Fecha"] || "").slice(0,10),
+    categoria: String(r["Categoría"] || "").trim(),
+    local: nombreEquipo(r["Equipo Local"]),
+    visitante: nombreEquipo(r["Equipo Visitante"]),
+    ptsLocal: Number(r["Puntos Local"]),
+    ptsVisitante: Number(r["Puntos Visitante"]),
+    link: String(r["Link del Video"] || "").trim(),
+    publicado: String(r["Publicado"] || "").trim() !== ""
+  }));
+}
+
+/* Estadísticas: un renglón por jugador y partido. */
+function mapEstadisticasCsv(rows){
+  return rows.filter(r=>r["Jugador"]).map(r=>({
+    semana: Number(r["Semana"]),
+    fecha: String(r["Fecha"] || "").slice(0,10),
+    categoria: String(r["Categoría"] || "").trim(),
+    equipo: nombreEquipo(r["Equipo"]),
+    jugador: nombreJugador(r["Jugador"]),
+    jersey: String(r["Jersey"] || "").trim(),
+    q1: Number(r["1º"] || 0), q2: Number(r["2º"] || 0),
+    q3: Number(r["3º"] || 0), q4: Number(r["4º"] || 0),
+    total: Number(r["Total"] || 0),
+    triples: Number(r["Triples"] || 0)
+  }));
+}
+
 function mapResultadosCsv(rows){
   return rows.filter(r=>r["Equipo Local"]).map(r=>({
     jornada: Number(r["Jornada"]),
@@ -2004,6 +2089,11 @@ let ROL = DEMO_ROL;
 let EQUIPOS = DEMO_EQUIPOS;
 let ROSTERS = DEMO_ROSTERS;
 let ASISTENCIA_JUGADOS = DEMO_ASISTENCIA_JUGADOS;
+/* Lo que llena "Resultados recientes": el link del video de cada partido y
+   la estadística por jugador. Arrancan vacíos: si el Sheet no responde, la
+   sección simplemente no aparece. */
+let CEDULAS_PUB = [];
+let ESTADISTICAS = [];
 let PUNTOS_JUGADOR = DEMO_PUNTOS_JUGADOR;
 
 async function init(){
@@ -2021,13 +2111,15 @@ async function init(){
   aplicarDeepLink();
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
-    const datos = await leerDelSheet(["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia"]);
+    const datos = await leerDelSheet(["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia","Cédulas","Estadísticas"]);
     if(datos){
       if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Rol de Juego"]) ROL = mapRolCsv(datos["Rol de Juego"]);
       if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
       if(datos["Integrantes"])  ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
       if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
+      if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
+      if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
     } else {
       usedFallback = true;
     }
@@ -2160,6 +2252,7 @@ function renderRolInicio(){
     dias.innerHTML = "";
     const enCat = (ROL_INICIO_CAT === "general") ? "" : " en " + ROL_INICIO_CAT;
     partidos.innerHTML = `<div class="empty-state">Todavía no hay partidos programados${enCat}.</div>`;
+    renderResultadosRecientes();   // los resultados no dependen del rol
     return;
   }
 
@@ -2203,6 +2296,176 @@ function renderRolInicio(){
         <div class="pf-der"></div>
       </div>`).join("")
     : '<div class="empty-state">Ese día no hay partidos.</div>';
+
+  // Los resultados van justo abajo y comparten el filtro de categoría.
+  renderResultadosRecientes();
+}
+
+/* ============================================================
+   RESULTADOS RECIENTES
+
+   Debajo de los próximos partidos: los que ya se jugaron, con el mismo
+   calendario horizontal. Cada partido trae su marcador, el botón para ver
+   el video en YouTube y el de VER ESTADÍSTICA, que abre exactamente la
+   misma información que va en la cédula por correo.
+   ============================================================ */
+
+let RES_INICIO_DIA = null;
+
+/* Un partido jugado = un renglón de Resultados, más el link y las
+   estadísticas si ya están. */
+function partidosJugados(){
+  return RESULTADOS.map(r=>{
+    const ced = CEDULAS_PUB.find(c =>
+      String(c.semana) === String(r.jornada) &&
+      c.local === r.local && c.visitante === r.visitante);
+    return {
+      jornada: r.jornada,
+      fecha: (ced && ced.fecha) || r.fecha || "",
+      categoria: (ced && ced.categoria) || categoriaDeEquipo(r.local) || "",
+      local: r.local, visitante: r.visitante,
+      ptsLocal: r.ptsLocal, ptsVisitante: r.ptsVisitante,
+      link: (ced && ced.link) || ""
+    };
+  }).filter(p => p.fecha);
+}
+
+function elegirDiaResultados(fecha){
+  RES_INICIO_DIA = fecha;
+  renderResultadosRecientes();
+}
+
+function renderResultadosRecientes(){
+  const dias = document.getElementById("resInicioDias");
+  const caja = document.getElementById("resInicioPartidos");
+  if(!dias || !caja) return;
+
+  const jugados = partidosJugados()
+    .filter(p => ROL_INICIO_CAT === "general" || p.categoria === ROL_INICIO_CAT);
+
+  if(!jugados.length){
+    dias.innerHTML = "";
+    caja.innerHTML = '<div class="empty-state">Todavía no hay resultados.</div>';
+    return;
+  }
+
+  // Días con partidos jugados, del más reciente al más viejo.
+  const fechas = [...new Set(jugados.map(p=>p.fecha))].sort().reverse();
+  if(!RES_INICIO_DIA || fechas.indexOf(RES_INICIO_DIA) === -1) RES_INICIO_DIA = fechas[0];
+
+  dias.innerHTML = fechas.map(f=>{
+    const d = fechaLocal(f);
+    return `<button type="button" class="dia-btn${f === RES_INICIO_DIA ? " active" : ""}"
+      onclick="elegirDiaResultados('${f}')">
+        <span class="dia-nom">${d ? DIA_CORTO[d.getDay()] : ""}</span>
+        <span class="dia-num">${d ? d.getDate() : ""}</span>
+        <span class="dia-mes">${d ? MES_CORTO[d.getMonth()] : ""}</span>
+      </button>`;
+  }).join("");
+
+  const delDia = jugados.filter(p => p.fecha === RES_INICIO_DIA);
+  caja.innerHTML = delDia.map(p=>{
+    const ganaLocal = Number(p.ptsLocal) > Number(p.ptsVisitante);
+    const ganaVisit = Number(p.ptsVisitante) > Number(p.ptsLocal);
+    const ref = JSON.stringify({ semana: p.jornada, local: p.local, visit: p.visitante })
+      .replace(/"/g, "&quot;");
+    return `
+      <div class="partido-fila res-fila">
+        <div class="pf-izq">
+          <span class="pf-cat">${p.categoria || ""}</span>
+        </div>
+        <div class="pf-centro">
+          <span class="pf-eq-local${ganaLocal ? " res-gana" : ""}">${p.local}</span>
+          <span class="pf-vs res-marcador">${p.ptsLocal} - ${p.ptsVisitante}</span>
+          <span class="pf-eq-visit${ganaVisit ? " res-gana" : ""}">${p.visitante}</span>
+        </div>
+        <div class="pf-der res-botones">
+          ${p.link
+            ? `<a class="res-btn res-btn-yt" href="${p.link}" target="_blank" rel="noopener">▶ Ver partido</a>`
+            : `<span class="res-btn res-btn-off" title="El video todavía no está listo">▶ Sin video</span>`}
+          <button type="button" class="res-btn res-btn-stat" onclick='verEstadistica(${ref})'>Ver estadística</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/* La misma información de la cédula, pero en la página. */
+function verEstadistica(ref){
+  const caja = document.getElementById("statBody");
+  const sub  = document.getElementById("statSub");
+  const tit  = document.getElementById("statTitulo");
+  if(!caja) return;
+
+  const res = RESULTADOS.find(r => String(r.jornada) === String(ref.semana) &&
+                                   r.local === ref.local && r.visitante === ref.visit);
+  const ced = CEDULAS_PUB.find(c => String(c.semana) === String(ref.semana) &&
+                                    c.local === ref.local && c.visitante === ref.visit);
+  const stats = ESTADISTICAS.filter(e => String(e.semana) === String(ref.semana) &&
+                                         (e.equipo === ref.local || e.equipo === ref.visit));
+
+  tit.textContent = ref.local + " " + (res ? res.ptsLocal : "") + " - " +
+                    (res ? res.ptsVisitante : "") + " " + ref.visit;
+  sub.textContent = ((ced && ced.fecha) || "") +
+                    ((ced && ced.categoria) ? " · " + ced.categoria : "");
+
+  if(!stats.length){
+    caja.innerHTML = '<div class="empty-state">Todavía no hay estadística de este partido.</div>';
+  }else{
+    // La estrella es del máximo anotador del equipo que ganó, igual que en el correo.
+    const ganador = res
+      ? (Number(res.ptsLocal) > Number(res.ptsVisitante) ? ref.local
+        : (Number(res.ptsVisitante) > Number(res.ptsLocal) ? ref.visit : ""))
+      : "";
+    let tope = 0;
+    if(ganador){
+      stats.filter(e=>e.equipo === ganador).forEach(e=>{ tope = Math.max(tope, e.total); });
+    }
+
+    const tabla = (equipo)=>{
+      const del = stats.filter(e=>e.equipo === equipo).sort((a,b)=>b.total - a.total);
+      if(!del.length) return "";
+      return `
+        <div class="stat-equipo">
+          <div class="stat-equipo-nom">${equipo}</div>
+          <table class="stat-tabla">
+            <tr><th>Jugador</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Pts</th><th>3P</th></tr>
+            ${del.map(e=>{
+              const estrella = (ganador === equipo && tope > 0 && e.total === tope) ? " ⭐" : "";
+              return `<tr>
+                <td>${e.jersey ? "#" + e.jersey + " " : ""}${e.jugador}${estrella}</td>
+                <td>${e.q1}</td><td>${e.q2}</td><td>${e.q3}</td><td>${e.q4}</td>
+                <td class="stat-total">${e.total}</td><td>${e.triples}</td>
+              </tr>`;
+            }).join("")}
+          </table>
+        </div>`;
+    };
+
+    const porCuarto = (equipo)=>[1,2,3,4].map(c=>
+      stats.filter(e=>e.equipo === equipo).reduce((s,e)=>s + Number(e["q"+c] || 0), 0));
+    const pcL = porCuarto(ref.local), pcV = porCuarto(ref.visit);
+
+    caja.innerHTML =
+      tabla(ref.local) + tabla(ref.visit) +
+      `<div class="stat-equipo">
+        <div class="stat-equipo-nom">Parcial del partido</div>
+        <table class="stat-tabla">
+          <tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>
+          <tr><td>${ref.local}</td>${pcL.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcL.reduce((a,b)=>a+b,0)}</td></tr>
+          <tr><td>${ref.visit}</td>${pcV.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcV.reduce((a,b)=>a+b,0)}</td></tr>
+        </table>
+      </div>` +
+      (ced && ced.link
+        ? `<a class="res-btn res-btn-yt" style="display:inline-block;margin-top:6px;"
+             href="${ced.link}" target="_blank" rel="noopener">▶ Ver el partido en YouTube</a>`
+        : "");
+  }
+
+  document.getElementById("statModal").classList.add("open");
+}
+
+function cerrarEstadistica(){
+  document.getElementById("statModal").classList.remove("open");
 }
 
 /* "20:10" se lee mejor como "8:10 PM". */
