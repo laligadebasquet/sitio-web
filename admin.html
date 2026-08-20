@@ -567,6 +567,7 @@
     <button data-view="cruces">Cruces</button>
     <button data-view="pagos">Pagos</button>
     <button data-view="cedulas">Cédulas</button>
+    <button data-view="links">Link y Pendientes</button>
     <button data-view="inscripciones">Inscripciones</button>
     <button data-view="pruebas">Pruebas</button>
   </nav>
@@ -816,6 +817,23 @@
   </section>
 
   <!-- ============ TAB: CÉDULAS ============ -->
+  <!-- ============ LINK Y PENDIENTES ============
+       Los partidos que ya se jugaron y todavía no salen: aquí se pega el
+       link del video y se le pone dueño a los puntos que quedaron sueltos.
+       En cuanto un partido tiene las dos cosas, la cédula se manda sola. -->
+  <section class="view" id="view-links">
+    <div class="card">
+      <h2>Link y pendientes</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        La cédula se manda sola en cuanto el partido tenga <strong>link del video</strong>
+        y <strong>cero puntos pendientes</strong>. Mientras le falten puntos, el resultado
+        tampoco se publica en la página ni cuenta para la tabla.
+      </p>
+      <button class="mini-btn" onclick="cargarCedulas()">🔄 Actualizar</button>
+      <div id="linksLista" style="margin-top:14px;"></div>
+    </div>
+  </section>
+
   <section class="view" id="view-cedulas">
     <div class="card">
       <h2>Hoja digital</h2>
@@ -1150,7 +1168,7 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -1161,6 +1179,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
     if(btn.dataset.view === "asistencia") renderAsistencia();
     if(btn.dataset.view === "cedulas") renderCedulas();
+    if(btn.dataset.view === "links") cargarCedulas();
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
     if(btn.dataset.view === "inscripciones") renderInscripciones();
@@ -2600,17 +2619,30 @@ async function hdRefrescarRosters(){
   const aviso = document.getElementById("hdAviso");
   if(aviso) aviso.textContent = "Actualizando rosters…";
   await initData();
+  /* Solo se AGREGAN los que faltaban. Lo que ya se capturó (puntos, faltas,
+     jerseys) no se toca: por eso se comparan por nombre en vez de rearmar
+     la lista desde cero. */
+  const nuevos = [];
   ["local","visit"].forEach(lado=>{
     const equipo = HD[lado];
     const yaEstan = new Set(HD.jugadores[lado].map(j=>j.nombre));
     (ROSTERS[equipo] || []).forEach(n=>{
       const nombre = typeof n === "string" ? n : n.nombre;
-      if(!yaEstan.has(nombre)) HD.jugadores[lado].push(hdNuevoJugador(nombre));
+      if(!yaEstan.has(nombre)){
+        HD.jugadores[lado].push(hdNuevoJugador(nombre));
+        nuevos.push(nombre + " (" + equipo + ")");
+      }
     });
   });
   hdGuardarRespaldo();
   hdRender();
-  if(aviso) aviso.innerHTML = "Rosters actualizados. Si alguien más se da de alta, vuelve a darle a <strong>Refrescar rosters</strong>.";
+  if(aviso){
+    aviso.innerHTML = nuevos.length
+      ? "✅ Entraron " + nuevos.length + ": <strong>" + nuevos.join(", ") + "</strong>. " +
+        "Ya puedes ponerles su número."
+      : "Rosters al día: no hay jugadores nuevos dados de alta.";
+  }
+  if(nuevos.length) alert("Se agregaron al partido:\n\n· " + nuevos.join("\n· "));
 }
 
 /* ---------- Cuentas ---------- */
@@ -2973,6 +3005,11 @@ function hdColumnaEquipo(lado){
       <button class="hd-tf-btn" ${usados >= tope ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')">
         ⏱ Tiempo fuera (${usados}/${tope})
       </button>
+      <!-- A la mano, en la propia captura: si alguien se acaba de dar de alta
+           aparece sin salir del partido y sin perder lo que ya se anotó. -->
+      <button class="hd-tf-btn" onclick="hdRefrescarRosters()" title="Trae a los jugadores que se acaban de dar de alta">
+        🔄 Refrescar roster
+      </button>
       ${enBonus ? '<span class="hd-bonus">BONUS a favor</span>' : ''}
       <span class="hd-pend">
         <span class="hd-pend-label">Puntos pendientes${HD.cuarto ? " (C" + HD.cuarto + "): " + pend : ""}</span>
@@ -3068,13 +3105,13 @@ async function hdFinalizar(){
       "HAY PUNTOS ANOTADOS SIN ASIGNACIÓN DE JUGADOR" + detalle +
       "\n\nRecuerda que puedes ver el video en YouTube para estas ocasiones." +
       "\n\nHasta que ingreses los jugadores que encestaron esos puntos, el partido estará completo." +
-      "\n\nAceptar = HACERLO AHORA\nCancelar = HACERLO MÁS TARDE");
+      "\n\nAceptar = HACERLO AHORA\nCancelar = HACERLO MÁS TARDE (queda en la pestaña LINK Y PENDIENTES)");
     if(ahora){
       alert("Asígnalos con los botones de cada jugador y quítalos de 'Puntos pendientes' con el −1.\n\nCuando queden en cero, vuelve a darle a Finalizar.");
       return;
     }
-    // Más tarde: el marcador se guarda igual (para que no se pierda), pero la
-    // cédula no sale hasta que la información esté completa.
+    // Más tarde: el partido se guarda igual (nada se pierde), pero ni el
+    // resultado se publica ni sale la cédula hasta que estén los puntos.
     cedulaIncompleta = true;
   }
 
@@ -3181,9 +3218,15 @@ async function hdFinalizar(){
       },
       jugadores: jugadoresPayload,
       asistencia: asistenciaPayload,
-      // Con puntos sin asignar solo se guarda el marcador; las estadísticas
-      // y la asistencia esperan a que la información esté completa.
-      soloMarcador: cedulaIncompleta,
+      /* Los puntos que quedaron sin dueño, con su cuarto. Con esto el backend
+         retiene el partido: no lo publica ni manda la cédula hasta que se
+         asignen desde la pestaña LINK Y PENDIENTES. */
+      pendientes: {
+        local: {1:HD.pendientes.local[1], 2:HD.pendientes.local[2], 3:HD.pendientes.local[3], 4:HD.pendientes.local[4]},
+        visit: {1:HD.pendientes.visit[1], 2:HD.pendientes.visit[2], 3:HD.pendientes.visit[3], 4:HD.pendientes.visit[4]}
+      },
+      mesa: HD.mesa, arbitro1: HD.arbitro1, arbitro2: HD.arbitro2,
+      destino: CONFIG.correoReportes,
       // Si el marcador ya se había guardado antes, no se vuelve a escribir.
       sinMarcador: !!HD.marcadorGuardado
     });
@@ -3196,12 +3239,12 @@ async function hdFinalizar(){
       hdGuardarRespaldo();
       hdRender();
       if(btnMsg) btnMsg.textContent = "Marcador guardado. Falta asignar puntos.";
-      alert("Listo, el marcador ya quedó guardado.\n\n" +
+      alert("Listo, el partido ya quedó guardado.\n\n" +
             HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit +
-            "\n\nEL PARTIDO TODAVÍA NO ESTÁ COMPLETO: faltan puntos por asignar a un jugador, " +
-            "así que NO se mandó la cédula a nadie.\n\n" +
-            "Cuando los asignes (puedes apoyarte en el video de YouTube), vuelve a entrar aquí " +
-            "y dale a Finalizar. Ahí sí sale la cédula.");
+            "\n\nTODAVÍA NO ESTÁ COMPLETO: faltan puntos por asignar a un jugador, así que " +
+            "el resultado NO se publica y la cédula NO se manda.\n\n" +
+            "Ve a la pestaña LINK Y PENDIENTES: ahí eliges quién metió esos puntos y pegas el " +
+            "link del video. Con las dos cosas listas, la cédula sale sola.");
       return;
     }
 
@@ -3211,16 +3254,12 @@ async function hdFinalizar(){
     hdGuardarRespaldo();
     hdRender();
     if(btnMsg) btnMsg.textContent = "Partido guardado.";
-    // La cédula va aparte: si falla el correo, el partido YA quedó
-    // guardado y eso es lo que no se puede perder.
-    let avisoCorreo = "";
-    try{
-      const r = await postAppsScript(datosReporte());
-      avisoCorreo = "\n\n📧 Cédula enviada a " + ((r.reporte && r.reporte.para) || CONFIG.correoReportes) + ".";
-    }catch(errCorreo){
-      avisoCorreo = "\n\n⚠️ El partido se guardó bien, pero no se pudo enviar la cédula por correo.";
-    }
-    alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit + avisoCorreo);
+    /* La cédula ya NO sale de aquí. El partido queda esperando el link del
+       video en la pestaña LINK Y PENDIENTES; en cuanto se pegue, el correo
+       se manda solo. */
+    alert("Guardado.\n\n" + HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit +
+          "\n\nFALTA EL LINK DEL VIDEO.\n\nEn cuanto lo pegues en la pestaña " +
+          "LINK Y PENDIENTES, la cédula sale sola por correo.");
   }catch(err){
     if(btnMsg) btnMsg.textContent = "";
     alert("No se pudo guardar: " + err.message +
@@ -3229,6 +3268,207 @@ async function hdFinalizar(){
 }
 
 function renderCedulas(){ hdLlenarSelector(); hdRender(); }
+
+
+/* ============================================================
+   LINK Y PENDIENTES
+
+   Los partidos que ya se jugaron pero todavía no salen. Dos cosas los
+   detienen: que falte el link del video, o que queden puntos sin dueño
+   (puntos que sí cuentan en el marcador, pero que nadie sabe quién metió).
+   En cuanto las dos quedan resueltas, el backend manda la cédula solo.
+   ============================================================ */
+
+let CEDULAS = [];
+let CEDULAS_CARGANDO = false;
+
+async function cargarCedulas(){
+  const caja = document.getElementById("linksLista");
+  if(!caja) return;
+  CEDULAS_CARGANDO = true;
+  caja.innerHTML = '<div class="empty-state">Cargando partidos…</div>';
+  try{
+    const data = await postAppsScript({ action: "leerCedulas", clave: CONFIG.adminPassword });
+    CEDULAS = data.cedulas || [];
+    renderLinks();
+  }catch(err){
+    caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudieron cargar los partidos: ' +
+      err.message + '</div>';
+  }finally{
+    CEDULAS_CARGANDO = false;
+  }
+}
+
+function renderLinks(){
+  const caja = document.getElementById("linksLista");
+  if(!caja) return;
+  if(!CEDULAS.length){
+    caja.innerHTML = '<div class="empty-state">Todavía no hay partidos jugados.</div>';
+    return;
+  }
+
+  // Primero los que están detenidos; los ya enviados hasta abajo.
+  const orden = [...CEDULAS].sort((a,b)=>{
+    const pa = a.enviado ? 1 : 0, pb = b.enviado ? 1 : 0;
+    if(pa !== pb) return pa - pb;
+    return String(b.fecha).localeCompare(String(a.fecha));
+  });
+
+  caja.innerHTML = orden.map(c => tarjetaCedula(c)).join("");
+}
+
+function tarjetaCedula(c){
+  const listo = c.enviado;
+  const faltanPuntos = c.totalPendientes > 0;
+  const color = listo ? "#33E08A" : (faltanPuntos ? "#FF4D5E" : "#F3A128");
+  const estado = listo ? "CÉDULA ENVIADA"
+               : (faltanPuntos ? "FALTAN " + c.totalPendientes + " PUNTOS POR ASIGNAR"
+                               : "SOLO FALTA EL LINK");
+
+  return `
+  <div class="card" style="margin-bottom:14px;border-left:4px solid ${color};">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:16px;font-weight:800;">${c.local} ${c.ptsLocal} — ${c.ptsVisit} ${c.visit}</div>
+        <div style="color:var(--text-soft);font-size:12px;margin-top:3px;">
+          Semana ${c.semana} · ${c.fecha} · ${c.categoria || ""}
+        </div>
+      </div>
+      <div style="color:${color};font-size:12px;font-weight:800;letter-spacing:.5px;">${estado}</div>
+    </div>
+
+    ${listo ? "" : `
+    <div style="margin-top:14px;">
+      <label for="link_${c.fila}">Link del video (YouTube)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input id="link_${c.fila}" type="text" style="flex:1;min-width:240px;"
+               placeholder="https://www.youtube.com/watch?v=…" value="${c.link || ""}">
+        <button class="save-btn" style="padding:8px 16px;" onclick="guardarLink(${c.fila})">Guardar link</button>
+      </div>
+    </div>`}
+
+    ${faltanPuntos ? bloquePendientes(c) : ""}
+    ${!listo && !faltanPuntos && c.link
+      ? '<div style="margin-top:10px;color:var(--text-soft);font-size:12px;">Ya tiene link y no le faltan puntos: la cédula debió salir sola. Si no llegó, dale otra vez a Guardar link.</div>'
+      : ""}
+    <div class="msg" id="msgCedula_${c.fila}"></div>
+  </div>`;
+}
+
+/* Por cada cuarto con puntos sueltos se pinta un renglón: de qué equipo es,
+   en qué cuarto, cuántos puntos, y el menú con los jugadores que sí
+   estuvieron en ese partido. */
+function bloquePendientes(c){
+  const filas = [];
+  ["local","visit"].forEach(lado=>{
+    const equipo = lado === "local" ? c.local : c.visit;
+    const porCuarto = (c.pendientes && c.pendientes[lado]) || {};
+    Object.keys(porCuarto).forEach(cuarto=>{
+      const pts = Number(porCuarto[cuarto] || 0);
+      if(pts <= 0) return;
+      const delEquipo = (c.jugadores || []).filter(j => j.equipo === equipo);
+      const opciones = delEquipo.length
+        ? delEquipo.map(j=>`<option value="${j.jugador}">${j.jersey ? "#" + j.jersey + " " : ""}${j.jugador}</option>`).join("")
+        : '<option value="">— no hay jugadores capturados —</option>';
+      filas.push(`
+        <tr>
+          <td style="padding:6px 8px;font-weight:700;">${equipo}</td>
+          <td style="padding:6px 8px;text-align:center;">${cuarto}º cuarto</td>
+          <td style="padding:6px 8px;text-align:center;font-weight:800;color:#F3A128;">${pts} pts</td>
+          <td style="padding:6px 8px;">
+            <select id="pendJug_${c.fila}_${lado}_${cuarto}">${opciones}</select>
+          </td>
+          <td style="padding:6px 8px;">
+            <select id="pendPts_${c.fila}_${lado}_${cuarto}">
+              ${Array.from({length: pts}, (_,i)=>i+1).map(n=>`<option value="${n}"${n===pts?" selected":""}>${n} pt${n>1?"s":""}</option>`).join("")}
+            </select>
+          </td>
+          <td style="padding:6px 8px;">
+            <button class="mini-btn" onclick="asignarPuntos(${c.fila},'${lado}','${cuarto}')">Asignar</button>
+          </td>
+        </tr>`);
+    });
+  });
+
+  return `
+  <div style="margin-top:16px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:#FF4D5E;margin-bottom:6px;">
+      PUNTOS SIN ASIGNAR
+    </div>
+    <div style="color:var(--text-soft);font-size:12px;margin-bottom:8px;">
+      Apóyate en el video para ver quién los metió. Mientras no se asignen, el
+      partido no se publica ni sale la cédula.
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="color:var(--text-soft);font-size:10px;text-transform:uppercase;">
+        <th style="text-align:left;padding:4px 8px;">Equipo</th>
+        <th style="padding:4px 8px;">Cuarto</th>
+        <th style="padding:4px 8px;">Faltan</th>
+        <th style="text-align:left;padding:4px 8px;">¿Quién los metió?</th>
+        <th style="text-align:left;padding:4px 8px;">Cuántos</th>
+        <th></th>
+      </tr>
+      ${filas.join("")}
+    </table>
+  </div>`;
+}
+
+async function guardarLink(fila){
+  const input = document.getElementById("link_" + fila);
+  const msg = document.getElementById("msgCedula_" + fila);
+  const link = (input.value || "").trim();
+  if(!link){ msg.className = "msg err"; msg.textContent = "Pega el link primero."; return; }
+
+  msg.className = "msg";
+  msg.textContent = "Guardando…";
+  try{
+    const data = await postAppsScript({
+      action: "guardarLinkPartido", clave: CONFIG.adminPassword, fila, link
+    });
+    const c = data.cedula || {};
+    msg.className = "msg ok";
+    msg.textContent = c.enviado
+      ? "Link guardado y cédula enviada."
+      : (c.faltanPuntos ? "Link guardado. Todavía faltan puntos por asignar." : "Link guardado.");
+    await cargarCedulas();
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo guardar: " + err.message;
+  }
+}
+
+async function asignarPuntos(fila, lado, cuarto){
+  const jugador = (document.getElementById(`pendJug_${fila}_${lado}_${cuarto}`) || {}).value;
+  const puntos = Number((document.getElementById(`pendPts_${fila}_${lado}_${cuarto}`) || {}).value || 0);
+  const msg = document.getElementById("msgCedula_" + fila);
+  const c = CEDULAS.find(x => x.fila === fila);
+  if(!c || !jugador || !puntos){
+    msg.className = "msg err";
+    msg.textContent = "Elige al jugador y cuántos puntos le tocan.";
+    return;
+  }
+  const equipo = lado === "local" ? c.local : c.visit;
+
+  msg.className = "msg";
+  msg.textContent = "Asignando…";
+  try{
+    const data = await postAppsScript({
+      action: "asignarPuntosPendientes", clave: CONFIG.adminPassword, fila,
+      asignaciones: [{ equipo, jugador, cuarto, puntos }]
+    });
+    const r = data.cedula || {};
+    msg.className = "msg ok";
+    msg.textContent = r.enviado
+      ? "Listo: partido completo y cédula enviada."
+      : (r.totalPendientes > 0
+          ? "Asignado. Quedan " + r.totalPendientes + " puntos."
+          : "Asignado. Ya solo falta el link del video.");
+    await cargarCedulas();
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo asignar: " + err.message;
+  }
+}
 
 
 
