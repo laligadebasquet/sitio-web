@@ -255,6 +255,62 @@
   .cat-btn:hover{border-color:#666;color:#fff;}
   .cat-btn.active{background:#E8365D;border-color:#E8365D;color:#fff;}
 
+  /* ---- Candado de inscripciones ---- */
+  .candado-fila{display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+  .candado-estado{font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.05em;}
+  .candado-estado.abiertas{color:var(--win);}
+  .candado-estado.cerradas{color:var(--loss);}
+
+  /* ---- Condicionantes del rol ---- */
+  .cond-aviso{
+    background:#1d1710; border:1px solid #4a3a18; border-radius:8px;
+    padding:10px 12px; font-size:12px; color:#d9b268; margin-bottom:18px;
+  }
+  .cond-titulo{font-size:14px; margin:0 0 4px 0; text-transform:uppercase; letter-spacing:.05em;}
+  .cond-renglon{display:flex; gap:8px; align-items:center; margin-bottom:6px;}
+  .cond-renglon input, .cond-renglon textarea{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:6px 8px; font-size:12px; font-family:inherit;
+  }
+  .cond-renglon input[type=date]{width:150px; flex:none;}
+  .cond-renglon input[type=text]{flex:1;}
+  .cond-cat{
+    border:1px solid var(--line); border-radius:8px; padding:12px;
+    margin-bottom:10px; background:var(--surface-2);
+  }
+  .cond-cat h4{margin:0 0 8px 0; font-size:12px; color:var(--accent); letter-spacing:.05em;}
+  .cond-cat label{display:block; font-size:10px; color:var(--text-soft);
+    text-transform:uppercase; letter-spacing:.05em; margin:8px 0 3px 0;}
+  .cond-cat input, .cond-cat textarea{
+    width:100%; background:var(--bg); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:6px 8px; font-size:12px; font-family:inherit;
+  }
+
+  /* ---- Foto del rol ---- */
+  .foto-zona{
+    border:2px dashed var(--line); border-radius:10px; padding:26px;
+    text-align:center; cursor:pointer; background:var(--surface-2);
+    transition:border-color .15s, background .15s;
+  }
+  .foto-zona:hover, .foto-zona.arrastrando{border-color:var(--accent); background:#1d1418;}
+  .foto-zona img{max-width:100%; max-height:340px; border-radius:8px;}
+  .foto-tabla{width:100%; border-collapse:collapse; margin-top:14px; font-size:12px;}
+  .foto-tabla th{
+    text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
+    color:var(--text-soft); font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+  }
+  .foto-tabla td{padding:4px; border-bottom:1px solid #1e1e22;}
+  .foto-tabla input, .foto-tabla select{
+    width:100%; background:var(--surface-2); color:var(--text);
+    border:1px solid var(--line); border-radius:4px; padding:4px 6px;
+    font-size:12px; font-family:inherit;
+  }
+  .foto-tabla tr.dudosa input{border-color:#8a5a1e;}
+  .foto-quitar{
+    background:transparent; border:none; color:var(--loss); cursor:pointer;
+    font-size:14px; padding:2px 6px;
+  }
+
   /* ---- OLIVER: el generador de rol ---- */
   .oliver-card{border:1px solid #33202A;}
   .oliver-top{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
@@ -389,6 +445,8 @@
   }
   .rol-tabla tr:hover .btn-editar-partido{opacity:1;}
   .btn-editar-partido:hover{border-color:var(--accent);}
+  .rol-tabla tr:hover .btn-borrar-partido{opacity:1;}
+  .btn-borrar-partido:hover{border-color:var(--loss);}
   /* Menú de fuerza dentro de la tabla de equipos. */
   .sel-categoria{
     background:var(--surface-2); color:var(--text); border:1px solid var(--line);
@@ -492,6 +550,16 @@
   }
   .pago-resumen .pago-label{font-size:9px; color:var(--text-soft); font-weight:700; text-transform:uppercase;}
   .pago-resumen .pago-valor{font-size:15px; font-weight:800; color:#fff; margin-top:2px;}
+  .pago-cuota-input{
+    width:100%; margin-top:2px; background:var(--bg); color:#fff;
+    border:1px solid var(--line); border-radius:6px; padding:4px 6px;
+    font-size:15px; font-weight:800; font-family:inherit;
+  }
+  .pago-cuota-input:focus{border-color:var(--accent); outline:none;}
+  .pago-barra{
+    margin-top:5px; height:5px; border-radius:999px; background:#2a2a2e; overflow:hidden;
+  }
+  .pago-barra span{display:block; height:100%; background:var(--accent);}
   .pago-subheading{font-size:11px; color:var(--text-soft); text-transform:uppercase; letter-spacing:.05em; margin:0 0 8px 0;}
   .pago-historial-item{
     display:flex; justify-content:space-between; align-items:center; gap:10px;
@@ -597,19 +665,100 @@
         <div class="cat-botones" id="oliverSemanasBtns"></div>
       </div>
 
-      <label for="oliverRestricciones" style="margin-top:14px;display:block;">
-        Restricciones de estas semanas
-      </label>
-      <div class="oliver-sub" style="margin-bottom:6px;">
-        Escríbelas como me las contarías. Ejemplo: “Green Fn solo puede entre semana”, “EX UDEM nunca los lunes”, “el sábado 12 de septiembre no hay cancha”.
-      </div>
-      <textarea id="oliverRestricciones" rows="5" placeholder="Una restricción por renglón…" oninput="oliverGuardarRestricciones()"></textarea>
-      <div class="oliver-acciones">
-        <button class="btn-sec" onclick="oliverCopiarRestricciones()">Copiar restricciones</button>
-        <span class="oliver-sub" id="oliverRestrMsg"></span>
+      <div class="oliver-acciones" style="margin-top:14px;">
+        <button class="btn-sec" onclick="oliverAbrirCondicionantes()">⚙️ Condicionantes del rol</button>
+        <span class="oliver-sub" id="oliverCondResumen"></span>
       </div>
 
+      <!-- Pantalla de condicionantes: aquí se responden las preguntas que
+           mandan sobre cómo se arma el rol. Por ahora solo se guardan; el
+           generador todavía no las lee. -->
+      <div id="oliverCondicionantes" style="display:none; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
+
+        <div class="cond-aviso">
+          Esto se guarda pero <strong>todavía no lo usa el generador</strong>.
+          Lo llenas ahora y cuando conectemos el motor, ya está listo.
+        </div>
+
+        <h3 class="cond-titulo">¿Qué días no rolar?</h3>
+        <div class="oliver-sub" style="margin-bottom:8px;">
+          Un renglón por día: la fecha y por qué no se puede.
+        </div>
+        <div id="condDiasLista"></div>
+        <button class="btn-sec" onclick="condAgregarDia()">+ Agregar día</button>
+
+        <h3 class="cond-titulo" style="margin-top:22px;">¿Qué condicionantes hay por categoría?</h3>
+        <div class="oliver-sub" style="margin-bottom:8px;">
+          Cada fuerza tiene distinto sistema de competencia porque son distintas
+          cantidades de equipos. Escribe el de cada una y sus reglas.
+        </div>
+        <div id="condCategorias"></div>
+
+        <h3 class="cond-titulo" style="margin-top:22px;">Otras restricciones</h3>
+        <div class="oliver-sub" style="margin-bottom:8px;">
+          Un renglón por restricción. Ejemplo: “Green Fn solo puede entre semana”,
+          “EX UDEM nunca los lunes”.
+        </div>
+        <div id="condOtrasLista"></div>
+        <button class="btn-sec" onclick="condAgregarOtra()">+ Agregar restricción</button>
+
+        <div class="oliver-acciones" style="margin-top:18px;">
+          <button class="save-btn" onclick="condGuardar()">Guardar condicionantes</button>
+          <button class="btn-sec" onclick="condCopiar()">Copiar todo</button>
+          <button class="btn-sec" onclick="oliverAbrirCondicionantes()">Cerrar</button>
+          <span class="oliver-sub" id="condMsg"></span>
+        </div>
+      </div>
+
+      <textarea id="oliverRestricciones" style="display:none;"></textarea>
+
       <div id="oliverPreview"></div>
+    </div>
+
+    <!-- FOTO DEL ROL: se lee la imagen aquí mismo en el navegador, se arma
+         una tabla que él puede corregir, y hasta que le da "Cargar" se
+         escribe en la hoja. Nada entra al rol sin que lo vea antes. -->
+    <div class="card">
+      <h2>Subir el rol desde una foto</h2>
+      <div class="oliver-sub" style="margin-bottom:10px;">
+        Toma la foto derecha y con buena luz. Yo leo lo que pueda, te lo pongo
+        en una tabla, y tú corriges lo que salga chueco antes de cargarlo.
+      </div>
+
+      <div class="foto-zona" id="fotoRolZona" onclick="document.getElementById('fotoRolInput').click()">
+        <input type="file" id="fotoRolInput" accept="image/*" style="display:none;"
+               onchange="fotoRolElegida(this.files[0])">
+        <div id="fotoRolVacia">
+          📷 <strong>Elige la foto del rol</strong>
+          <div class="oliver-sub">o arrástrala hasta aquí</div>
+        </div>
+        <img id="fotoRolPreview" style="display:none;">
+      </div>
+
+      <div class="grid-2" style="margin-top:12px;">
+        <div>
+          <label for="fotoRolSemana">¿De qué semana es?</label>
+          <input type="number" id="fotoRolSemana" min="1" placeholder="Ej. 2">
+        </div>
+        <div>
+          <label for="fotoRolAnio">Año</label>
+          <input type="number" id="fotoRolAnio" min="2024" max="2100" value="2026">
+        </div>
+      </div>
+
+      <div class="oliver-acciones" style="margin-top:12px;">
+        <button class="save-btn" id="fotoRolLeerBtn" onclick="fotoRolLeer()" disabled>Leer la foto</button>
+        <button class="btn-sec" onclick="fotoRolAgregarRenglon()">+ Agregar renglón a mano</button>
+        <span class="oliver-sub" id="fotoRolMsg"></span>
+      </div>
+
+      <div id="fotoRolTabla"></div>
+
+      <div class="oliver-acciones" id="fotoRolAcciones" style="display:none;">
+        <button class="save-btn" id="fotoRolCargarBtn" onclick="fotoRolCargar()">Cargar estos partidos al rol</button>
+        <button class="btn-sec" onclick="fotoRolLimpiar()">Descartar</button>
+        <span class="oliver-sub" id="fotoRolCargarMsg"></span>
+      </div>
     </div>
 
     <div class="card">
@@ -907,6 +1056,23 @@
 
   <!-- ============ TAB: INSCRIPCIONES ============ -->
   <section class="view" id="view-inscripciones">
+
+    <!-- El candado de la temporada: mientras esté cerrado, el formulario
+         público no acepta equipos nuevos. -->
+    <div class="card" id="candadoCard">
+      <h2>Inscripciones de la temporada</h2>
+      <div class="candado-fila">
+        <div>
+          <div class="candado-estado" id="candadoEstado">Consultando…</div>
+          <div class="oliver-sub" id="candadoDetalle">
+            Esto manda sobre el formulario público de la página.
+          </div>
+        </div>
+        <button class="save-btn" id="candadoBtn" onclick="cambiarInscripciones()" disabled>…</button>
+      </div>
+      <div class="msg" id="candadoMsg" style="display:none;"></div>
+    </div>
+
     <div class="card">
       <h2>Inscripciones de equipos</h2>
       <div class="empty-state" style="text-align:left; padding:0 0 14px 0;">
@@ -1254,6 +1420,11 @@ function leerDelSheet(hojas, timeoutMs){
       terminado = true;
       limpiar();
       if(respuesta && respuesta.ok){
+        // El candado de inscripciones viaja junto con las hojas.
+        if(respuesta.inscripcionesAbiertas !== undefined){
+          INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
+          if(typeof pintarCandado === "function") pintarCandado();
+        }
         resolve(respuesta.hojas);
       }else{
         console.warn("El Apps Script devolvió un error:", respuesta && respuesta.error);
@@ -1470,6 +1641,9 @@ let PAGOS = DEMO_PAGOS;
    En vivo se leen del CSV de la hoja "Inscripción de Equipos". */
 const DEMO_INSCRIPCIONES = [];
 let INSCRIPCIONES = DEMO_INSCRIPCIONES;
+/* Si las inscripciones están abiertas. Llega en cada lectura del Sheet;
+   hasta que llegue, se supone que sí (es lo normal en pretemporada). */
+let INSCRIPCIONES_ABIERTAS = true;
 /* true solo si la lectura de inscripciones REALMENTE funcionó. Sirve para
    no confundir "no hay ninguna" con "no se pudo cargar". */
 let INSCRIPCIONES_CARGADAS = false;
@@ -1740,8 +1914,12 @@ function renderRolSemanal(){
       <td>${m.hora || ""}</td>
       <td>${m.local || ""}</td>
       <td>${m.visit || ""}</td>
-      <td><button class="btn-editar-partido" title="Editar este partido"
-            onclick='abrirEditarPartido(${ref})'>✏️</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn-editar-partido" title="Editar este partido"
+          onclick='abrirEditarPartido(${ref})'>✏️</button>
+        <button class="btn-editar-partido btn-borrar-partido" title="Borrar este partido del rol"
+          onclick='borrarPartido(${ref})'>🗑️</button>
+      </td>
     </tr>`;
   });
   html += "</table>";
@@ -1803,6 +1981,50 @@ function abrirEditarPartido(p){
 function cerrarEditarPartido(){
   document.getElementById("editarPartidoModal").classList.remove("open");
   PARTIDO_EDITANDO = null;
+}
+
+/* Borrar un partido del rol.
+
+   Dos confirmaciones y por buenas razones: la primera porque borrar un
+   renglón del rol no se deshace, y la segunda solo aparece si el partido ya
+   se jugó — ahí el backend se planta y hay que insistir a propósito. */
+async function borrarPartido(p){
+  const cual = `${p.local} vs ${p.visit}` +
+               (p.fecha ? ` — ${fechaBonita(p.fecha)}` : "") +
+               (p.hora ? ` ${p.hora}` : "");
+  if(!confirm(`¿Borrar del rol este partido?\n\n${cual}\n\nEsto no se puede deshacer.`)) return;
+
+  async function pedirBorrado(forzar){
+    return postAppsScript({
+      action: "eliminarPartido",
+      clave: CONFIG.adminPassword,
+      semana: p.jornada,
+      equipoLocal: p.local,
+      equipoVisit: p.visit,
+      forzar: !!forzar
+    });
+  }
+
+  try{
+    try{
+      await pedirBorrado(false);
+    }catch(err){
+      if(/jugado/i.test(err.message)){
+        if(!confirm(`Ese partido ya está marcado como JUGADO.\n\n${cual}\n\n¿De todos modos lo borro del rol?`)) return;
+        await pedirBorrado(true);
+      } else {
+        throw err;
+      }
+    }
+
+    const i = MATCHES.findIndex(x => String(x.jornada) === String(p.jornada) &&
+                                     x.local === p.local && x.visit === p.visit);
+    if(i >= 0) MATCHES.splice(i, 1);
+    renderRolSemanal();
+    if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+  }catch(err){
+    alert("No se pudo borrar: " + err.message);
+  }
 }
 
 async function guardarEdicionPartido(){
@@ -2077,6 +2299,407 @@ function collectAsistencia(containerId, teamName){
 }
 
 /* ============================================================
+   SUBIR EL ROL DESDE UNA FOTO
+
+   La lectura pasa aquí mismo, en el navegador (Tesseract), no en un
+   servidor: la foto nunca sale de la computadora. Lo que se lee SIEMPRE
+   pasa por la tabla de revisión antes de tocar la hoja, porque una foto
+   torcida o con sombra se lee mal y un rol mal cargado se paga con
+   equipos yendo al gimnasio el día equivocado.
+   ============================================================ */
+
+/* La fuerza en la que juega un equipo. Se busca primero donde está más al
+   día (las inscripciones) y si no, en el rol. */
+function categoriaDeEquipo(equipo){
+  if(!equipo) return "";
+  const eq = nombreEquipo(equipo);
+  const insc = (INSCRIPCIONES || []).find(i => nombreEquipo(i.equipo) === eq);
+  if(insc && insc.categoria) return insc.categoria;
+  const m = (MATCHES || []).find(x => nombreEquipo(x.local) === eq || nombreEquipo(x.visit) === eq);
+  return (m && m.categoria) || "";
+}
+
+let FOTO_ROL = { archivo: null, partidos: [] };
+
+const FOTO_MESES = {
+  ene:1, feb:2, mar:3, abr:4, may:5, jun:6,
+  jul:7, ago:8, sep:9, set:9, oct:10, nov:11, dic:12
+};
+
+function fotoRolMsg(txt, clase){
+  const el = document.getElementById("fotoRolMsg");
+  el.textContent = txt || "";
+  el.style.color = clase === "err" ? "#FF4D5E" : (clase === "ok" ? "#33E08A" : "#888");
+}
+
+function fotoRolElegida(file){
+  if(!file) return;
+  FOTO_ROL.archivo = file;
+  const img = document.getElementById("fotoRolPreview");
+  img.src = URL.createObjectURL(file);
+  img.style.display = "block";
+  document.getElementById("fotoRolVacia").style.display = "none";
+  document.getElementById("fotoRolLeerBtn").disabled = false;
+  fotoRolMsg("Foto lista. Dale a “Leer la foto”.");
+}
+
+/* Arrastrar y soltar sobre el recuadro. */
+(function fotoRolArrastre(){
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const zona = document.getElementById("fotoRolZona");
+    if(!zona) return;
+    ["dragenter","dragover"].forEach(ev=>zona.addEventListener(ev, e=>{
+      e.preventDefault(); zona.classList.add("arrastrando");
+    }));
+    ["dragleave","drop"].forEach(ev=>zona.addEventListener(ev, e=>{
+      e.preventDefault(); zona.classList.remove("arrastrando");
+    }));
+    zona.addEventListener("drop", e=>{
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f) fotoRolElegida(f);
+    });
+  });
+})();
+
+/* Tesseract se baja solo la primera vez que se usa: son varios megas y no
+   tiene por qué pesarle a quien nada más viene a capturar un marcador. */
+function fotoRolCargarLector(){
+  if(window.Tesseract) return Promise.resolve();
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js";
+    s.onload = ()=>resolve();
+    s.onerror = ()=>reject(new Error("No se pudo bajar el lector de imágenes. ¿Hay internet?"));
+    document.head.appendChild(s);
+  });
+}
+
+async function fotoRolLeer(){
+  if(!FOTO_ROL.archivo) return;
+  const btn = document.getElementById("fotoRolLeerBtn");
+  btn.disabled = true;
+  fotoRolMsg("Bajando el lector…");
+
+  try{
+    await fotoRolCargarLector();
+    fotoRolMsg("Leyendo la foto… (esto tarda unos segundos)");
+
+    let texto = "";
+    try{
+      const r = await Tesseract.recognize(FOTO_ROL.archivo, "spa", {
+        logger: m => {
+          if(m.status === "recognizing text"){
+            fotoRolMsg("Leyendo la foto… " + Math.round((m.progress || 0) * 100) + "%");
+          }
+        }
+      });
+      texto = r.data.text || "";
+    }catch(e){
+      // Si no baja el diccionario de español, con inglés alcanza: los
+      // nombres de los equipos van en mayúsculas de todos modos.
+      const r = await Tesseract.recognize(FOTO_ROL.archivo, "eng");
+      texto = r.data.text || "";
+    }
+
+    const partidos = fotoRolParsear(texto);
+    if(!partidos.length){
+      fotoRolMsg("No pude sacar ningún partido de esa foto. Prueba con una más derecha, o captúralos a mano con “+ Agregar renglón”.", "err");
+    } else {
+      const dudosos = partidos.filter(p=>p.dudoso).length;
+      fotoRolMsg(`Saqué ${partidos.length} partido(s)` +
+        (dudosos ? `. Revisa los ${dudosos} que dejé marcados: no reconocí bien esos equipos.` : ". Revísalos antes de cargar."),
+        dudosos ? "" : "ok");
+    }
+    FOTO_ROL.partidos = partidos;
+    fotoRolRender();
+  }catch(err){
+    fotoRolMsg(err.message, "err");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ---------- de texto suelto a partidos ----------
+
+   La foto se lee renglón por renglón. Las fechas suelen venir como
+   encabezado de bloque ("SÁBADO 22 DE AGOSTO") y abajo los partidos con su
+   hora. Por eso la última fecha vista se hereda a los renglones siguientes.  */
+function fotoRolParsear(texto){
+  const anio = Number(document.getElementById("fotoRolAnio").value) || new Date().getFullYear();
+  const semana = document.getElementById("fotoRolSemana").value || "";
+  const lineas = String(texto).split(/\n+/).map(l=>l.trim()).filter(Boolean);
+
+  let fechaActual = "";
+  const salida = [];
+
+  lineas.forEach(linea=>{
+    const f = fotoRolBuscarFecha(linea, anio);
+    if(f) fechaActual = f;
+
+    const hora = fotoRolBuscarHora(linea);
+    if(!hora) return;                       // sin hora no es un renglón de partido
+
+    const cat = fotoRolBuscarCategoria(linea);
+
+    // Lo que queda después de quitar hora, fecha y categoría son los equipos.
+    let resto = linea
+      .replace(/\b\d{1,2}\s*[:.]\s*\d{2}\s*(a\.?m\.?|p\.?m\.?|am|pm)?/gi, " ")
+      .replace(/\b(femenil|varonil)\s*[ab]\b/gi, " ")
+      .replace(/\b\d{1,2}\s*\/\s*\d{1,2}(\s*\/\s*\d{2,4})?/g, " ")
+      .replace(/\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b/gi, " ")
+      .replace(/\b\d{1,2}\s+de\s+[a-záéíóú]+\b/gi, " ")
+      .trim();
+
+    const partes = resto.split(/\s+(?:vs\.?|v\/s|contra|-)\s+/i);
+    let local = (partes[0] || "").trim();
+    let visit = (partes[1] || "").trim();
+    if(!local && !visit) return;
+
+    const mLocal = fotoRolParecido(local);
+    const mVisit = fotoRolParecido(visit);
+
+    salida.push({
+      semana: semana,
+      fecha: fechaActual,
+      hora: hora,
+      categoria: cat || mLocal.categoria || mVisit.categoria || "",
+      local: mLocal.nombre || local.toUpperCase(),
+      visit: mVisit.nombre || visit.toUpperCase(),
+      dudoso: !mLocal.nombre || !mVisit.nombre || !fechaActual
+    });
+  });
+
+  return salida;
+}
+
+function fotoRolBuscarHora(linea){
+  const m = linea.match(/\b(\d{1,2})\s*[:.]\s*(\d{2})\s*(a\.?m\.?|p\.?m\.?|am|pm)?/i);
+  if(!m) return "";
+  let h = Number(m[1]);
+  const min = m[2];
+  const suf = (m[3] || "").toLowerCase().replace(/\./g, "");
+  if(suf === "pm" && h < 12) h += 12;
+  if(suf === "am" && h === 12) h = 0;
+  // Los partidos de la liga son de tarde-noche: un "8:10" suelto es 20:10.
+  if(!suf && h >= 1 && h <= 11) h += 12;
+  return String(h).padStart(2, "0") + ":" + min;
+}
+
+function fotoRolBuscarFecha(linea, anio){
+  // 22/08/2026 o 22/08
+  let m = linea.match(/\b(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{2,4}))?\b/);
+  if(m){
+    const d = Number(m[1]), mes = Number(m[2]);
+    let a = m[3] ? Number(m[3]) : anio;
+    if(a < 100) a += 2000;
+    if(mes >= 1 && mes <= 12 && d >= 1 && d <= 31) return fotoRolISO(a, mes, d);
+  }
+  // 22 de agosto
+  m = linea.match(/\b(\d{1,2})\s+de\s+([a-záéíóú]{3,})/i);
+  if(m){
+    const mes = FOTO_MESES[m[2].toLowerCase().slice(0,3)];
+    if(mes) return fotoRolISO(anio, mes, Number(m[1]));
+  }
+  // 22-ago
+  m = linea.match(/\b(\d{1,2})\s*[-\s]\s*([a-záéíóú]{3})\b/i);
+  if(m){
+    const mes = FOTO_MESES[m[2].toLowerCase()];
+    if(mes) return fotoRolISO(anio, mes, Number(m[1]));
+  }
+  return "";
+}
+
+function fotoRolISO(a, m, d){
+  return a + "-" + String(m).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+}
+
+function fotoRolBuscarCategoria(linea){
+  const m = linea.match(/\b(femenil|varonil)\s*([ab])\b/i);
+  if(!m) return "";
+  return m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() + " " + m[2].toUpperCase();
+}
+
+function fotoRolNorm(t){
+  return String(t || "").toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/* El OCR confunde números con letras cuando el nombre va en mayúsculas:
+   P1ST0NS por PISTONS, 5UR por SUR. Antes de comparar se deshace esa
+   confusión de los dos lados; así "P1ST0NS" encuentra a su equipo en vez de
+   quedar marcado como dudoso y hacerle perder tiempo. */
+function fotoRolSinConfusiones(t){
+  return String(t || "")
+    .replace(/0/g, "O").replace(/1/g, "I").replace(/5/g, "S")
+    .replace(/8/g, "B").replace(/3/g, "E").replace(/4/g, "A");
+}
+
+/* Empareja lo que se leyó con un equipo de verdad. El OCR confunde letras
+   (O/0, I/1, S/5), así que se compara por letras compartidas y no por
+   igualdad exacta. Si no llega a un parecido decente, se devuelve vacío y
+   el renglón queda marcado para que él lo corrija. */
+function fotoRolParecido(txt){
+  const leido = fotoRolSinConfusiones(fotoRolNorm(txt));
+  if(leido.length < 3) return { nombre:"", categoria:"" };
+
+  let mejor = { nombre:"", categoria:"", punto:0 };
+  (EQUIPOS || []).forEach(nombre=>{
+    const real = fotoRolSinConfusiones(fotoRolNorm(nombre));
+    let punto = 0;
+    if(real === leido) punto = 1;
+    else if(real.indexOf(leido) >= 0 || leido.indexOf(real) >= 0) punto = 0.85;
+    else {
+      const a = new Set(real.replace(/ /g,"").split(""));
+      const b = new Set(leido.replace(/ /g,"").split(""));
+      let comunes = 0;
+      a.forEach(c=>{ if(b.has(c)) comunes++; });
+      punto = comunes / Math.max(a.size, b.size);
+    }
+    if(punto > mejor.punto) mejor = { nombre, categoria: categoriaDeEquipo(nombre), punto };
+  });
+
+  return mejor.punto >= 0.72 ? mejor : { nombre:"", categoria:"" };
+}
+
+/* ---------- la tabla de revisión ---------- */
+function fotoRolRender(){
+  const cont = document.getElementById("fotoRolTabla");
+  const acciones = document.getElementById("fotoRolAcciones");
+  if(!FOTO_ROL.partidos.length){
+    cont.innerHTML = "";
+    acciones.style.display = "none";
+    return;
+  }
+
+  const cats = ["Femenil A","Varonil A","Femenil B","Varonil B"];
+  let html = `<table class="foto-tabla">
+    <tr><th>Semana</th><th>Fecha</th><th>Hora</th><th>Fuerza</th>
+        <th>Equipo 1</th><th>Equipo 2</th><th></th></tr>`;
+
+  FOTO_ROL.partidos.forEach((p, i)=>{
+    const opciones = (EQUIPOS || []).map(e=>
+      `<option value="${e}" ${e === p.local ? "selected" : ""}>${e}</option>`).join("");
+    const opciones2 = (EQUIPOS || []).map(e=>
+      `<option value="${e}" ${e === p.visit ? "selected" : ""}>${e}</option>`).join("");
+    html += `<tr class="${p.dudoso ? "dudosa" : ""}">
+      <td style="width:70px;"><input type="number" min="1" value="${p.semana}" onchange="fotoRolCampo(${i},'semana',this.value)"></td>
+      <td style="width:130px;"><input type="date" value="${p.fecha}" onchange="fotoRolCampo(${i},'fecha',this.value)"></td>
+      <td style="width:90px;"><input type="time" value="${p.hora}" onchange="fotoRolCampo(${i},'hora',this.value)"></td>
+      <td style="width:110px;"><select onchange="fotoRolCampo(${i},'categoria',this.value)">
+        <option value=""></option>
+        ${cats.map(c=>`<option value="${c}" ${c === p.categoria ? "selected" : ""}>${c}</option>`).join("")}
+      </select></td>
+      <td><select onchange="fotoRolCampo(${i},'local',this.value)"><option value=""></option>${opciones}</select></td>
+      <td><select onchange="fotoRolCampo(${i},'visit',this.value)"><option value=""></option>${opciones2}</select></td>
+      <td style="width:30px;"><button class="foto-quitar" title="Quitar este renglón" onclick="fotoRolQuitar(${i})">✕</button></td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  cont.innerHTML = html;
+  acciones.style.display = "flex";
+}
+
+function fotoRolCampo(i, campo, valor){
+  if(!FOTO_ROL.partidos[i]) return;
+  FOTO_ROL.partidos[i][campo] = valor;
+  if(campo === "local" || campo === "visit"){
+    const p = FOTO_ROL.partidos[i];
+    if(!p.categoria) p.categoria = categoriaDeEquipo(valor) || "";
+    if(p.local && p.visit) p.dudoso = false;
+    fotoRolRender();
+  }
+}
+
+function fotoRolQuitar(i){
+  FOTO_ROL.partidos.splice(i, 1);
+  fotoRolRender();
+}
+
+function fotoRolAgregarRenglon(){
+  FOTO_ROL.partidos.push({
+    semana: document.getElementById("fotoRolSemana").value || "",
+    fecha: "", hora: "", categoria: "", local: "", visit: "", dudoso: true
+  });
+  fotoRolRender();
+}
+
+function fotoRolLimpiar(){
+  FOTO_ROL = { archivo: null, partidos: [] };
+  const img = document.getElementById("fotoRolPreview");
+  img.style.display = "none"; img.removeAttribute("src");
+  document.getElementById("fotoRolVacia").style.display = "block";
+  document.getElementById("fotoRolInput").value = "";
+  document.getElementById("fotoRolLeerBtn").disabled = true;
+  document.getElementById("fotoRolCargarMsg").textContent = "";
+  fotoRolMsg("");
+  fotoRolRender();
+}
+
+/* ---------- cargar al rol ---------- */
+async function fotoRolCargar(){
+  const listos = FOTO_ROL.partidos.filter(p=>p.fecha && p.hora && p.local && p.visit);
+  const incompletos = FOTO_ROL.partidos.length - listos.length;
+  const msg = document.getElementById("fotoRolCargarMsg");
+
+  if(!listos.length){
+    msg.style.color = "#FF4D5E";
+    msg.textContent = "Ningún renglón está completo todavía (falta fecha, hora o equipos).";
+    return;
+  }
+  const repetido = listos.find(p=>p.local === p.visit);
+  if(repetido){
+    msg.style.color = "#FF4D5E";
+    msg.textContent = "Hay un renglón con el mismo equipo de los dos lados. Revísalo.";
+    return;
+  }
+
+  if(!confirm(`Se van a programar ${listos.length} partido(s) en la hoja "Rol de Juego".` +
+              (incompletos ? `\n\n${incompletos} renglón(es) sin terminar se quedan fuera.` : "") +
+              `\n\n¿Le seguimos?`)) return;
+
+  const btn = document.getElementById("fotoRolCargarBtn");
+  btn.disabled = true;
+  msg.style.color = "#888";
+  msg.textContent = "Guardando…";
+
+  const partidos = listos.map(p=>({
+    semana: Number(p.semana) || "",
+    fecha: p.fecha, hora: p.hora,
+    sede: (CONFIG.sedes && CONFIG.sedes[0]) || "",
+    categoria: p.categoria || categoriaDeEquipo(p.local) || "",
+    equipoLocal: p.local, equipoVisit: p.visit,
+    arbitro: "", arbitro2: "", mesa: ""
+  }));
+
+  try{
+    const data = await postAppsScript({ action:"programarLote", clave: CONFIG.adminPassword, partidos });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    const r = data.lote || {};
+    msg.style.color = "#33E08A";
+    msg.textContent = `Listo: ${r.agregados} partido(s) cargados` +
+      (r.omitidos ? ` (${r.omitidos} ya estaban).` : ".");
+
+    partidos.forEach(p=>{
+      MATCHES.push({ jornada:p.semana, fecha:p.fecha, hora:p.hora, sede:p.sede,
+                     categoria:p.categoria, local:p.equipoLocal, visit:p.equipoVisit,
+                     arbitro:"", arbitro2:"", mesa:"", estatus:"Programado" });
+    });
+    FOTO_ROL.partidos = [];
+    fotoRolRender();
+    renderScheduleList();
+    renderRolSemanal();
+    if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+  }catch(err){
+    msg.style.color = "#FF4D5E";
+    msg.textContent = "No se pudo cargar: " + err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
    OLIVER — el generador de rol
 
    La idea es que arme el rol como lo armaría Mauricio a mano. Por ahora
@@ -2159,6 +2782,244 @@ function oliverCargarRestricciones(){
   const ta = document.getElementById("oliverRestricciones");
   if(!ta) return;
   try{ ta.value = localStorage.getItem(OL_RESTR_KEY) || ""; }catch(e){}
+  condCargar();
+}
+
+/* ============================================================
+   CANDADO DE INSCRIPCIONES
+
+   Un solo botón que abre o cierra las inscripciones de equipos para toda la
+   liga. Cerrar es la acción delicada (deja fuera a quien llegue tarde), así
+   que esa pide confirmación; abrir no.
+   ============================================================ */
+
+function pintarCandado(){
+  const estado = document.getElementById("candadoEstado");
+  const btn = document.getElementById("candadoBtn");
+  const detalle = document.getElementById("candadoDetalle");
+  if(!estado || !btn) return;
+
+  if(INSCRIPCIONES_ABIERTAS){
+    estado.textContent = "Abiertas";
+    estado.className = "candado-estado abiertas";
+    detalle.textContent = "Cualquier equipo puede inscribirse desde la página.";
+    btn.textContent = "🔒 Cerrar inscripciones";
+  } else {
+    estado.textContent = "Cerradas";
+    estado.className = "candado-estado cerradas";
+    detalle.textContent = "El formulario de la página no acepta equipos nuevos.";
+    btn.textContent = "🔓 Abrir inscripciones";
+  }
+  btn.disabled = false;
+}
+
+async function cambiarInscripciones(){
+  const btn = document.getElementById("candadoBtn");
+  const msg = document.getElementById("candadoMsg");
+  const van = !INSCRIPCIONES_ABIERTAS;      // a dónde queremos llegar
+
+  if(!van && !confirm("¿Cerrar las inscripciones de equipos?\n\nDesde ese momento, nadie más puede inscribir un equipo desde la página. Se puede volver a abrir cuando quieras.")) return;
+
+  btn.disabled = true;
+  msg.style.display = "block";
+  msg.className = "msg";
+  msg.textContent = van ? "Abriendo…" : "Cerrando…";
+
+  try{
+    const data = await postAppsScript({
+      action: "cambiarEstadoInscripciones",
+      clave: CONFIG.adminPassword,
+      abiertas: van
+    });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    INSCRIPCIONES_ABIERTAS = van;
+    pintarCandado();
+    msg.className = "msg ok";
+    msg.textContent = van
+      ? "Inscripciones abiertas: la página ya acepta equipos nuevos."
+      : "Inscripciones cerradas: la página ya no acepta equipos nuevos.";
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo cambiar: " + err.message;
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   CONDICIONANTES DEL ROL
+
+   Las preguntas que mandan sobre cómo se arma el rol: qué días no se puede
+   jugar y qué reglas trae cada fuerza. Hoy solo se guardan en esta máquina;
+   el generador todavía no las lee, y así se dijo en la pantalla para que
+   nadie suponga que ya están surtiendo efecto.
+   ============================================================ */
+
+const COND_KEY = "oliverCondicionantes_v1";
+const COND_CATS = ["Femenil A", "Varonil A", "Femenil B", "Varonil B"];
+
+let COND = { dias: [], categorias: {}, otras: [] };
+
+function condCargar(){
+  try{
+    const crudo = localStorage.getItem(COND_KEY);
+    if(crudo) COND = JSON.parse(crudo);
+  }catch(e){ /* si viene corrupto, se empieza en blanco */ }
+  if(!COND.dias) COND.dias = [];
+  if(!COND.otras) COND.otras = [];
+  if(!COND.categorias) COND.categorias = {};
+
+  // Las restricciones sueltas de la versión anterior no se pierden.
+  try{
+    const viejas = localStorage.getItem(OL_RESTR_KEY);
+    if(viejas && !COND.otras.length){
+      COND.otras = viejas.split(/\n+/).map(t=>t.trim()).filter(Boolean);
+    }
+  }catch(e){}
+
+  condRender();
+  condResumen();
+}
+
+function oliverAbrirCondicionantes(){
+  const caja = document.getElementById("oliverCondicionantes");
+  const abierto = caja.style.display !== "none";
+  caja.style.display = abierto ? "none" : "block";
+  if(!abierto) condRender();
+}
+
+function condRender(){
+  // Días bloqueados
+  const dias = document.getElementById("condDiasLista");
+  if(dias){
+    dias.innerHTML = COND.dias.length ? COND.dias.map((d,i)=>`
+      <div class="cond-renglon">
+        <input type="date" value="${d.fecha || ""}" onchange="condCampoDia(${i},'fecha',this.value)">
+        <input type="text" value="${(d.motivo || "").replace(/"/g,"&quot;")}"
+               placeholder="¿Por qué no se puede? Ej. no hay cancha"
+               onchange="condCampoDia(${i},'motivo',this.value)">
+        <button class="foto-quitar" title="Quitar" onclick="condQuitarDia(${i})">✕</button>
+      </div>`).join("")
+      : `<div class="oliver-sub" style="margin-bottom:6px;">Todavía no hay días bloqueados.</div>`;
+  }
+
+  // Por categoría
+  const cats = document.getElementById("condCategorias");
+  if(cats){
+    cats.innerHTML = COND_CATS.map(c=>{
+      const v = COND.categorias[c] || {};
+      return `<div class="cond-cat">
+        <h4>${c}</h4>
+        <label>Sistema de competencia</label>
+        <input type="text" value="${(v.sistema || "").replace(/"/g,"&quot;")}"
+               placeholder="Ej. todos contra todos a una vuelta"
+               onchange="condCampoCat('${c}','sistema',this.value)">
+        <label>Cuántos equipos</label>
+        <input type="number" min="0" value="${v.equipos || ""}"
+               onchange="condCampoCat('${c}','equipos',this.value)">
+        <label>Reglas de esta fuerza (una por renglón)</label>
+        <textarea rows="3" placeholder="Ej. siempre abre el primer horario"
+               onchange="condCampoCat('${c}','reglas',this.value)">${v.reglas || ""}</textarea>
+      </div>`;
+    }).join("");
+  }
+
+  // Otras restricciones
+  const otras = document.getElementById("condOtrasLista");
+  if(otras){
+    otras.innerHTML = COND.otras.length ? COND.otras.map((t,i)=>`
+      <div class="cond-renglon">
+        <input type="text" value="${String(t).replace(/"/g,"&quot;")}"
+               placeholder="Una restricción"
+               onchange="condCampoOtra(${i},this.value)">
+        <button class="foto-quitar" title="Quitar" onclick="condQuitarOtra(${i})">✕</button>
+      </div>`).join("")
+      : `<div class="oliver-sub" style="margin-bottom:6px;">Todavía no hay restricciones sueltas.</div>`;
+  }
+}
+
+function condCampoDia(i, campo, valor){ COND.dias[i][campo] = valor; condGuardar(true); }
+function condQuitarDia(i){ COND.dias.splice(i,1); condGuardar(true); condRender(); }
+function condAgregarDia(){ COND.dias.push({ fecha:"", motivo:"" }); condRender(); }
+
+function condCampoCat(cat, campo, valor){
+  if(!COND.categorias[cat]) COND.categorias[cat] = {};
+  COND.categorias[cat][campo] = valor;
+  condGuardar(true);
+}
+
+function condCampoOtra(i, valor){ COND.otras[i] = valor; condGuardar(true); }
+function condQuitarOtra(i){ COND.otras.splice(i,1); condGuardar(true); condRender(); }
+function condAgregarOtra(){ COND.otras.push(""); condRender(); }
+
+function condGuardar(silencioso){
+  try{
+    localStorage.setItem(COND_KEY, JSON.stringify(COND));
+    // El textarea viejo se mantiene al día por si algo más lo lee.
+    const ta = document.getElementById("oliverRestricciones");
+    if(ta){
+      ta.value = COND.otras.filter(Boolean).join("\n");
+      localStorage.setItem(OL_RESTR_KEY, ta.value);
+    }
+    if(!silencioso){
+      const m = document.getElementById("condMsg");
+      if(m){ m.style.color = "#33E08A"; m.textContent = "Guardado."; setTimeout(()=>{ m.textContent = ""; }, 2500); }
+    }
+  }catch(e){
+    const m = document.getElementById("condMsg");
+    if(m){ m.style.color = "#FF4D5E"; m.textContent = "Este navegador no deja guardar: " + e.message; }
+  }
+  condResumen();
+}
+
+function condResumen(){
+  const el = document.getElementById("oliverCondResumen");
+  if(!el) return;
+  const dias = COND.dias.filter(d=>d.fecha).length;
+  const cats = COND_CATS.filter(c=>{
+    const v = COND.categorias[c] || {};
+    return v.sistema || v.reglas || v.equipos;
+  }).length;
+  const otras = COND.otras.filter(Boolean).length;
+  if(!dias && !cats && !otras){ el.textContent = "Sin condicionantes cargados todavía."; return; }
+  el.textContent = `${dias} día(s) bloqueados · ${cats} fuerza(s) con reglas · ${otras} restricción(es).`;
+}
+
+function condTexto(){
+  const partes = [];
+  const dias = COND.dias.filter(d=>d.fecha);
+  if(dias.length){
+    partes.push("DÍAS QUE NO SE ROLAN:");
+    dias.forEach(d=>partes.push(`- ${d.fecha}${d.motivo ? " — " + d.motivo : ""}`));
+  }
+  const conCat = COND_CATS.filter(c=>{
+    const v = COND.categorias[c] || {};
+    return v.sistema || v.reglas || v.equipos;
+  });
+  if(conCat.length){
+    partes.push("", "POR CATEGORÍA:");
+    conCat.forEach(c=>{
+      const v = COND.categorias[c];
+      partes.push(`- ${c}: ${v.sistema || "sin sistema anotado"}` +
+                  (v.equipos ? ` (${v.equipos} equipos)` : ""));
+      String(v.reglas || "").split(/\n+/).map(t=>t.trim()).filter(Boolean)
+        .forEach(r=>partes.push(`    · ${r}`));
+    });
+  }
+  const otras = COND.otras.filter(Boolean);
+  if(otras.length){
+    partes.push("", "OTRAS RESTRICCIONES:");
+    otras.forEach(t=>partes.push(`- ${t}`));
+  }
+  return partes.join("\n");
+}
+
+function condCopiar(){
+  const txt = condTexto();
+  const m = document.getElementById("condMsg");
+  if(!txt){ m.style.color = "#888"; m.textContent = "No hay nada que copiar todavía."; return; }
+  navigator.clipboard.writeText(txt)
+    .then(()=>{ m.style.color = "#33E08A"; m.textContent = "Copiado. Pégamelo en el chat y lo convierto en reglas."; })
+    .catch(()=>{ m.style.color = "#FF4D5E"; m.textContent = "No se pudo copiar; selecciónalo a mano."; });
 }
 
 function oliverCopiarRestricciones(){
@@ -4571,18 +5432,30 @@ function abrirDetallePago(equipo){
   equipoPagoActual = equipo;
   const pagos = PAGOS.filter(p=>p.equipo === equipo).sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||""));
   const pagado = pagos.reduce((suma,p)=>suma + p.monto, 0);
-  const cuota = CONFIG.cuotaEquipo;
-  const saldo = cuota - pagado;
+  const cuota = cuotaDe(equipo);          // la que él le puso a ESTE equipo
+  const saldo = Math.max(0, cuota - pagado);
+  const pct = cuota > 0 ? Math.min(100, Math.round(pagado / cuota * 100)) : 0;
   const categoria = pagos.length ? pagos[0].categoria : (MATCHES.find(m=>m.local===equipo || m.visit===equipo) || {}).categoria || "";
 
   document.getElementById("pagoModalTitle").textContent = equipo;
   document.getElementById("pagoModalSub").textContent = categoria || "Sin categoría registrada";
 
+  /* La cuota se edita aquí mismo: cada equipo puede traer un trato distinto
+     y no tiene por qué ser la misma cifra para todos. */
   document.getElementById("pagoResumen").innerHTML = `
-    <div><div class="pago-label">Cuota</div><div class="pago-valor">$${cuota.toLocaleString("es-MX")}</div></div>
-    <div><div class="pago-label">Pagado</div><div class="pago-valor">$${pagado.toLocaleString("es-MX")}</div></div>
-    <div><div class="pago-label">Saldo</div><div class="pago-valor">$${saldo.toLocaleString("es-MX")}</div></div>
-    <div><div class="pago-label">Estatus</div><div class="pago-valor">${saldo<=0 ? "Pagado" : pagado>0 ? "Parcial" : "Pendiente"}</div></div>
+    <div>
+      <div class="pago-label">Cuota</div>
+      <input class="pago-cuota-input" type="number" min="0" step="50"
+             value="${cuota || ""}" placeholder="0"
+             onchange="guardarCuotaDesdeModal('${String(equipo).replace(/'/g, "\\'")}', this.value)">
+    </div>
+    <div><div class="pago-label">Abonado</div><div class="pago-valor">$${pagado.toLocaleString("es-MX")}</div></div>
+    <div><div class="pago-label">Falta</div><div class="pago-valor">${cuota ? "$" + saldo.toLocaleString("es-MX") : "—"}</div></div>
+    <div>
+      <div class="pago-label">Va pagado</div>
+      <div class="pago-valor">${cuota ? pct + "%" : "—"}</div>
+      ${cuota ? `<div class="pago-barra"><span style="width:${pct}%"></span></div>` : ""}
+    </div>
   `;
 
   const historial = document.getElementById("pagoHistorial");
@@ -4601,6 +5474,14 @@ function abrirDetallePago(equipo){
 
   ocultarFormularioPago();
   document.getElementById("pagoModal").classList.add("open");
+}
+
+/* Guardar la cuota desde el detalle: se manda al Sheet y se repinta el
+   recuadro para que el porcentaje cuadre al momento. */
+async function guardarCuotaDesdeModal(equipo, valor){
+  await guardarCuota(equipo, valor);
+  abrirDetallePago(equipo);
+  if(typeof renderPagos === "function") renderPagos();
 }
 
 function cerrarDetallePago(){
