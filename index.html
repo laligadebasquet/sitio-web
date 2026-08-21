@@ -1381,7 +1381,17 @@
   .insc-fila{display:flex;gap:14px;}
   .insc-fila > *{flex:1;min-width:0;}
   @media (max-width:560px){.insc-fila{flex-direction:column;gap:0;}}
-  .insc-btn{
+  .insc-cerradas{
+      border:1px solid #4a2020; background:#1d1214; border-radius:10px;
+      padding:20px; text-align:center; line-height:1.6;
+    }
+    .insc-cerradas-titulo{
+      font-size:18px; font-weight:900; text-transform:uppercase;
+      letter-spacing:.06em; color:#FF6B6B; margin-bottom:10px;
+    }
+    .insc-cerradas p{margin:6px 0; color:#bbb; font-size:14px;}
+    .insc-cerradas a{color:#F37228;}
+    .insc-btn{
     background:var(--orange);color:#000;border:none;border-radius:8px;
     padding:13px 28px;font-family:'Montserrat',Arial,sans-serif;
     font-weight:800;font-size:14px;letter-spacing:.4px;cursor:pointer;
@@ -1918,6 +1928,10 @@ function leerDelSheet(hojas, timeoutMs){
       terminado = true;
       limpiar();
       if(respuesta && respuesta.ok){
+        if(respuesta.inscripcionesAbiertas !== undefined){
+          INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
+          if(typeof refrescarFormEquipo === "function") refrescarFormEquipo();
+        }
         resolve(respuesta.hojas);
       }else{
         console.warn("El Apps Script devolvió un error:", respuesta && respuesta.error);
@@ -3690,7 +3704,7 @@ function renderInscripcion(categoriaTab){
       <button class="${tab === "jugador" ? "active" : ""}" onclick="renderInscripcion('jugador')">ALTA DE JUGADOR</button>
     </div>
     ${aviso}
-    ${tab === "equipo" ? formEquipoHTML() : formJugadorHTML()}
+    <div id="inscEquipoCaja">${tab === "equipo" ? formEquipoHTML() : formJugadorHTML()}</div>
   `;
   // El formulario se acaba de rearmar: el select vuelve a estar vacío, así
   // que el link de FORMAS DE PAGO tiene que quedar escondido otra vez.
@@ -3701,8 +3715,29 @@ function opcionesCategoria(){
   return (CONFIG.categorias || []).map(c=>`<option value="${c}">${c}</option>`).join("");
 }
 
+/* Mientras la liga tenga cerradas las inscripciones, aquí no hay formulario
+   sino aviso. Es lo honesto: más vale decirlo antes de que llenen todo. */
+let INSCRIPCIONES_ABIERTAS = true;
+
+function refrescarFormEquipo(){
+  if(inscripcionTab !== "equipo") return;
+  const caja = document.querySelector("#inscEquipoCaja");
+  if(caja) caja.innerHTML = formEquipoHTML();
+}
+
 function formEquipoHTML(){
   _menoresEquipo = ""; // el form se vuelve a armar cada vez que se abre esta pestaña
+  if(!INSCRIPCIONES_ABIERTAS){
+    return `
+    <div class="insc-form">
+      <div class="insc-cerradas">
+        <div class="insc-cerradas-titulo">Inscripciones cerradas</div>
+        <p>Por ahora la liga no está recibiendo equipos nuevos.</p>
+        <p>Si tu equipo quiere entrar, escríbenos y vemos qué se puede hacer:
+           <a href="mailto:control@laligadebasquet.com">control@laligadebasquet.com</a>.</p>
+      </div>
+    </div>`;
+  }
   return `
     <div class="insc-form">
       <div class="insc-campo">
