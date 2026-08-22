@@ -1386,6 +1386,96 @@
       border-left:3px solid var(--orange); background:rgba(243,114,40,.08);
       color:var(--text); font-size:13px; line-height:1.5;
     }
+    /* ---- Ficha de búsqueda ---- */
+    .ficha{
+      background:#fff; border:1px solid var(--gray-line); border-radius:12px;
+      overflow:hidden; margin:0 0 22px 0; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    }
+    .ficha-head{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+      padding:16px 18px; background:var(--navy); color:#fff;
+    }
+    .ficha-nombre{font-size:24px; font-weight:900; letter-spacing:.01em; line-height:1.15;}
+    .ficha-jug-grande{background:none; border:none; color:#fff; padding:0; cursor:pointer;
+      font-family:inherit; text-align:left; text-decoration:underline; text-underline-offset:3px;}
+    .ficha-sub{font-size:12px; color:var(--on-dark-soft); margin-top:4px; text-transform:uppercase;
+      letter-spacing:.05em; font-weight:700;}
+    .ficha-cerrar{background:none; border:none; color:#fff; font-size:18px; cursor:pointer;
+      opacity:.7; line-height:1;}
+    .ficha-cerrar:hover{opacity:1;}
+    .ficha-head-simple{padding:14px 18px; font-weight:800; font-size:14px;
+      text-transform:uppercase; letter-spacing:.05em; color:var(--text-soft);}
+    .ficha-bloque{padding:14px 18px 18px 18px; border-top:1px solid var(--gray-line);}
+    .ficha-h3{font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+      color:var(--text-soft); margin:0 0 10px 0;}
+    .ficha-fila{
+      display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:8px;
+      background:var(--gray-bg); margin-bottom:7px;
+    }
+    .ficha-fila-izq{flex:1; min-width:0;}
+    .ficha-rival{font-weight:700; font-size:14px;}
+    .ficha-estado{font-size:11px; margin-top:2px;}
+    .ficha-gano{color:var(--win); font-weight:700;}
+    .ficha-perdio{color:var(--loss); font-weight:700;}
+    .ficha-sin{color:var(--text-soft);}
+    .ficha-fecha{font-size:11px; color:var(--text-soft); text-align:right; line-height:1.4;
+      white-space:nowrap;}
+    .ficha-fecha span{font-weight:700; color:var(--text);}
+    .ficha-marca{font-size:20px; font-weight:900; min-width:78px; text-align:right;}
+    .ficha-marca.ficha-sin{font-size:13px; font-weight:600;}
+    .ficha-vacia{color:var(--text-soft); font-size:13px; padding:4px 0;}
+    .ficha-tabla{width:100%; border-collapse:collapse; font-size:13px;}
+    .ficha-tabla th{
+      text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+      color:var(--text-soft); padding:6px 8px; border-bottom:1px solid var(--gray-line);
+    }
+    .ficha-tabla td{padding:7px 8px; border-bottom:1px solid #EFEFEF;}
+    .ficha-tabla th:not(:first-child), .ficha-tabla td:not(:first-child){text-align:center;}
+    .ficha-tabla-stats{font-variant-numeric:tabular-nums;}
+    .ficha-tabla-stats .ficha-td-rival{text-align:left; color:var(--text-soft); font-size:12px;}
+    .ficha-jug{
+      background:none; border:none; padding:0; font-family:inherit; font-size:13px;
+      color:var(--orange); font-weight:700; cursor:pointer; text-align:left;
+    }
+    .ficha-jug:hover{text-decoration:underline;}
+    .ficha-pie{font-size:11px; color:var(--text-soft); margin-top:8px;}
+    .ficha-nums{display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px;}
+    .ficha-nums > div{
+      flex:1; min-width:110px; background:var(--gray-bg); border-radius:10px;
+      padding:10px 12px; text-align:center;
+    }
+    .ficha-num{display:block; font-size:24px; font-weight:900; line-height:1.1;}
+    .ficha-num-lbl{display:block; font-size:10px; text-transform:uppercase;
+      letter-spacing:.05em; color:var(--text-soft); margin-top:3px;}
+    .ficha-ops{display:flex; flex-wrap:wrap; gap:8px; padding:0 18px 18px 18px;}
+    .ficha-op{
+      flex:1; min-width:180px; text-align:left; cursor:pointer; font-family:inherit;
+      background:var(--gray-bg); border:1px solid var(--gray-line); border-radius:10px;
+      padding:10px 12px;
+    }
+    .ficha-op:hover{border-color:var(--orange);}
+    .ficha-op-tipo{display:block; font-size:9px; text-transform:uppercase; letter-spacing:.06em;
+      color:var(--orange); font-weight:800;}
+    .ficha-op-nombre{display:block; font-weight:800; font-size:14px; margin-top:2px;}
+    .ficha-op-sub{display:block; font-size:11px; color:var(--text-soft);}
+
+    /* La foto del jugador */
+    .foto-caja{
+      background:#fff; border-radius:14px; padding:18px; max-width:340px; width:90%;
+      text-align:center; position:relative;
+    }
+    .foto-caja img{width:100%; max-width:280px; border-radius:12px; display:block; margin:0 auto;}
+    .foto-nombre{font-weight:900; font-size:18px; margin-top:12px;}
+    .foto-equipo{font-size:12px; color:var(--text-soft); text-transform:uppercase;
+      letter-spacing:.05em; margin-top:2px;}
+    .foto-sin{
+      background:var(--gray-bg); border-radius:12px; padding:40px 16px;
+      color:var(--text-soft); font-size:13px;
+    }
+    .foto-cerrar{
+      position:absolute; top:8px; right:10px; background:none; border:none;
+      font-size:18px; cursor:pointer; color:var(--text-soft);
+    }
     .insc-cerradas{
       border:1px solid #4a2020; background:#1d1214; border-radius:10px;
       padding:20px; text-align:center; line-height:1.6;
@@ -1657,7 +1747,11 @@
         </span>
       </a>
 
-      <h2 class="rol-inicio-sub">Próximos partidos</h2>
+      <!-- Ficha de lo que se buscó: sale aquí arriba, encima de los
+           próximos partidos, y desaparece al borrar la búsqueda. -->
+      <div id="fichaBusqueda"></div>
+
+      <h2 class="rol-inicio-sub" id="tituloProximos">Próximos partidos</h2>
       <div class="dias-tira" id="rolInicioDias"></div>
       <div id="rolInicioPartidos"></div>
 
@@ -1798,6 +1892,14 @@
 
 <!-- Ventana de ESTADÍSTICA de un partido: la misma información que la
      cédula que llega por correo. -->
+<!-- La foto del jugador, cuando alguien toca su nombre. -->
+<div class="modal-overlay" id="fotoModal" onclick="if(event.target===this) cerrarFoto()">
+  <div class="foto-caja">
+    <button class="foto-cerrar" onclick="cerrarFoto()" title="Cerrar">✕</button>
+    <div id="fotoModalCuerpo"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="statModal" onclick="if(event.target===this) cerrarEstadistica()">
   <div class="modal-box">
     <div class="modal-header">
@@ -2248,10 +2350,11 @@ function semanaEnCurso(){
   return siguiente ? siguiente.semana : semanas[semanas.length - 1].semana;
 }
 
+/* Todo lo que falta por jugar, no solo la semana en curso: si el rol ya
+   tiene cuatro semanas cargadas, la gente quiere poder verlas. */
 function partidosDeLaSemana(){
-  const s = semanaEnCurso();
-  if(s === null || s === undefined) return [];
-  return ROL.filter(p => p.jornada === s);
+  const hoy = hoyISO();
+  return ROL.filter(p => p.fecha && p.fecha >= hoy);
 }
 
 function partidosFiltrados(){
@@ -2360,6 +2463,332 @@ function renderRolInicio(){
 
   // Los resultados van justo abajo y comparten el filtro de categoría.
   renderResultadosRecientes();
+}
+
+/* ============================================================
+   FICHA DE BÚSQUEDA
+
+   El buscador de arriba acepta el nombre de un equipo o el de un jugador.
+   Lo que se encuentra se arma aquí, en la portada, encima de los próximos
+   partidos: para un equipo, sus resultados, su rol y su roster con números;
+   para un jugador, su promedio y el desglose de cada partido que jugó.
+
+   Nada de datos de contacto: la página es pública y el capitán, los
+   teléfonos y los correos se quedan en el Admin.
+   ============================================================ */
+
+let FICHA_SEL = null;      // {tipo:"equipo"|"jugador", equipo, jugador}
+
+function equiposQueCoinciden(q){
+  if(!q) return [];
+  const vistos = {};
+  EQUIPOS.forEach(t=>{ if(normalizar(t.nombre).includes(q)) vistos[t.nombre] = t; });
+  Object.keys(ROSTERS).forEach(e=>{
+    if(normalizar(e).includes(q) && !vistos[e]) vistos[e] = { nombre:e, categoria:categoriaDelEquipo(e) };
+  });
+  return Object.values(vistos);
+}
+
+function jugadoresQueCoincidenTodos(q){
+  if(!q) return [];
+  const salida = [];
+  Object.keys(ROSTERS).forEach(equipo=>{
+    (ROSTERS[equipo] || []).forEach(j=>{
+      if(normalizar(j.nombre).includes(q)) salida.push({ equipo, nombre:j.nombre, foto:j.foto });
+    });
+  });
+  return salida;
+}
+
+function categoriaDelEquipo(equipo){
+  const t = EQUIPOS.find(x=>nombreEquipo(x.nombre) === nombreEquipo(equipo));
+  if(t && t.categoria) return t.categoria;
+  const m = ROL.find(x=>nombreEquipo(x.local) === nombreEquipo(equipo) ||
+                        nombreEquipo(x.visitante) === nombreEquipo(equipo));
+  return (m && m.categoria) || "";
+}
+
+/* Las líneas de "Estadísticas" de un jugador, de la más nueva a la más vieja. */
+function partidosDelJugador(equipo, jugador){
+  const eq = nombreEquipo(equipo), jg = normalizar(jugador);
+  return ESTADISTICAS
+    .filter(e => nombreEquipo(e.equipo) === eq && normalizar(e.jugador) === jg)
+    .sort((a,b)=> String(b.fecha).localeCompare(String(a.fecha)));
+}
+
+/* Contra quién jugó ese equipo ese día, y cómo quedó. */
+function dueloDeEseDia(equipo, fecha){
+  const eq = nombreEquipo(equipo);
+  const r = RESULTADOS.find(x=>x.fecha === fecha &&
+    (nombreEquipo(x.local) === eq || nombreEquipo(x.visitante) === eq));
+  if(r){
+    const esLocal = nombreEquipo(r.local) === eq;
+    const propios = esLocal ? r.ptsLocal : r.ptsVisitante;
+    const ajenos  = esLocal ? r.ptsVisitante : r.ptsLocal;
+    return { rival: esLocal ? r.visitante : r.local, propios, ajenos,
+             gano: propios > ajenos, hayMarcador: true };
+  }
+  const m = ROL.find(x=>x.fecha === fecha &&
+    (nombreEquipo(x.local) === eq || nombreEquipo(x.visitante) === eq));
+  if(m) return { rival: nombreEquipo(m.local) === eq ? m.visitante : m.local, hayMarcador:false };
+  return { rival: "", hayMarcador:false };
+}
+
+function promedio(total, partidos){
+  if(!partidos) return "0.0";
+  return (total / partidos).toFixed(1);
+}
+
+/* ---------- lo que dispara todo ---------- */
+function renderFichaBusqueda(){
+  const caja = document.getElementById("fichaBusqueda");
+  const titulo = document.getElementById("tituloProximos");
+  if(!caja) return;
+
+  const q = textoBusqueda();
+  if(!q){
+    caja.innerHTML = "";
+    FICHA_SEL = null;
+    if(titulo) titulo.style.display = "";
+    return;
+  }
+
+  const equipos = equiposQueCoinciden(q);
+  const jugadores = jugadoresQueCoincidenTodos(q);
+
+  // Si lo que se escribió apunta a una sola cosa, se abre directo.
+  if(!FICHA_SEL){
+    if(equipos.length === 1 && jugadores.length === 0){
+      FICHA_SEL = { tipo:"equipo", equipo:equipos[0].nombre };
+    } else if(equipos.length === 0 && jugadores.length === 1){
+      FICHA_SEL = { tipo:"jugador", equipo:jugadores[0].equipo, jugador:jugadores[0].nombre };
+    }
+  }
+
+  if(FICHA_SEL && FICHA_SEL.tipo === "equipo"){
+    caja.innerHTML = fichaEquipoHTML(FICHA_SEL.equipo);
+  } else if(FICHA_SEL && FICHA_SEL.tipo === "jugador"){
+    caja.innerHTML = fichaJugadorHTML(FICHA_SEL.equipo, FICHA_SEL.jugador);
+  } else if(equipos.length || jugadores.length){
+    caja.innerHTML = listaDeCoincidenciasHTML(equipos, jugadores);
+  } else {
+    caja.innerHTML = `<div class="ficha"><div class="ficha-vacia">
+      No encontré ningún equipo ni jugador con “${textoBusquedaCrudo()}”.</div></div>`;
+  }
+  if(titulo) titulo.style.display = caja.innerHTML ? "none" : "";
+}
+
+function textoBusquedaCrudo(){
+  const input = document.getElementById("teamSearch");
+  return input ? input.value.trim() : "";
+}
+
+function listaDeCoincidenciasHTML(equipos, jugadores){
+  let html = `<div class="ficha"><div class="ficha-head-simple">¿Cuál buscas?</div><div class="ficha-ops">`;
+  equipos.forEach(t=>{
+    html += `<button class="ficha-op" onclick="abrirFicha('equipo','${escaparComilla(t.nombre)}')">
+      <span class="ficha-op-tipo">Equipo</span>
+      <span class="ficha-op-nombre">${t.nombre}</span>
+      <span class="ficha-op-sub">${t.categoria || ""}</span></button>`;
+  });
+  jugadores.forEach(j=>{
+    html += `<button class="ficha-op" onclick="abrirFicha('jugador','${escaparComilla(j.equipo)}','${escaparComilla(j.nombre)}')">
+      <span class="ficha-op-tipo">Jugador</span>
+      <span class="ficha-op-nombre">${j.nombre}</span>
+      <span class="ficha-op-sub">${j.equipo}</span></button>`;
+  });
+  html += "</div></div>";
+  return html;
+}
+
+function escaparComilla(t){ return String(t).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+function abrirFicha(tipo, equipo, jugador){
+  FICHA_SEL = { tipo, equipo, jugador };
+  renderFichaBusqueda();
+}
+
+function cerrarFicha(){
+  FICHA_SEL = null;
+  const input = document.getElementById("teamSearch");
+  if(input) input.value = "";
+  renderFichaBusqueda();
+  renderProximos(); renderResultados(); renderRol(); renderRolInicio(); renderTabla();
+}
+
+function volverALaLista(){
+  FICHA_SEL = null;
+  renderFichaBusqueda();
+}
+
+/* ---------- ficha de EQUIPO ---------- */
+function fichaEquipoHTML(equipo){
+  const eq = nombreEquipo(equipo);
+  const cat = categoriaDelEquipo(equipo);
+
+  const jugados = ROL
+    .filter(m => (nombreEquipo(m.local) === eq || nombreEquipo(m.visitante) === eq))
+    .filter(m => m.fecha && m.fecha < hoyISO())
+    .sort((a,b)=> String(b.fecha).localeCompare(String(a.fecha)));
+
+  const proximos = ROL
+    .filter(m => (nombreEquipo(m.local) === eq || nombreEquipo(m.visitante) === eq))
+    .filter(m => m.fecha && m.fecha >= hoyISO())
+    .sort((a,b)=> String(a.fecha).localeCompare(String(b.fecha)) ||
+                  String(a.hora).localeCompare(String(b.hora)));
+
+  let html = `<div class="ficha">
+    <div class="ficha-head">
+      <div>
+        <div class="ficha-nombre">${equipo}</div>
+        <div class="ficha-sub">${cat || "Sin fuerza asignada"}</div>
+      </div>
+      <button class="ficha-cerrar" onclick="cerrarFicha()" title="Cerrar">✕</button>
+    </div>`;
+
+  // --- Últimos partidos ---
+  html += `<div class="ficha-bloque"><h3 class="ficha-h3">Últimos partidos jugados</h3>`;
+  if(!jugados.length){
+    html += `<div class="ficha-vacia">Todavía no ha jugado.</div>`;
+  } else {
+    html += jugados.slice(0, 6).map(m=>{
+      const d = dueloDeEseDia(equipo, m.fecha);
+      const marcador = d.hayMarcador
+        ? `<span class="ficha-marca">${d.propios} - ${d.ajenos}</span>`
+        : `<span class="ficha-marca ficha-sin">sin marcador</span>`;
+      const estado = d.hayMarcador
+        ? `<span class="${d.gano ? "ficha-gano" : "ficha-perdio"}">${d.gano ? "Ganado" : "Perdido"}</span>`
+        : `<span class="ficha-sin">Jugado</span>`;
+      return `<div class="ficha-fila">
+        <div class="ficha-fila-izq">
+          <div class="ficha-rival">${d.rival || ""}</div>
+          <div class="ficha-estado">${estado}</div>
+        </div>
+        <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
+        ${marcador}
+      </div>`;
+    }).join("");
+  }
+  html += `</div>`;
+
+  // --- Próximos ---
+  html += `<div class="ficha-bloque"><h3 class="ficha-h3">Próximos partidos</h3>`;
+  if(!proximos.length){
+    html += `<div class="ficha-vacia">Sin partidos programados por ahora.</div>`;
+  } else {
+    html += proximos.map(m=>{
+      const rival = nombreEquipo(m.local) === eq ? m.visitante : m.local;
+      return `<div class="ficha-fila">
+        <div class="ficha-fila-izq"><div class="ficha-rival">${rival}</div>
+          <div class="ficha-estado"><span class="ficha-sin">Semana ${m.jornada}</span></div></div>
+        <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
+        <span class="ficha-marca ficha-sin">—</span>
+      </div>`;
+    }).join("");
+  }
+  html += `</div>`;
+
+  // --- Roster ---
+  const roster = (ROSTERS[equipo] || ROSTERS[eq] || []).slice()
+    .sort((a,b)=> a.nombre.localeCompare(b.nombre));
+  html += `<div class="ficha-bloque"><h3 class="ficha-h3">Roster</h3>`;
+  if(!roster.length){
+    html += `<div class="ficha-vacia">Todavía no hay jugadores dados de alta.</div>`;
+  } else {
+    html += `<table class="ficha-tabla">
+      <thead><tr><th>Jugador</th><th>PJ</th><th>Prom. pts</th></tr></thead><tbody>`;
+    html += roster.map(j=>{
+      const suyos = partidosDelJugador(equipo, j.nombre);
+      const pj = suyos.length;
+      const pts = suyos.reduce((s,x)=>s + (Number(x.total)||0), 0);
+      return `<tr>
+        <td><button class="ficha-jug" onclick="abrirFoto('${escaparComilla(equipo)}','${escaparComilla(j.nombre)}')">${j.nombre}</button></td>
+        <td>${pj}</td>
+        <td>${pj ? promedio(pts, pj) : "—"}</td>
+      </tr>`;
+    }).join("");
+    html += `</tbody></table>
+      <div class="ficha-pie">Toca un nombre para ver su foto. PJ = partidos jugados.</div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/* ---------- ficha de JUGADOR ---------- */
+function fichaJugadorHTML(equipo, jugador){
+  const suyos = partidosDelJugador(equipo, jugador);
+  const pj = suyos.length;
+  const pts = suyos.reduce((s,x)=>s + (Number(x.total)||0), 0);
+  const tri = suyos.reduce((s,x)=>s + (Number(x.triples)||0), 0);
+  const cat = categoriaDelEquipo(equipo);
+
+  let html = `<div class="ficha">
+    <div class="ficha-head">
+      <div>
+        <button class="ficha-nombre ficha-jug-grande"
+          onclick="abrirFoto('${escaparComilla(equipo)}','${escaparComilla(jugador)}')">${jugador}</button>
+        <div class="ficha-sub">${equipo}${cat ? " · " + cat : ""}</div>
+      </div>
+      <button class="ficha-cerrar" onclick="cerrarFicha()" title="Cerrar">✕</button>
+    </div>
+
+    <div class="ficha-nums">
+      <div><span class="ficha-num">${pj}</span><span class="ficha-num-lbl">Partidos</span></div>
+      <div><span class="ficha-num">${pj ? promedio(pts, pj) : "—"}</span><span class="ficha-num-lbl">Pts por partido</span></div>
+      <div><span class="ficha-num">${pj ? promedio(tri, pj) : "—"}</span><span class="ficha-num-lbl">Triples por partido</span></div>
+      <div><span class="ficha-num">${pts}</span><span class="ficha-num-lbl">Puntos en total</span></div>
+    </div>
+
+    <div class="ficha-bloque"><h3 class="ficha-h3">Partido por partido</h3>`;
+
+  if(!pj){
+    html += `<div class="ficha-vacia">Todavía no ha jugado ningún partido.</div>`;
+  } else {
+    html += `<table class="ficha-tabla ficha-tabla-stats">
+      <thead><tr><th>Fecha</th><th>Rival</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Pts</th><th>3P</th></tr></thead><tbody>`;
+    html += suyos.map(e=>{
+      const d = dueloDeEseDia(equipo, e.fecha);
+      return `<tr>
+        <td>${fechaCorta(e.fecha)}</td>
+        <td class="ficha-td-rival">${d.rival || ""}</td>
+        <td>${e.q1 || 0}</td><td>${e.q2 || 0}</td><td>${e.q3 || 0}</td><td>${e.q4 || 0}</td>
+        <td><strong>${e.total || 0}</strong></td>
+        <td>${e.triples || 0}</td>
+      </tr>`;
+    }).join("");
+    html += `</tbody></table>
+      <div class="ficha-pie">Toca su nombre arriba para ver la foto.</div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/* ---------- la foto ---------- */
+function abrirFoto(equipo, jugador){
+  const lista = ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [];
+  const j = lista.find(x=>normalizar(x.nombre) === normalizar(jugador));
+  const modal = document.getElementById("fotoModal");
+  const cuerpo = document.getElementById("fotoModalCuerpo");
+  if(!modal || !cuerpo) return;
+  cuerpo.innerHTML = (j && j.foto)
+    ? `<img src="${j.foto}" alt="${jugador}"><div class="foto-nombre">${jugador}</div>
+       <div class="foto-equipo">${equipo}</div>`
+    : `<div class="foto-sin">Este jugador todavía no tiene foto.</div>
+       <div class="foto-nombre">${jugador}</div><div class="foto-equipo">${equipo}</div>`;
+  modal.classList.add("open");
+}
+
+function cerrarFoto(){
+  const modal = document.getElementById("fotoModal");
+  if(modal) modal.classList.remove("open");
+}
+
+function fechaCorta(iso){
+  const d = fechaLocal(iso);
+  if(!d) return iso || "";
+  const DIAS = ["dom","lun","mar","mié","jue","vie","sáb"];
+  const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return DIAS[d.getDay()] + " " + d.getDate() + " " + MESES[d.getMonth()];
 }
 
 /* ============================================================
@@ -4571,6 +5000,8 @@ document.addEventListener("click", (e)=>{
 });
 
 document.getElementById("teamSearch").addEventListener("input", ()=>{
+  FICHA_SEL = null;          // al cambiar la búsqueda se vuelve a decidir qué mostrar
+  renderFichaBusqueda();
   renderProximos();
   renderResultados();
   renderRol();
