@@ -1381,7 +1381,12 @@
   .insc-fila{display:flex;gap:14px;}
   .insc-fila > *{flex:1;min-width:0;}
   @media (max-width:560px){.insc-fila{flex-direction:column;gap:0;}}
-  .insc-cerradas{
+  .jornada-aviso{
+      margin:-4px 0 14px 0; padding:9px 13px; border-radius:8px;
+      border-left:3px solid var(--orange); background:rgba(243,114,40,.08);
+      color:var(--text); font-size:13px; line-height:1.5;
+    }
+    .insc-cerradas{
       border:1px solid #4a2020; background:#1d1214; border-radius:10px;
       padding:20px; text-align:center; line-height:1.6;
     }
@@ -1932,6 +1937,7 @@ function leerDelSheet(hojas, timeoutMs){
           INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
           if(typeof refrescarFormEquipo === "function") refrescarFormEquipo();
         }
+        if(respuesta.avisosRol) AVISOS_ROL = respuesta.avisosRol;
         resolve(respuesta.hojas);
       }else{
         console.warn("El Apps Script devolvió un error:", respuesta && respuesta.error);
@@ -2024,8 +2030,21 @@ function mapCedulasCsv(rows){
 }
 
 /* Estadísticas: un renglón por jugador y partido. */
+/* Si un partido se capturó dos veces, la hoja trae al mismo jugador
+   repetido y la estadística sale al doble: puntos, parciales y hasta el
+   marcador. El backend ya no deja que se duplique, pero aquí se filtra
+   igual — más vale enseñar de menos que enseñar un marcador que no fue. */
+function quitarRepetidosDeEstadisticas(filas){
+  const porJugador = {};
+  filas.forEach(f=>{
+    const k = [f.fecha, f.equipo, f.jugador].join("|");
+    porJugador[k] = f;          // se queda la última, que es la más reciente
+  });
+  return Object.values(porJugador);
+}
+
 function mapEstadisticasCsv(rows){
-  return rows.filter(r=>r["Jugador"]).map(r=>({
+  return quitarRepetidosDeEstadisticas(rows.filter(r=>r["Jugador"]).map(r=>({
     semana: Number(r["Semana"]),
     fecha: String(r["Fecha"] || "").slice(0,10),
     categoria: String(r["Categoría"] || "").trim(),
@@ -2036,7 +2055,7 @@ function mapEstadisticasCsv(rows){
     q3: Number(r["3º"] || 0), q4: Number(r["4º"] || 0),
     total: Number(r["Total"] || 0),
     triples: Number(r["Triples"] || 0)
-  }));
+  })));
 }
 
 function mapResultadosCsv(rows){
@@ -2052,17 +2071,27 @@ function mapResultadosCsv(rows){
 }
 
 function mapRolCsv(rows){
-  return rows.filter(r=>r["Equipo Local"]).map(r=>({
-    jornada: Number(r["Jornada"]),
-    fecha: r["Fecha"],
-    hora: r["Hora"],
-    sede: r["Sede/Cancha"],
-    categoria: String(r["Categoría"] || "").trim(),
-    local: nombreEquipo(r["Equipo Local"]),
-    visitante: nombreEquipo(r["Equipo Visitante"]),
-    arbitro: r["Árbitro"],
-    estatus: r["Estatus"]
-  }));
+  const hoy = hoyISO();
+  return rows.filter(r=>r["Equipo Local"]).map(r=>{
+    const fecha = r["Fecha"];
+    let estatus = r["Estatus"];
+    /* Un partido cuyo día ya pasó no puede seguir anunciándose como
+       "Programado": aunque la mesa no haya capturado todavía, para quien
+       entra a la página ese partido ya se jugó. */
+    const yaPaso = fecha && fecha < hoy;
+    if(yaPaso && (!estatus || estatus === "Programado")) estatus = "Jugado";
+    return {
+      jornada: Number(r["Jornada"]),
+      fecha: fecha,
+      hora: r["Hora"],
+      sede: r["Sede/Cancha"],
+      categoria: String(r["Categoría"] || "").trim(),
+      local: nombreEquipo(r["Equipo Local"]),
+      visitante: nombreEquipo(r["Equipo Visitante"]),
+      arbitro: r["Árbitro"],
+      estatus: estatus
+    };
+  });
 }
 
 function mapEquiposCsv(rows){
@@ -2242,6 +2271,18 @@ function elegirDiaRol(fecha){
   renderRolInicio();
 }
 
+/* El nombre de la temporada sale del primer partido del calendario: así no
+   hay que acordarse de cambiarlo a mano cada temporada. */
+function nombreDeTemporada(){
+  const fechas = ROL.map(p=>p.fecha).filter(Boolean).sort();
+  if(!fechas.length) return "Temporada";
+  const d = fechaLocal(fechas[0]);
+  if(!d) return "Temporada";
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                 "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  return "Temporada " + MESES[d.getMonth()] + " " + d.getFullYear();
+}
+
 function renderRolInicio(){
   const titulo  = document.getElementById("rolSemanaTitulo");
   const cats    = document.getElementById("rolInicioCats");
@@ -2249,10 +2290,7 @@ function renderRolInicio(){
   const partidos= document.getElementById("rolInicioPartidos");
   if(!titulo || !cats || !dias || !partidos) return;
 
-  const semana = semanaEnCurso();
-  titulo.textContent = (semana === null || semana === undefined)
-    ? "Rol de juego"
-    : "Rol semana " + semana;
+  titulo.textContent = nombreDeTemporada();
 
   // --- Botones de categoría ---
   const botones = [["general", "General"]].concat(CATS_ROL.map(c=>[c, c]));
@@ -2271,11 +2309,20 @@ function renderRolInicio(){
   }
 
   // --- Tira de días ---
-  const fechas = [...new Set(deLaSemana.map(p=>p.fecha).filter(Boolean))].sort();
+  /* Solo los días que faltan: esto son PRÓXIMOS partidos, y un día que ya
+     pasó no tiene nada que hacer aquí. Lo jugado se ve abajo, en
+     Resultados recientes. */
+  const hoy = hoyISO();
+  const fechas = [...new Set(deLaSemana.map(p=>p.fecha).filter(Boolean))]
+    .filter(f => f >= hoy).sort();
+  if(!fechas.length){
+    dias.innerHTML = "";
+    partidos.innerHTML = '<div class="empty-state">Ya no quedan partidos por jugar esta semana.</div>';
+    renderResultadosRecientes();
+    return;
+  }
   if(!ROL_INICIO_DIA || fechas.indexOf(ROL_INICIO_DIA) === -1){
-    // Arranca en el día de hoy si hay partido; si no, en el siguiente.
-    const hoy = hoyISO();
-    ROL_INICIO_DIA = fechas.find(f => f >= hoy) || fechas[0];
+    ROL_INICIO_DIA = fechas[0];
   }
   dias.innerHTML = fechas.map(f=>{
     const d = fechaLocal(f);
@@ -2737,6 +2784,7 @@ function renderResultados(){
     if(visibleItems.length === 0) return;
     any = true;
     html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
+    html += avisoDeSemana(g.jornada);
     html += '<div class="cards-grid">';
     visibleItems.forEach(m=>{
       const localWins = m.ptsLocal > m.ptsVisitante;
@@ -2811,6 +2859,16 @@ function renderProximos(){
     html += "</div>";
   }
   el.innerHTML = html;
+}
+
+/* Un renglón de aviso por semana, puesto desde el Admin. Explica lo que el
+   calendario solo no dice: por qué esa semana trae menos partidos. */
+let AVISOS_ROL = {};
+
+function avisoDeSemana(jornada){
+  const txt = AVISOS_ROL[String(jornada)];
+  if(!txt) return "";
+  return `<div class="jornada-aviso">${txt}</div>`;
 }
 
 function renderRol(){
