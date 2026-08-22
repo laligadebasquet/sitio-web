@@ -715,6 +715,32 @@
       <div id="oliverPreview"></div>
     </div>
 
+    <!-- Avisos del rol: el renglón que sale arriba de una semana en la
+         página pública, para explicar por qué esa semana viene distinta. -->
+    <div class="card">
+      <h2>Aviso arriba de una semana</h2>
+      <div class="oliver-sub" style="margin-bottom:10px;">
+        Sale en la página, arriba de esa semana del rol. Sirve para explicar
+        lo que el calendario solo no dice. Déjalo vacío para quitarlo.
+      </div>
+      <div class="grid-2">
+        <div>
+          <label for="avisoSemana">Semana</label>
+          <input type="number" id="avisoSemana" min="1" placeholder="Ej. 4" onchange="cargarAvisoSemana()">
+        </div>
+        <div>
+          <label for="avisoTexto">Aviso</label>
+          <input type="text" id="avisoTexto" maxlength="160"
+                 placeholder="Ej. Esta semana descansan martes, miércoles y jueves por uso de gimnasio externo.">
+        </div>
+      </div>
+      <div class="oliver-acciones" style="margin-top:10px;">
+        <button class="save-btn" onclick="guardarAviso()">Guardar aviso</button>
+        <span class="oliver-sub" id="avisoMsg"></span>
+      </div>
+      <div id="avisosLista" style="margin-top:12px;"></div>
+    </div>
+
     <!-- FOTO DEL ROL: se lee la imagen aquí mismo en el navegador, se arma
          una tabla que él puede corregir, y hasta que le da "Cargar" se
          escribe en la hoja. Nada entra al rol sin que lo vea antes. -->
@@ -1424,6 +1450,10 @@ function leerDelSheet(hojas, timeoutMs){
         if(respuesta.inscripcionesAbiertas !== undefined){
           INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
           if(typeof pintarCandado === "function") pintarCandado();
+        }
+        if(respuesta.avisosRol){
+          AVISOS_ROL = respuesta.avisosRol;
+          if(typeof pintarAvisos === "function") pintarAvisos();
         }
         resolve(respuesta.hojas);
       }else{
@@ -2783,6 +2813,65 @@ function oliverCargarRestricciones(){
   if(!ta) return;
   try{ ta.value = localStorage.getItem(OL_RESTR_KEY) || ""; }catch(e){}
   condCargar();
+}
+
+/* ============================================================
+   AVISOS DEL ROL
+
+   Un renglón por semana que sale en la página, arriba de esa semana. Se
+   guarda en el servidor, no en este navegador, porque quien lo tiene que
+   leer es cualquiera que entre a la página.
+   ============================================================ */
+
+let AVISOS_ROL = {};
+
+function pintarAvisos(){
+  const cont = document.getElementById("avisosLista");
+  if(!cont) return;
+  const semanas = Object.keys(AVISOS_ROL).sort((a,b)=>Number(a)-Number(b));
+  if(!semanas.length){
+    cont.innerHTML = '<div class="oliver-sub">Ninguna semana tiene aviso ahorita.</div>';
+    return;
+  }
+  cont.innerHTML = semanas.map(s=>`
+    <div class="cond-renglon">
+      <strong style="width:90px;font-size:12px;">Semana ${s}</strong>
+      <span style="flex:1;font-size:12px;color:var(--text-soft);">${AVISOS_ROL[s]}</span>
+      <button class="foto-quitar" title="Quitar este aviso" onclick="quitarAviso('${s}')">✕</button>
+    </div>`).join("");
+}
+
+function cargarAvisoSemana(){
+  const s = document.getElementById("avisoSemana").value;
+  document.getElementById("avisoTexto").value = AVISOS_ROL[String(s)] || "";
+}
+
+async function guardarAviso(semana, texto, silencioso){
+  const s = semana !== undefined ? semana : document.getElementById("avisoSemana").value;
+  const t = texto !== undefined ? texto : document.getElementById("avisoTexto").value.trim();
+  const msg = document.getElementById("avisoMsg");
+  if(!s){ msg.style.color = "#FF4D5E"; msg.textContent = "Falta decir de qué semana."; return; }
+
+  msg.style.color = "#888";
+  msg.textContent = "Guardando…";
+  try{
+    const data = await postAppsScript({ action:"guardarAvisoSemana", clave: CONFIG.adminPassword,
+                                        semana: s, aviso: t });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    AVISOS_ROL = data.avisos || {};
+    pintarAvisos();
+    msg.style.color = "#33E08A";
+    msg.textContent = t ? "Listo: ya sale en la página." : "Aviso quitado.";
+    if(!silencioso) setTimeout(()=>{ msg.textContent = ""; }, 3000);
+  }catch(err){
+    msg.style.color = "#FF4D5E";
+    msg.textContent = "No se pudo guardar: " + err.message;
+  }
+}
+
+function quitarAviso(semana){
+  if(!confirm("¿Quitar el aviso de la semana " + semana + "?")) return;
+  guardarAviso(semana, "");
 }
 
 /* ============================================================
