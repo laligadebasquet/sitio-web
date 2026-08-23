@@ -1386,6 +1386,26 @@
       border-left:3px solid var(--orange); background:rgba(243,114,40,.08);
       color:var(--text); font-size:13px; line-height:1.5;
     }
+    .aviso-cookies{
+      position:fixed; left:16px; right:16px; bottom:16px; z-index:60;
+      background:var(--navy); color:#fff; border-radius:12px;
+      padding:14px 16px; display:flex; gap:14px; align-items:center;
+      flex-wrap:wrap; justify-content:space-between;
+      box-shadow:0 8px 30px rgba(0,0,0,.35); max-width:720px; margin:0 auto;
+    }
+    .aviso-cookies-txt{flex:1; min-width:220px; font-size:12.5px; line-height:1.5;
+      color:var(--on-dark-soft);}
+    .aviso-cookies-btns{display:flex; gap:8px;}
+    .aviso-cookies button{
+      border:none; border-radius:8px; padding:9px 16px; cursor:pointer;
+      font-family:inherit; font-size:12px; font-weight:800; text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    .aviso-si{background:var(--orange); color:#fff;}
+    .aviso-no{background:transparent; color:var(--on-dark-soft);
+      border:1px solid rgba(255,255,255,.28) !important;}
+    .aviso-cookies button:hover{filter:brightness(1.1);}
+
     /* ---- Ficha de búsqueda ---- */
     .ficha{
       background:#fff; border:1px solid var(--gray-line); border-radius:12px;
@@ -1945,6 +1965,10 @@
    (Por privacidad, esta página NO muestra el capitán/teléfono ni los montos de pago — solo nombre, categoría, # de integrantes y estatus.)
    ============================================================ */
 const CONFIG = {
+  /* ID de medición de Google Analytics (el que empieza con G-). Vacío =
+     no se carga analítica ni sale el aviso de cookies. */
+  gaId: "",
+
   nombreLiga: "LA LIGA DE BASQUET",
   subtituloLiga: "GANTE SAN PEDRO",
   nombreTorneo: "Temporada Agosto 2026",
@@ -2463,6 +2487,97 @@ function renderRolInicio(){
 
   // Los resultados van justo abajo y comparten el filtro de categoría.
   renderResultadosRecientes();
+}
+
+/* ============================================================
+   ANALÍTICA (Google Analytics 4)
+
+   Mide dos cosas: cuánta gente entra cada día y qué secciones ve. Como la
+   página es de una sola pantalla y las secciones se cambian sin recargar,
+   cada cambio de pestaña se manda a mano como una vista.
+
+   Nada arranca sin permiso: Google Analytics deja cookies, así que primero
+   sale el aviso y hasta que la persona acepta se carga el script. Si dice
+   que no, no se carga nada y no se manda un solo dato.
+   ============================================================ */
+
+const GA_CONSENTIMIENTO = "ligaAnalitica_v1";   // "si" | "no"
+
+function consentimientoAnalitica(){
+  try{ return localStorage.getItem(GA_CONSENTIMIENTO); }catch(e){ return null; }
+}
+
+function arrancarAnalitica(){
+  if(!CONFIG.gaId) return;                       // sin ID no hay nada que cargar
+  if(window.__gaLista) return;
+  window.__gaLista = true;
+
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + CONFIG.gaId;
+  document.head.appendChild(s);
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){ window.dataLayer.push(arguments); };
+  window.gtag("js", new Date());
+  // send_page_view en false: las vistas se mandan a mano, una por sección.
+  window.gtag("config", CONFIG.gaId, { send_page_view: false, anonymize_ip: true });
+
+  vistaAnalitica(vistaActual());
+}
+
+/* Qué sección se está viendo ahorita. */
+function vistaActual(){
+  const activa = document.querySelector("section.view.active");
+  if(!activa) return "inicio";
+  return activa.id.replace(/^view-/, "");
+}
+
+const NOMBRE_DE_VISTA = {
+  inicio:"Inicio", rol:"Rol de juego", resultados:"Resultados",
+  tabla:"Tabla de posiciones", playoffs:"Playoffs", concentrado:"Concentrado",
+  sanciones:"Sanciones", credencial:"Jugadores", tendencias:"Tendencias",
+  inscripcion:"Inscripción", equipos:"Equipos", reglamento:"Reglamento",
+  pagos:"Formas de pago", contacto:"Contacto"
+};
+
+function vistaAnalitica(vista){
+  if(typeof window.gtag !== "function") return;
+  const nombre = NOMBRE_DE_VISTA[vista] || vista;
+  window.gtag("event", "page_view", {
+    page_title: nombre,
+    page_location: location.origin + "/" + vista,
+    page_path: "/" + vista
+  });
+}
+
+/* ---------- el aviso ---------- */
+function pintarAvisoCookies(){
+  if(!CONFIG.gaId) return;                 // sin analítica no hay nada que avisar
+  if(consentimientoAnalitica()) {          // ya decidió antes
+    if(consentimientoAnalitica() === "si") arrancarAnalitica();
+    return;
+  }
+  const caja = document.createElement("div");
+  caja.className = "aviso-cookies";
+  caja.id = "avisoCookies";
+  caja.innerHTML = `
+    <div class="aviso-cookies-txt">
+      Usamos una herramienta de medición para saber qué partes de la página se
+      usan más. No guardamos nada que identifique a nadie.
+    </div>
+    <div class="aviso-cookies-btns">
+      <button class="aviso-si" onclick="responderCookies('si')">Está bien</button>
+      <button class="aviso-no" onclick="responderCookies('no')">No, gracias</button>
+    </div>`;
+  document.body.appendChild(caja);
+}
+
+function responderCookies(respuesta){
+  try{ localStorage.setItem(GA_CONSENTIMIENTO, respuesta); }catch(e){}
+  const caja = document.getElementById("avisoCookies");
+  if(caja) caja.remove();
+  if(respuesta === "si") arrancarAnalitica();
 }
 
 /* ============================================================
@@ -4972,6 +5087,7 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById("view-" + btn.dataset.view).classList.add("active");
     cerrarNavDropdowns();
+    vistaAnalitica(btn.dataset.view);
   });
 });
 
@@ -5043,6 +5159,7 @@ function renderSponsors(){
   track.innerHTML = SPONSORS_DEMO.map(badge).join("") + SPONSORS_DEMO.map(badge).join("");
 }
 
+pintarAvisoCookies();
 aplicarModoSoloInicio();
 init();
 renderSponsors();
