@@ -1386,22 +1386,18 @@
       border-left:3px solid var(--orange); background:rgba(243,114,40,.08);
       color:var(--text); font-size:13px; line-height:1.5;
     }
-    .rol-equipos{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 14px 0;}
-    .rol-eq-btn{
-      padding:6px 12px; border-radius:999px; cursor:pointer; font-family:inherit;
-      background:#fff; border:1px solid var(--gray-line); color:var(--text-soft);
-      font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    .rol-equipos{display:flex; align-items:center; gap:10px; margin:0 0 16px 0; flex-wrap:wrap;}
+    .rol-equipos label{
+      font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+      color:var(--text-soft);
     }
-    .rol-eq-btn:hover{border-color:var(--orange); color:var(--text);}
-    .rol-eq-btn.active{background:var(--orange); border-color:var(--orange); color:#fff;}
-    .rol-equipo-aviso{
-      background:var(--gray-bg); border-left:3px solid var(--orange); border-radius:8px;
-      padding:8px 12px; font-size:12.5px; margin-bottom:14px; color:var(--text-soft);
+    .rol-eq-select{
+      min-width:230px; padding:9px 12px; border-radius:8px; cursor:pointer;
+      font-family:inherit; font-size:13px; font-weight:600;
+      background:#fff; border:1px solid var(--gray-line); color:var(--text);
     }
-    .rol-eq-limpiar{
-      background:none; border:none; color:var(--orange); font-family:inherit;
-      font-size:12.5px; font-weight:700; cursor:pointer; padding:0;
-    }
+    .rol-eq-select:hover{border-color:var(--orange);}
+    .rol-eq-select:focus{outline:none; border-color:var(--orange);}
     .match-pts{font-size:20px; font-weight:900; font-variant-numeric:tabular-nums;}
     .match-row.gano .team-name{font-weight:800;}
     .match-row.gano .match-pts{color:var(--win);}
@@ -3466,18 +3462,25 @@ function equiposDeCategoria(cat){
 let ROL_EQUIPO = null;
 
 function elegirEquipoRol(equipo){
-  ROL_EQUIPO = (ROL_EQUIPO === equipo) ? null : equipo;   // volver a tocarlo lo quita
+  ROL_EQUIPO = equipo || null;          // vacío = todos los equipos
   renderRol();
 }
 
+/* Un menú, no una fila de botones: en Varonil B son catorce equipos y en el
+   celular la fila se comía media pantalla. */
 function botonesEquipoRol(cat){
   const equipos = equiposDeCategoria(cat);
   if(!equipos.length) return "";
   if(ROL_EQUIPO && equipos.indexOf(ROL_EQUIPO) === -1) ROL_EQUIPO = null;
-  return '<div class="rol-equipos">' + equipos.map(e=>
-    `<button type="button" class="rol-eq-btn${ROL_EQUIPO === e ? " active" : ""}"
-       onclick="elegirEquipoRol('${String(e).replace(/'/g,"\\'")}')">${e}</button>`
-  ).join("") + '</div>';
+  const opciones = equipos.map(e=>
+    `<option value="${String(e).replace(/"/g,"&quot;")}"${ROL_EQUIPO === e ? " selected" : ""}>${e}</option>`
+  ).join("");
+  return `<div class="rol-equipos">
+    <label for="rolEquipoSel">Equipo</label>
+    <select id="rolEquipoSel" class="rol-eq-select" onchange="elegirEquipoRol(this.value)">
+      <option value="">Todos los equipos</option>${opciones}
+    </select>
+  </div>`;
 }
 
 function renderRol(){
@@ -3492,10 +3495,6 @@ function renderRol(){
   }
 
   let html = botones;
-  if(ROL_EQUIPO){
-    html += `<div class="rol-equipo-aviso">Solo los partidos de <strong>${ROL_EQUIPO}</strong>
-      · <button class="rol-eq-limpiar" onclick="elegirEquipoRol('${String(ROL_EQUIPO).replace(/'/g,"\\'")}')">ver todos</button></div>`;
-  }
 
   grouped.forEach(g=>{
     const visibleItems = g.items.filter(m=>
