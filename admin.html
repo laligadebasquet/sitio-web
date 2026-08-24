@@ -145,6 +145,11 @@
   }
   .hd-cuarto-btn.activo{background:#E8365D;border-color:#E8365D;color:#fff;}
   .hd-cuarto-btn.cerrado{background:#243; border-color:#2f5; color:#8f8; cursor:not-allowed;}
+  /* Los tiempos extra se ven distintos: no son un cuarto más, son la señal
+     de que el partido se empató y de que cambian los tiempos fuera. */
+  .hd-cuarto-btn.extra{border-style:dashed;border-color:#6b5320;color:#e0a63c;}
+  .hd-cuarto-btn.extra.activo{background:#E8912E;border-color:#E8912E;border-style:solid;color:#1a1200;}
+  .hd-cuarto-btn.extra.cerrado{background:#2a2113;border-color:#6b5320;color:#e0a63c;}
   .hd-cuarto-btn:disabled{opacity:.45;cursor:not-allowed;}
   .hd-nota{font-size:11px;color:#888;margin:0 0 14px;}
   /* Tabla por cuarto */
@@ -155,6 +160,47 @@
   /* Dos columnas de equipos */
   .hd-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media(max-width:1000px){ .hd-split{grid-template-columns:1fr;} }
+  /* El tablero va pegado a la izquierda del llenado y se queda ahí mientras
+     la mesa baja por la lista de jugadores: el marcador y las faltas del
+     cuarto son justo lo que preguntan los entrenadores a media captura. */
+  .hd-conmarcador{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start;}
+  @media(max-width:1180px){ .hd-conmarcador{grid-template-columns:1fr;} }
+  .hd-tablero{
+    position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
+    border-radius:12px;padding:14px 12px;
+  }
+  @media(max-width:1180px){ .hd-tablero{position:static;} }
+  .hd-tab-eq{padding:8px 0;}
+  .hd-tab-eq + .hd-tab-eq{border-top:1px solid #222;margin-top:6px;padding-top:12px;}
+  .hd-tab-nombre{
+    font-size:11px;font-weight:900;color:#bbb;text-transform:uppercase;
+    letter-spacing:.4px;line-height:1.25;
+  }
+  .hd-tab-pts{font-size:42px;font-weight:900;color:#fff;line-height:1;margin:2px 0 6px;}
+  .hd-tab-periodo{
+    text-align:center;font-size:10px;font-weight:900;color:#e0a63c;
+    text-transform:uppercase;letter-spacing:.6px;
+    background:#2a2113;border:1px solid #6b5320;border-radius:20px;padding:3px 8px;
+  }
+  .hd-tab-tit{
+    font-size:9px;font-weight:900;color:#666;text-transform:uppercase;
+    letter-spacing:.7px;margin:4px 0 3px;
+  }
+  .hd-tab-faltas{display:flex;gap:4px;flex-wrap:wrap;}
+  .hd-tab-f{
+    min-width:26px;text-align:center;font-size:10px;font-weight:800;
+    background:#151515;border:1px solid #2e2e2e;border-radius:6px;padding:3px 2px;color:#999;
+  }
+  .hd-tab-f b{display:block;font-size:13px;color:#ddd;font-weight:900;}
+  .hd-tab-f.actual{border-color:#E8912E;background:#241a09;}
+  .hd-tab-f.actual b{color:#ffc978;}
+  /* Cinco faltas de equipo en el cuarto: el rival entra en bonus. */
+  .hd-tab-f.bonus{border-color:#e23b3b;background:#2a0d0d;}
+  .hd-tab-f.bonus b{color:#ff9b9b;}
+  .hd-tab-bonus{
+    margin-top:5px;font-size:9px;font-weight:900;color:#ffb3b3;
+    text-transform:uppercase;letter-spacing:.5px;
+  }
   .hd-col{background:#101010;border:1px solid #262626;border-radius:12px;padding:14px;min-width:0;}
   .hd-col h3{margin:0 0 4px;font-size:14px;color:#fff;font-weight:900;text-transform:uppercase;}
   .hd-col-sub{font-size:11px;color:#888;margin-bottom:12px;}
@@ -1051,8 +1097,9 @@
       <h2>Hoja digital</h2>
       <div class="hd-barra">
         <div>
-          <label for="hdPartidoSelect">Partido</label>
+          <label for="hdPartidoSelect">Partido de hoy</label>
           <select id="hdPartidoSelect" onchange="hdCambiarPartido()"></select>
+          <div id="hdAvisoDia" style="font-size:10px;color:#777;margin-top:4px;"></div>
         </div>
         <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
         <button class="mini-btn" onclick="hdAbrirPrueba()">🧪 Partido de prueba</button>
@@ -3570,19 +3617,40 @@ function hdIniciarPrueba(){
   hdRender();
 }
 
-/* ---------- Selector de partido ---------- */
+/* ---------- Selector de partido ----------
+   En la mesa solo se capturan los partidos de HOY. Antes salía el rol
+   completo y había que buscar entre ochenta y tantos el que tocaba: con
+   prisa, ahí es donde se abría el partido equivocado. */
+function hdHoyISO(){
+  const d = new Date();
+  const dos = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate());
+}
+
+function hdPartidosDeHoy(){
+  const hoy = hdHoyISO();
+  return MATCHES.filter(m => String(m.fecha || "").slice(0,10) === hoy);
+}
+
 function hdLlenarSelector(){
   const sel = document.getElementById("hdPartidoSelect");
   if(!sel) return;
-  const pendientes = MATCHES.filter(m=>m.estatus !== "Jugado");
-  const lista = pendientes.length ? pendientes : MATCHES;
+  const lista = hdPartidosDeHoy();
+  const aviso = document.getElementById("hdAvisoDia");
+  if(aviso){
+    aviso.textContent = lista.length
+      ? "Solo salen los partidos de hoy (" + lista.length + ")."
+      : "Hoy no hay partidos programados.";
+  }
   sel.innerHTML = lista.length
-    ? lista.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} · ${m.categoria || ""} — ${m.local} vs ${m.visit}${m.fecha ? " ("+m.fecha+")" : ""}</option>`).join("")
-    : '<option value="">No hay partidos en el rol</option>';
+    ? '<option value="">Elige el partido…</option>' +
+      lista.map(m=>`<option value="${MATCHES.indexOf(m)}">${m.hora ? m.hora + " · " : ""}${m.categoria || ""} — ${m.local} vs ${m.visit}${m.estatus === "Jugado" ? " (ya capturado)" : ""}</option>`).join("")
+    : '<option value="">Hoy no hay partidos</option>';
 }
 
 function hdCambiarPartido(){
   const sel = document.getElementById("hdPartidoSelect");
+  if(sel.value === ""){ HD = null; HD_CAMBIO = null; hdRender(); return; }
   const idx = Number(sel.value);
   const m = MATCHES[idx];
   if(!m){ document.getElementById("hdTablero").innerHTML = ""; return; }
@@ -3634,18 +3702,58 @@ async function hdRefrescarRosters(){
   if(nuevos.length) alert("Se agregaron al partido:\n\n· " + nuevos.join("\n· "));
 }
 
+/* ---------- Periodos ----------
+   Los cuatro cuartos de siempre y, si el partido se empata, los tiempos
+   extra. Internamente el 5 es el primer tiempo extra, el 6 el segundo, y así.
+   Todo lo demás (puntos, faltas, pendientes) usa el mismo número, así que no
+   hubo que inventar una estructura aparte.
+
+   Los respaldos viejos solo traen los cuartos 1 a 4; por eso en todas las
+   cuentas se lee con `|| 0` en vez de dar por hecho que la casilla existe. */
+const HD_CUARTOS = 4;
+const HD_MAX_EXTRAS = 4;                 // hasta cuatro tiempos extra, de sobra
+const HD_PERIODOS = [1,2,3,4,5,6,7,8];   // cuartos + los extras posibles
+
+function hdEsExtra(c){ return c > HD_CUARTOS; }
+function hdNombrePeriodo(c){
+  if(c <= HD_CUARTOS) return c + "º cuarto";
+  const n = c - HD_CUARTOS;
+  return n === 1 ? "Tiempo extra" : n + "º tiempo extra";
+}
+function hdNombreCorto(c){
+  return c <= HD_CUARTOS ? "C" + c : (c - HD_CUARTOS === 1 ? "TE" : "TE" + (c - HD_CUARTOS));
+}
+
+/* Qué botones se ven: los cuatro cuartos, tiempo extra y doble tiempo extra
+   siempre; y si el partido llegó al doble, aparece el siguiente. */
+function hdPeriodosVisibles(){
+  const hasta = Math.max(HD_CUARTOS + 2, Math.min((HD ? HD.cuartoMax : 0) + 1, HD_CUARTOS + HD_MAX_EXTRAS));
+  const lista = [];
+  for(let c = 1; c <= hasta; c++) lista.push(c);
+  return lista;
+}
+
+/* Los que de verdad se jugaron: para el parcial y para el correo, que no
+   tienen por qué enseñar columnas de tiempos extra que nunca pasaron. */
+function hdPeriodosJugados(p){
+  const hasta = Math.max(HD_CUARTOS, p.cuartoMax || HD_CUARTOS);
+  const lista = [];
+  for(let c = 1; c <= hasta; c++) lista.push(c);
+  return lista;
+}
+
 /* ---------- Cuentas ---------- */
-function hdPuntosJugador(j){ return j.q[1] + j.q[2] + j.q[3] + j.q[4]; }
+function hdPuntosJugador(j){ return HD_PERIODOS.reduce((s,c)=>s + (j.q[c] || 0), 0); }
 function hdPuntosCuarto(p, lado, c){
-  return p.jugadores[lado].reduce((s,j)=>s + j.q[c], 0) + p.pendientes[lado][c];
+  return p.jugadores[lado].reduce((s,j)=>s + (j.q[c] || 0), 0) + (p.pendientes[lado][c] || 0);
 }
 function hdTotal(p, lado){
-  return [1,2,3,4].reduce((s,c)=>s + hdPuntosCuarto(p, lado, c), 0);
+  return HD_PERIODOS.reduce((s,c)=>s + hdPuntosCuarto(p, lado, c), 0);
 }
 function hdPendientesTotal(p, lado){
-  return [1,2,3,4].reduce((s,c)=>s + p.pendientes[lado][c], 0);
+  return HD_PERIODOS.reduce((s,c)=>s + (p.pendientes[lado][c] || 0), 0);
 }
-function hdFaltasEquipoCuarto(p, lado, c){ return p.faltasEquipo[lado][c]; }
+function hdFaltasEquipoCuarto(p, lado, c){ return p.faltasEquipo[lado][c] || 0; }
 
 /* ---------- Reloj discreto del cuarto ----------
    Un cuarto dura 10 minutos de reloj corrido, pero con tiempos fuera y
@@ -3683,7 +3791,7 @@ function hdArrancarReloj(){
 function hdSeleccionarCuarto(c){
   if(!HD || HD.cerrado) return;
   if(c < HD.cuartoMax){
-    alert("No se puede regresar al cuarto " + c + ".\n\nYa vas en el " + HD.cuartoMax + ". Esto es a propósito: así los puntos siempre quedan en el cuarto correcto.");
+    alert("No se puede regresar a " + hdNombrePeriodo(c).toLowerCase() + ".\n\nYa vas en " + hdNombrePeriodo(HD.cuartoMax).toLowerCase() + ". Esto es a propósito: así los puntos siempre quedan donde van.");
     return;
   }
   HD.cuarto = c;
@@ -3695,7 +3803,7 @@ function hdSeleccionarCuarto(c){
 
 function hdExigeCuarto(){
   if(!HD || HD.cuarto === 0){
-    alert("Primero selecciona el cuarto en el que va el partido.");
+    alert("Primero selecciona el periodo en el que va el partido.");
     return false;
   }
   if(HD.cerrado){ alert("Este partido ya se cerró."); return false; }
@@ -3708,8 +3816,9 @@ function hdAnotar(lado, indice, puntos){
   const j = HD.jugadores[lado][indice];
   if(!j) return;
   const c = HD.cuarto;
+  if(!(c in j.q)) j.q[c] = 0;          // el periodo puede ser un tiempo extra recién abierto
   if(puntos < 0 && j.q[c] <= 0){
-    alert("No hay puntos que quitarle a " + j.nombre + " en el cuarto " + c + ".");
+    alert("No hay puntos que quitarle a " + j.nombre + " en " + hdNombrePeriodo(c).toLowerCase() + ".");
     return;
   }
   j.q[c] += puntos;
@@ -3722,8 +3831,9 @@ function hdAnotar(lado, indice, puntos){
 function hdPendiente(lado, puntos){
   if(!hdExigeCuarto()) return;
   const c = HD.cuarto;
-  if(puntos < 0 && HD.pendientes[lado][c] <= 0) return;
-  HD.pendientes[lado][c] += puntos;
+  const hay = HD.pendientes[lado][c] || 0;
+  if(puntos < 0 && hay <= 0) return;
+  HD.pendientes[lado][c] = hay + puntos;
   hdGuardarRespaldo();
   hdRender();
 }
@@ -3734,7 +3844,7 @@ function hdFalta(lado, indice, tipo){
   const j = HD.jugadores[lado][indice];
   if(!j) return;
   if(tipo === "fp") j.fp++; else j.ftf++;
-  HD.faltasEquipo[lado][HD.cuarto]++;
+  HD.faltasEquipo[lado][HD.cuarto] = (HD.faltasEquipo[lado][HD.cuarto] || 0) + 1;
 
   const totalFaltas = j.fp + j.ftf;
   hdGuardarRespaldo();
@@ -3743,10 +3853,10 @@ function hdFalta(lado, indice, tipo){
   if(totalFaltas === 5){
     alert("🚨 " + j.nombre + " llegó a 5 faltas.\n\nQueda FUERA del partido.");
   }
-  const faltasDelCuarto = HD.faltasEquipo[lado][HD.cuarto];
+  const faltasDelCuarto = hdFaltasEquipoCuarto(HD, lado, HD.cuarto);
   if(faltasDelCuarto === 5){
     const rival = lado === "local" ? HD.visit : HD.local;
-    alert("⚠️ " + HD[lado] + " llegó a 5 faltas en el cuarto " + HD.cuarto + ".\n\n" + rival + " entra en BONUS (tiros libres).");
+    alert("⚠️ " + HD[lado] + " llegó a 5 faltas en " + hdNombrePeriodo(HD.cuarto).toLowerCase() + ".\n\n" + rival + " entra en BONUS (tiros libres).");
   }
 }
 
@@ -3762,20 +3872,44 @@ function hdQuitarFalta(lado, indice, tipo){
   hdRender();
 }
 
-/* ---------- Tiempos fuera ---------- */
-function hdMitadActual(){ return (HD && HD.cuarto >= 3) ? "segunda" : "primera"; }
-function hdTiemposFueraTope(mitad){ return mitad === "primera" ? 2 : 3; }
+/* ---------- Tiempos fuera ----------
+   Primera mitad 2, segunda mitad 3. El primer tiempo extra trae uno nuevo
+   para cada equipo; del segundo en adelante ya no hay ninguno. Cada tramo
+   lleva su propia cuenta: los que sobraron de la segunda mitad no se
+   arrastran al tiempo extra. */
+function hdMitadActual(){
+  if(!HD) return "primera";
+  if(hdEsExtra(HD.cuarto)) return "extra" + (HD.cuarto - HD_CUARTOS);
+  return HD.cuarto >= 3 ? "segunda" : "primera";
+}
+
+function hdTiemposFueraTope(mitad){
+  if(mitad === "primera") return 2;
+  if(mitad === "segunda") return 3;
+  return mitad === "extra1" ? 1 : 0;   // 2º tiempo extra en adelante: ninguno
+}
+
+function hdNombreMitad(mitad){
+  if(mitad === "primera") return "primera mitad";
+  if(mitad === "segunda") return "segunda mitad";
+  return mitad === "extra1" ? "el tiempo extra" : "este tiempo extra";
+}
 
 function hdTiempoFuera(lado){
   if(!hdExigeCuarto()) return;
   const mitad = hdMitadActual();
   const tope = hdTiemposFueraTope(mitad);
-  const usados = HD.tiemposFuera[lado][mitad];
-  if(usados >= tope){
-    alert(HD[lado] + " ya usó sus " + tope + " tiempos fuera de la " + mitad + " mitad.");
+  const usados = HD.tiemposFuera[lado][mitad] || 0;
+  if(tope === 0){
+    alert("Del segundo tiempo extra en adelante no hay tiempos fuera para nadie.");
     return;
   }
-  HD.tiemposFuera[lado][mitad]++;
+  if(usados >= tope){
+    alert(HD[lado] + " ya usó " + (tope === 1 ? "su tiempo fuera" : "sus " + tope + " tiempos fuera") +
+          " de " + hdNombreMitad(mitad) + ".");
+    return;
+  }
+  HD.tiemposFuera[lado][mitad] = usados + 1;
   hdGuardarRespaldo();
   hdRender();
 }
@@ -3925,8 +4059,8 @@ function hdRender(){
   // Recordatorio del cuarto: solo si el reloj ya se pasó de los 12:30.
   if(HD_AVISO_VISIBLE && !HD.cerrado){
     html += `<div class="hd-aviso-cuarto">
-      ⏰ Llevas más de 12:30 en el <strong>${HD.cuarto}º cuarto</strong>.
-      ¿Ya terminó? Selecciona el siguiente cuarto para que los puntos no se vayan al equivocado.
+      ⏰ Llevas más de 12:30 en el <strong>${hdNombrePeriodo(HD.cuarto).toLowerCase()}</strong>.
+      ¿Ya terminó? Selecciona el siguiente periodo para que los puntos no se vayan al equivocado.
     </div>`;
   }
 
@@ -3951,7 +4085,7 @@ function hdRender(){
       </div>
       <div class="hd-marcador-centro">
         SEMANA ${HD.semana}<br>${HD.categoria || ""}<br>
-        ${HD.cuarto ? "CUARTO " + HD.cuarto : "SIN INICIAR"}
+        ${HD.cuarto ? hdNombrePeriodo(HD.cuarto).toUpperCase() : "SIN INICIAR"}
       </div>
       <div class="hd-lado-der">
         <div class="hd-equipo-nombre">${HD.visit}</div>
@@ -3971,31 +4105,37 @@ function hdRender(){
       <select onchange="hdOficial('mesa',this.value)">${opts(CONFIG.mesa, HD.mesa)}</select></div>
   </div>`;
 
-  // Cuartos
+  // Cuartos y tiempos extra
   html += '<div class="hd-cuartos">';
-  for(let c = 1; c <= 4; c++){
+  hdPeriodosVisibles().forEach(c=>{
     const activo = HD.cuarto === c ? " activo" : "";
     const cerrado = (c < HD.cuartoMax) ? " cerrado" : "";
+    const extra = hdEsExtra(c) ? " extra" : "";
     const bloqueado = (c < HD.cuartoMax || HD.cerrado) ? " disabled" : "";
-    html += `<button class="hd-cuarto-btn${activo}${cerrado}"${bloqueado} onclick="hdSeleccionarCuarto(${c})">${c}º cuarto</button>`;
-  }
-  html += '</div><p class="hd-nota">Selecciona el cuarto en el que va el partido. Una vez que avanzas ya no puedes regresar: así los puntos siempre quedan en el cuarto correcto.</p>';
+    const texto = c <= HD_CUARTOS ? c + "º cuarto" : (c === 5 ? "Tiempo extra" : (c - HD_CUARTOS) + "º T. extra");
+    html += `<button class="hd-cuarto-btn${activo}${cerrado}${extra}"${bloqueado} onclick="hdSeleccionarCuarto(${c})">${texto}</button>`;
+  });
+  html += '</div><p class="hd-nota">Selecciona el periodo en el que va el partido. Una vez que avanzas ya no puedes regresar: así los puntos siempre quedan donde van. Si acaban empatados, pásale a <strong>Tiempo extra</strong>: ahí cada equipo tiene un tiempo fuera nuevo, y del segundo tiempo extra en adelante ya no hay ninguno.</p>';
   html += `</div>`;
 
-  // Los dos equipos
+  // Tablero pegado a la izquierda + los dos equipos
+  html += '<div class="hd-conmarcador">';
+  html += hdTableroHTML();
   html += '<div class="hd-split">';
   ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
-  html += '</div>';
+  html += '</div></div>';
 
   // Parcial por cuartos: va al final, debajo de los rosters. Durante el
   // partido lo que se usa a cada rato son los botones de los jugadores; el
   // parcial es para revisarlo de vez en cuando, no estorba abajo.
   html += `<div class="card">
-    <h3 style="margin:0 0 10px 0;">Parcial por cuartos</h3>
-    <table class="hd-porcuarto"><tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>`;
+    <h3 style="margin:0 0 10px 0;">Parcial del partido</h3>
+    <table class="hd-porcuarto"><tr><th>Equipo</th>` +
+    hdPeriodosJugados(HD).map(c=>`<th>${hdNombreCorto(c)}</th>`).join("") +
+    `<th>Total</th></tr>`;
   ["local","visit"].forEach(lado=>{
     html += `<tr><td class="eq">${HD[lado]}</td>` +
-      [1,2,3,4].map(c=>`<td>${hdPuntosCuarto(HD, lado, c)}</td>`).join("") +
+      hdPeriodosJugados(HD).map(c=>`<td>${hdPuntosCuarto(HD, lado, c)}</td>`).join("") +
       `<td><strong>${hdTotal(HD, lado)}</strong></td></tr>`;
   });
   html += `</table></div>`;
@@ -4022,6 +4162,35 @@ function hdRender(){
   html += hdCambioHTML();
 
   cont.innerHTML = html;
+}
+
+/* Tablero de la izquierda: cómo va el partido y las faltas de equipo por
+   cuarto. Se queda pegado mientras la mesa baja por la lista, porque son los
+   dos datos que le preguntan a media captura y antes había que subir hasta
+   arriba a ver el marcador. */
+function hdTableroHTML(){
+  const periodos = hdPeriodosJugados(HD);
+  const fila = (lado)=>{
+    const rival = lado === "local" ? "visit" : "local";
+    const enBonus = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) >= 5 : false;
+    const casillas = periodos.map(c=>{
+      const f = hdFaltasEquipoCuarto(HD, lado, c);
+      const clase = f >= 5 ? " bonus" : (c === HD.cuarto ? " actual" : "");
+      return `<span class="hd-tab-f${clase}" title="${hdNombrePeriodo(c)}">${hdNombreCorto(c)}<b>${f}</b></span>`;
+    }).join("");
+    return `<div class="hd-tab-eq">
+      <div class="hd-tab-nombre">${HD[lado]}</div>
+      <div class="hd-tab-pts">${hdTotal(HD, lado)}</div>
+      <div class="hd-tab-tit">Faltas de equipo</div>
+      <div class="hd-tab-faltas">${casillas}</div>
+      ${enBonus ? '<div class="hd-tab-bonus">▲ Bonus a favor</div>' : ''}
+    </div>`;
+  };
+  return `<div class="hd-tablero">
+    <div class="hd-tab-periodo">${HD.cuarto ? hdNombrePeriodo(HD.cuarto) : "Sin iniciar"}</div>
+    ${fila("local")}
+    ${fila("visit")}
+  </div>`;
 }
 
 /* La ventana del cambio. Se pinta al final para que quede encima de todo, y
@@ -4058,21 +4227,22 @@ function hdColumnaEquipo(lado){
   const rival = lado === "local" ? "visit" : "local";
   const mitad = hdMitadActual();
   const tope = hdTiemposFueraTope(mitad);
-  const usados = HD.tiemposFuera[lado][mitad];
+  const usados = HD.tiemposFuera[lado][mitad] || 0;
   const faltasCuarto = HD.cuarto ? hdFaltasEquipoCuarto(HD, lado, HD.cuarto) : 0;
   // El BONUS es para MI equipo cuando el RIVAL ya cometió 5 faltas en el cuarto.
   const faltasRival = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) : 0;
   const enBonus = faltasRival >= 5;
-  const pend = HD.cuarto ? HD.pendientes[lado][HD.cuarto] : 0;
+  const pend = HD.cuarto ? (HD.pendientes[lado][HD.cuarto] || 0) : 0;
 
   let html = `<div class="hd-col">
     <h3>${equipo}</h3>
     <div class="hd-col-sub">
-      ${hdTotal(HD, lado)} pts · faltas de equipo en el cuarto: ${faltasCuarto}
+      ${hdTotal(HD, lado)} pts · faltas de equipo en el periodo: ${faltasCuarto}
       ${hdPendientesTotal(HD, lado) ? ' · <span style="color:#e0a63c;font-weight:800;">' + hdPendientesTotal(HD, lado) + ' pts pendientes</span>' : ''}
     </div>
     <div class="hd-acciones-equipo">
-      <button class="hd-tf-btn" ${usados >= tope ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')">
+      <button class="hd-tf-btn" ${usados >= tope ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')"
+              title="${tope === 0 ? "Del segundo tiempo extra en adelante no hay tiempos fuera" : "Tiempos fuera de " + hdNombreMitad(mitad)}">
         ⏱ Tiempo fuera (${usados}/${tope})
       </button>
       <!-- A la mano, en la propia captura: si alguien se acaba de dar de alta
@@ -4082,7 +4252,7 @@ function hdColumnaEquipo(lado){
       </button>
       ${enBonus ? '<span class="hd-bonus">BONUS a favor</span>' : ''}
       <span class="hd-pend">
-        <span class="hd-pend-label">Puntos pendientes${HD.cuarto ? " (C" + HD.cuarto + "): " + pend : ""}</span>
+        <span class="hd-pend-label">Puntos pendientes${HD.cuarto ? " (" + hdNombreCorto(HD.cuarto) + "): " + pend : ""}</span>
         <button class="hd-b mas" onclick="hdPendiente('${lado}',1)">+1</button>
         <button class="hd-b mas" onclick="hdPendiente('${lado}',2)">+2</button>
         <button class="hd-b mas" onclick="hdPendiente('${lado}',3)">+3</button>
@@ -4205,10 +4375,13 @@ async function hdFinalizar(){
     mesa: HD.mesa, arbitro1: HD.arbitro1, arbitro2: HD.arbitro2,
     equipoLocal: HD.local, equipoVisit: HD.visit,
     ptsLocal: hdTotal(HD, "local"), ptsVisit: hdTotal(HD, "visit"),
+    /* Cuatro cuartos y, si el partido se fue a tiempo extra, una casilla
+       más por cada extra. El correo arma las columnas según lo que llegue. */
     porCuarto: {
-      local: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"local",c)),
-      visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
+      local: hdPeriodosJugados(HD).map(c=>hdPuntosCuarto(HD,"local",c)),
+      visit: hdPeriodosJugados(HD).map(c=>hdPuntosCuarto(HD,"visit",c))
     },
+    periodos: hdPeriodosJugados(HD).map(c=>hdNombreCorto(c)),
     jugadores: ["local","visit"].flatMap(lado=>
       HD.jugadores[lado]
         .filter(j=>hdPuntosJugador(j) > 0 || j.fp || j.ftf)
@@ -4221,7 +4394,7 @@ async function hdFinalizar(){
   //    quiere revisar al hacer una prueba).
   if(HD.esPrueba){
     const linea = (lado)=> HD[lado] + ": " +
-      [1,2,3,4].map(c=>"C"+c+" "+hdPuntosCuarto(HD,lado,c)).join("  ") +
+      hdPeriodosJugados(HD).map(c=>hdNombreCorto(c)+" "+hdPuntosCuarto(HD,lado,c)).join("  ") +
       "  = " + hdTotal(HD, lado) + " pts";
     const anotadores = ["local","visit"].flatMap(lado=>
       HD.jugadores[lado].filter(j=>hdPuntosJugador(j)>0 || j.fp || j.ftf)
@@ -4294,17 +4467,18 @@ async function hdFinalizar(){
       equipoLocal: HD.local, equipoVisit: HD.visit,
       ptsLocal: hdTotal(HD, "local"), ptsVisit: hdTotal(HD, "visit"),
       porCuarto: {
-        local: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"local",c)),
-        visit: [1,2,3,4].map(c=>hdPuntosCuarto(HD,"visit",c))
+        local: hdPeriodosJugados(HD).map(c=>hdPuntosCuarto(HD,"local",c)),
+        visit: hdPeriodosJugados(HD).map(c=>hdPuntosCuarto(HD,"visit",c))
       },
+      periodos: hdPeriodosJugados(HD).map(c=>hdNombreCorto(c)),
       jugadores: jugadoresPayload,
       asistencia: asistenciaPayload,
       /* Los puntos que quedaron sin dueño, con su cuarto. Con esto el backend
          retiene el partido: no lo publica ni manda la cédula hasta que se
          asignen desde la pestaña LINK Y PENDIENTES. */
       pendientes: {
-        local: {1:HD.pendientes.local[1], 2:HD.pendientes.local[2], 3:HD.pendientes.local[3], 4:HD.pendientes.local[4]},
-        visit: {1:HD.pendientes.visit[1], 2:HD.pendientes.visit[2], 3:HD.pendientes.visit[3], 4:HD.pendientes.visit[4]}
+        local: Object.fromEntries(hdPeriodosJugados(HD).map(c=>[c, HD.pendientes.local[c] || 0])),
+        visit: Object.fromEntries(hdPeriodosJugados(HD).map(c=>[c, HD.pendientes.visit[c] || 0]))
       },
       mesa: HD.mesa, arbitro1: HD.arbitro1, arbitro2: HD.arbitro2,
       destino: CONFIG.correoReportes,
