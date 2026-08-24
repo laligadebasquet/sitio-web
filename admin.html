@@ -205,6 +205,43 @@
     font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
     color:#777;padding:8px 6px 4px;border-top:1px dashed #333;margin-top:4px;
   }
+  /* Los que todavía no tienen jersey se van hasta abajo y se ven apagados:
+     no han jugado, y mientras no tengan número no pueden entrar. */
+  .hd-banca-sep.sin-num{color:#5a5a5a;}
+  .hd-jug.sin-numero .hd-jug-nombre{color:#8a8a8a;}
+  /* La columna del número: el botón C vive justo arriba del jersey. */
+  .hd-jcol{display:flex;flex-direction:column;align-items:stretch;gap:3px;}
+  .hd-c{
+    padding:1px 0;border-radius:5px;cursor:pointer;
+    border:1px solid #39FF14;background:rgba(57,255,20,.14);color:#39FF14;
+    font-size:10px;font-weight:900;line-height:1.35;letter-spacing:.5px;
+    text-shadow:0 0 6px rgba(57,255,20,.55);
+  }
+  .hd-c:hover{background:#39FF14;color:#062b00;text-shadow:none;}
+  /* Ventana del cambio: un solo gesto, sale uno y entra otro. */
+  .hd-cambio-fondo{
+    position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:60;
+    display:flex;align-items:center;justify-content:center;padding:18px;
+  }
+  .hd-cambio-caja{
+    background:#141414;border:1px solid #333;border-radius:14px;padding:20px;
+    max-width:560px;width:100%;max-height:86vh;overflow:auto;
+  }
+  .hd-cambio-tit{font-size:19px;font-weight:900;color:#fff;margin:0 0 5px 0;}
+  .hd-cambio-sale{font-size:12px;font-weight:800;color:#e8a87c;margin-bottom:16px;}
+  .hd-cambio-nums{display:flex;flex-wrap:wrap;gap:12px;}
+  .hd-num{
+    width:78px;padding:11px 4px;border-radius:14px;cursor:pointer;text-align:center;
+    border:2px solid #2f6d3f;background:#12301c;
+  }
+  .hd-num:hover{background:#1c4a2a;border-color:#49c46f;}
+  .hd-num b{display:block;font-size:23px;font-weight:900;color:#fff;line-height:1.05;}
+  .hd-num span{
+    display:block;font-size:9px;font-weight:700;color:#9ad0a8;margin-top:4px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .hd-cambio-vacio{font-size:13px;color:#999;line-height:1.5;}
+  .hd-cambio-pie{margin-top:18px;display:flex;justify-content:flex-end;}
   .hd-nombre-link{cursor:pointer;border-bottom:1px dotted #666;}
   .hd-nombre-link:hover{color:#fff;border-bottom-color:#aaa;}
   /* Recordatorio de cambiar de cuarto: se ve, pero no tapa nada ni obliga a
@@ -3520,6 +3557,7 @@ function hdIniciarPrueba(){
     if(!confirm("Tienes el partido REAL " + HD.local + " vs " + HD.visit + " a medias.\n\nSe queda respaldado aparte, pero ¿seguro que quieres empezar una prueba ahora?")) return;
   }
 
+  HD_CAMBIO = null;
   HD = hdNuevoPartido({
     jornada: 0, categoria: cat, local, visit,
     fecha: new Date().toISOString().slice(0,10), hora: ""
@@ -3557,6 +3595,7 @@ function hdCambiarPartido(){
       return;
     }
   }
+  HD_CAMBIO = null;
   HD = hdLeerRespaldo(clave) || hdNuevoPartido(m);
   hdArrancarReloj();
   hdGuardarRespaldo();
@@ -3799,12 +3838,62 @@ function hdCambiarCancha(lado, indice){
   hdRender();
 }
 
-/* Los que están en cancha van arriba; el resto conserva su orden.
+/* ---------- Cambio en un solo gesto ----------
+   Antes un cambio eran dos movimientos separados: apagar el círculo del que
+   sale y buscar en la lista al que entra. En la mesa, con el reloj corriendo,
+   eso es donde se equivocaban. Ahora se pica la C del que sale y se elige de
+   una vez el número del que entra: los dos movimientos en uno. */
+let HD_CAMBIO = null;   // {lado, indice} del jugador que va a salir
+
+function hdAbrirCambio(lado, indice){
+  if(!HD || HD.cerrado) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j || !j.encancha) return;      // solo sale quien está dentro
+  HD_CAMBIO = { lado, indice };
+  hdRender();
+}
+
+function hdCerrarCambio(){
+  HD_CAMBIO = null;
+  hdRender();
+}
+
+/* Quién puede entrar: los de banca que ya traen número (el número es lo que
+   registra que vinieron) y que no llegaron a 5 faltas. */
+function hdDisponiblesParaEntrar(lado){
+  if(!HD) return [];
+  return HD.jugadores[lado]
+    .map((j, i)=>({ j, i }))
+    .filter(({j})=> !j.encancha && String(j.jersey || "").trim() && (j.fp + j.ftf) < 5);
+}
+
+function hdHacerCambio(indiceEntra){
+  if(!HD || HD.cerrado || !HD_CAMBIO) return;
+  const lado = HD_CAMBIO.lado;
+  const sale = HD.jugadores[lado][HD_CAMBIO.indice];
+  const entra = HD.jugadores[lado][indiceEntra];
+  if(!sale || !entra) return;
+  sale.encancha = false;
+  entra.encancha = true;
+  HD_CAMBIO = null;
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* Orden de la columna, de arriba abajo:
+     1) los cinco que están en cancha,
+     2) la banca que ya tiene número puesto,
+     3) hasta abajo los que todavía no tienen número.
+   Así la mesa ve primero a los que están jugando, luego a los que puede
+   meter de inmediato, y los que ni siquiera vinieron no le estorban.
    Devuelve pares {j, i} porque los botones necesitan el índice REAL dentro
    de HD.jugadores, no la posición en pantalla. */
 function hdOrdenados(lado){
   const lista = HD.jugadores[lado].map((j, i)=>({ j, i }));
-  return lista.filter(x=>x.j.encancha).concat(lista.filter(x=>!x.j.encancha));
+  const conNumero = x => !!String(x.j.jersey || "").trim();
+  return lista.filter(x=> x.j.encancha)
+    .concat(lista.filter(x=> !x.j.encancha && conNumero(x)))
+    .concat(lista.filter(x=> !x.j.encancha && !conNumero(x)));
 }
 
 /* La foto no vive en el partido sino en las altas de jugadores. Se busca por
@@ -3930,7 +4019,38 @@ function hdRender(){
   }
   html += `</div>`;
 
+  html += hdCambioHTML();
+
   cont.innerHTML = html;
+}
+
+/* La ventana del cambio. Se pinta al final para que quede encima de todo, y
+   solo existe mientras haya un jugador esperando salir. */
+function hdCambioHTML(){
+  if(!HD_CAMBIO) return "";
+  const lado = HD_CAMBIO.lado;
+  const sale = HD.jugadores[lado][HD_CAMBIO.indice];
+  if(!sale) return "";
+
+  const disponibles = hdDisponiblesParaEntrar(lado);
+  const cuerpo = disponibles.length
+    ? `<div class="hd-cambio-nums">` + disponibles.map(({j, i})=>
+        `<button class="hd-num" onclick="hdHacerCambio(${i})" title="Meter a ${j.nombre}">
+           <b>${j.jersey}</b><span>${j.nombre}</span>
+         </button>`).join("") + `</div>`
+    : `<div class="hd-cambio-vacio">No hay nadie listo para entrar.<br>
+         Ponle su número a alguien de la banca y vuelve a picar la C.</div>`;
+
+  return `<div class="hd-cambio-fondo" onclick="if(event.target===this) hdCerrarCambio()">
+    <div class="hd-cambio-caja">
+      <h3 class="hd-cambio-tit">¿Quién ingresa a cancha?</h3>
+      <div class="hd-cambio-sale">Sale ${sale.jersey ? "#" + sale.jersey + " · " : ""}${sale.nombre} · ${HD[lado]}</div>
+      ${cuerpo}
+      <div class="hd-cambio-pie">
+        <button class="mini-btn" onclick="hdCerrarCambio()">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function hdColumnaEquipo(lado){
@@ -3980,27 +4100,36 @@ function hdColumnaEquipo(lado){
   html += `<div class="hd-cancha-head">
     <span class="hd-cancha-tit">En cancha</span>
     <span class="hd-cancha-cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA}</span>
-    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los que están jugando. El número es lo que registra la asistencia. Para un cambio: apaga al que sale y prende al que entra.</span>
+    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los cinco que están jugando. El número es lo que registra la asistencia. Para un cambio, pica la <strong style="color:#39FF14;">C</strong> del que sale y elige el número del que entra.</span>
   </div>`;
 
-  let ultimoEnCancha = true;
+  let grupoPrevio = null;
   hdOrdenados(lado).forEach(({j, i})=>{
     const faltas = j.fp + j.ftf;
     const fuera = faltas >= 5;
     const sinNumero = !String(j.jersey || "").trim();
 
-    // Línea divisoria entre el quinteto y la banca.
-    if(ultimoEnCancha && !j.encancha){
-      html += `<div class="hd-banca-sep">Banca</div>`;
-      ultimoEnCancha = false;
+    // Separadores entre los tres grupos. El primero no lleva encabezado: no
+    // hace falta anunciar el grupo con el que empieza la lista.
+    const grupo = j.encancha ? "cancha" : (sinNumero ? "sinnum" : "banca");
+    if(grupo !== grupoPrevio){
+      if(grupoPrevio !== null){
+        html += grupo === "banca"
+          ? `<div class="hd-banca-sep">Banca</div>`
+          : `<div class="hd-banca-sep sin-num">Sin número todavía</div>`;
+      }
+      grupoPrevio = grupo;
     }
 
-    html += `<div class="hd-jug${fuera ? " expulsado" : ""}${j.encancha ? " en-cancha" : ""}">
+    html += `<div class="hd-jug${fuera ? " expulsado" : ""}${j.encancha ? " en-cancha" : ""}${sinNumero ? " sin-numero" : ""}">
       <button class="hd-circulo${j.encancha ? " on" : ""}${sinNumero ? " sin-numero" : ""}" onclick="hdCambiarCancha('${lado}',${i})"
               title="${sinNumero ? "Ponle su número de jersey para poder meterlo" : (j.encancha ? "Sacar a " + j.nombre : "Meter a " + j.nombre)}"
               aria-label="${j.encancha ? "En cancha" : "En banca"}"></button>
-      <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
-             onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
+      <div class="hd-jcol">
+        ${j.encancha && !HD.cerrado ? `<button class="hd-c" onclick="hdAbrirCambio('${lado}',${i})" title="Cambio: sacar a ${j.nombre} y meter a otro">C</button>` : ""}
+        <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
+               onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
+      </div>
       <div>
         <div class="hd-jug-nombre">
           <span class="hd-nombre-link" onclick="hdFotoDe('${lado}',${i})" title="Ver la foto de ${j.nombre}">${j.nombre}</span>${fuera ? ' <span style="color:#ff6b6b;">· FUERA</span>' : ''}
@@ -4032,6 +4161,7 @@ function hdBorrarPartido(){
   try{ localStorage.removeItem(hdClaveRespaldo(HD.esPrueba)); }catch(e){}
   hdApagarReloj();
   HD = null;
+  HD_CAMBIO = null;
   hdRender();
 }
 
@@ -4113,6 +4243,7 @@ async function hdFinalizar(){
       try{ localStorage.removeItem(hdClaveRespaldo(true)); }catch(e){}
       hdApagarReloj();
       HD = null;
+      HD_CAMBIO = null;
       hdRender();
     }
     return;
