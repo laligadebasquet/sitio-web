@@ -163,7 +163,7 @@
   /* El tablero va pegado a la izquierda del llenado y se queda ahí mientras
      la mesa baja por la lista de jugadores: el marcador y las faltas del
      cuarto son justo lo que preguntan los entrenadores a media captura. */
-  .hd-conmarcador{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start;}
+  .hd-conmarcador{display:grid;grid-template-columns:158px 1fr;gap:14px;align-items:start;}
   @media(max-width:1000px){ .hd-conmarcador{grid-template-columns:1fr;} }
   .hd-tablero{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
@@ -186,17 +186,17 @@
     font-size:9px;font-weight:900;color:#666;text-transform:uppercase;
     letter-spacing:.7px;margin:4px 0 3px;
   }
-  .hd-tab-faltas{display:flex;gap:4px;flex-wrap:wrap;}
+  .hd-tab-faltas{display:flex;gap:7px;align-items:center;}
   .hd-tab-f{
-    min-width:26px;text-align:center;font-size:10px;font-weight:800;
-    background:#151515;border:1px solid #2e2e2e;border-radius:6px;padding:3px 2px;color:#999;
+    min-width:40px;text-align:center;font-size:20px;font-weight:900;
+    background:#151515;border:1px solid #2e2e2e;border-radius:8px;
+    padding:3px 6px;color:#ddd;
   }
-  .hd-tab-f b{display:block;font-size:13px;color:#ddd;font-weight:900;}
-  .hd-tab-f.actual{border-color:#E8912E;background:#241a09;}
-  .hd-tab-f.actual b{color:#ffc978;}
-  /* Cinco faltas de equipo en el cuarto: el rival entra en bonus. */
-  .hd-tab-f.bonus{border-color:#e23b3b;background:#2a0d0d;}
-  .hd-tab-f.bonus b{color:#ff9b9b;}
+  .hd-tab-f.apagada{color:#555;}
+  .hd-tab-f.actual{border-color:#E8912E;background:#241a09;color:#ffc978;}
+  /* Cinco faltas de equipo en el periodo: el rival entra en bonus. */
+  .hd-tab-f.bonus{border-color:#e23b3b;background:#2a0d0d;color:#ff9b9b;}
+  .hd-tab-nota{font-size:9px;font-weight:800;color:#ff9b9b;text-transform:uppercase;line-height:1.2;}
   .hd-tab-bonus{
     margin-top:5px;font-size:9px;font-weight:900;color:#ffb3b3;
     text-transform:uppercase;letter-spacing:.5px;
@@ -219,7 +219,7 @@
   }
   /* Jugadores */
   .hd-jug{
-    display:grid;grid-template-columns:26px 52px 1fr auto;gap:8px;align-items:center;
+    display:grid;grid-template-columns:24px 46px minmax(0,1fr) auto;gap:7px;align-items:center;
     padding:8px 6px;border-bottom:1px solid #1e1e1e;
   }
   .hd-jug:last-child{border-bottom:none;}
@@ -307,9 +307,15 @@
   .hd-jug-datos{font-size:10px;color:#888;font-weight:600;margin-top:2px;}
   .hd-jug-datos b{color:#ddd;}
   .hd-jug-datos .falta-alta{color:#ff8080;}
-  .hd-btns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+  /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
+     FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
+     acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
+  .hd-btns{
+    display:grid;grid-template-columns:repeat(4,34px);gap:4px;justify-content:end;
+  }
+  @media(max-width:1320px){ .hd-btns{grid-template-columns:repeat(4,31px);} }
   .hd-b{
-    min-width:34px;padding:7px 8px;border-radius:7px;border:1px solid #333;
+    min-width:0;padding:7px 4px;border-radius:7px;border:1px solid #333;
     background:#1c1c1c;color:#ddd;font-weight:800;font-size:12px;cursor:pointer;
   }
   .hd-b:hover{background:#2a2a2a;}
@@ -4169,20 +4175,23 @@ function hdRender(){
    dos datos que le preguntan a media captura y antes había que subir hasta
    arriba a ver el marcador. */
 function hdTableroHTML(){
-  const periodos = hdPeriodosJugados(HD);
+  /* Solo las faltas del periodo que está marcado. Las de los cuartos que ya
+     pasaron no sirven para nada en la mesa: lo único que se necesita saber
+     al momento es cuántas lleva el equipo en ESTE cuarto, porque a las cinco
+     el rival entra en bonus. */
   const fila = (lado)=>{
     const rival = lado === "local" ? "visit" : "local";
     const enBonus = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) >= 5 : false;
-    const casillas = periodos.map(c=>{
-      const f = hdFaltasEquipoCuarto(HD, lado, c);
-      const clase = f >= 5 ? " bonus" : (c === HD.cuarto ? " actual" : "");
-      return `<span class="hd-tab-f${clase}" title="${hdNombrePeriodo(c)}">${hdNombreCorto(c)}<b>${f}</b></span>`;
-    }).join("");
+    const f = HD.cuarto ? hdFaltasEquipoCuarto(HD, lado, HD.cuarto) : 0;
+    const clase = !HD.cuarto ? " apagada" : (f >= 5 ? " bonus" : " actual");
     return `<div class="hd-tab-eq">
       <div class="hd-tab-nombre">${HD[lado]}</div>
       <div class="hd-tab-pts">${hdTotal(HD, lado)}</div>
-      <div class="hd-tab-tit">Faltas de equipo</div>
-      <div class="hd-tab-faltas">${casillas}</div>
+      <div class="hd-tab-tit">Faltas ${HD.cuarto ? "en " + hdNombreCorto(HD.cuarto) : "de equipo"}</div>
+      <div class="hd-tab-faltas">
+        <span class="hd-tab-f${clase}">${HD.cuarto ? f : "—"}</span>
+        ${f >= 5 ? '<span class="hd-tab-nota">rival en bonus</span>' : ''}
+      </div>
       ${enBonus ? '<div class="hd-tab-bonus">▲ Bonus a favor</div>' : ''}
     </div>`;
   };
