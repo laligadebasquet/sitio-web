@@ -4381,7 +4381,9 @@ function hdPanelTiemposHTML(){
   };
 
   return `<div class="hd-tiempos">
-    <div class="hd-tab-periodo">${mitad === "primera" ? "1ª mitad" : (mitad === "segunda" ? "2ª mitad" : hdNombreMitad(mitad))}</div>
+    <div class="hd-tab-periodo">${mitad === "primera" ? "1ª mitad"
+      : (mitad === "segunda" ? "2ª mitad"
+      : (mitad === "extra1" ? "Tiempo extra" : hdNombrePeriodo(HD.cuarto)))}</div>
     ${bloque("local")}
     ${bloque("visit")}
     ${tope === 0
