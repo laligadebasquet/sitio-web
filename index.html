@@ -2055,7 +2055,7 @@ function parseCsv(text){
    a la función que le indicamos en callback=.
 
    Devuelve un objeto {"Equipos":[...], "Resultados":[...]} o null si falla. */
-function leerDelSheet(hojas, timeoutMs){
+function leerDelSheet(hojas, timeoutMs, opciones){
   return new Promise(resolve=>{
     const nombre = "__ligaCb" + Date.now() + Math.floor(Math.random()*1000);
     const script = document.createElement("script");
@@ -2100,8 +2100,16 @@ function leerDelSheet(hojas, timeoutMs){
       resolve(null);
     };
 
+    let extra = "";
+    if(opciones){
+      for(const clave in opciones){
+        if(opciones[clave] === undefined || opciones[clave] === "") continue;
+        extra += "&" + clave + "=" + encodeURIComponent(opciones[clave]);
+      }
+    }
     script.src = CONFIG.appsScriptUrl
       + "?hojas=" + encodeURIComponent(hojas.join(","))
+      + extra
       + "&callback=" + nombre;
     document.head.appendChild(script);
   });
@@ -2293,7 +2301,13 @@ async function init(){
   aplicarDeepLink();
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
-    const datos = await leerDelSheet(["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia","Cédulas","Estadísticas"]);
+    /* Sin las fotos: son 12 MB de la hoja Integrantes y hacían que la
+       primera carga tardara más de lo que aguanta el temporizador, con lo
+       que la página terminaba enseñando los datos de ejemplo. Las fotos se
+       piden después, por equipo, solo cuando alguien abre uno. */
+    const datos = await leerDelSheet(
+      ["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia","Cédulas","Estadísticas"],
+      25000, { sinFotos: 1 });
     if(datos){
       if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Rol de Juego"]) ROL = mapRolCsv(datos["Rol de Juego"]);
@@ -2909,13 +2923,71 @@ function fichaJugadorHTML(equipo, jugador){
   return html;
 }
 
+/* ============================================================
+   FOTOS DE LOS JUGADORES — se piden por equipo, no todas de golpe
+
+   Las 371 fotos pesan 12 MB en base64. Traerlas en cada visita hacía que la
+   página tardara diez segundos y a veces ni cargara. Como las fotos solo se
+   ven al abrir un equipo (roster, credencial o al picar un nombre), se piden
+   las de ESE equipo en el momento y se guardan para no volver a pedirlas.
+   ============================================================ */
+const FOTOS_POR_EQUIPO = {};      // equipo -> "listo" | Promise en curso
+
+function fotosYaCargadas(equipo){
+  return FOTOS_POR_EQUIPO[nombreEquipo(equipo)] === "listo";
+}
+
+/* Trae las fotos de un equipo y las pega en ROSTERS. Si ya se pidieron,
+   devuelve la misma promesa: dos clics seguidos no hacen dos viajes. */
+function cargarFotosDe(equipo){
+  const clave = nombreEquipo(equipo);
+  const estado = FOTOS_POR_EQUIPO[clave];
+  if(estado === "listo") return Promise.resolve(true);
+  if(estado && estado.then) return estado;
+  if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl) return Promise.resolve(false);
+
+  const promesa = leerDelSheet(["Integrantes"], 20000, { fotosDe: equipo }).then(datos=>{
+    const filas = datos && datos["Integrantes"] ? datos["Integrantes"] : [];
+    const porNombre = {};
+    filas.forEach(r=>{
+      const nom = nombreJugador(r["Nombre Completo"], r["Apellido"]);
+      if(nom && r["Foto"]) porNombre[normalizar(nom)] = r["Foto"];
+    });
+    // Se pegan sobre el roster que ya está pintado.
+    Object.keys(ROSTERS).forEach(eq=>{
+      if(nombreEquipo(eq) !== clave) return;
+      (ROSTERS[eq] || []).forEach(j=>{
+        const f = porNombre[normalizar(j.nombre)];
+        if(f) j.foto = f;
+      });
+    });
+    FOTOS_POR_EQUIPO[clave] = "listo";
+    return true;
+  }).catch(()=>{
+    // Que falle una foto no debe romper nada: se quedan las iniciales.
+    FOTOS_POR_EQUIPO[clave] = "listo";
+    return false;
+  });
+
+  FOTOS_POR_EQUIPO[clave] = promesa;
+  return promesa;
+}
+
 /* ---------- la foto ---------- */
-function abrirFoto(equipo, jugador){
-  const lista = ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [];
-  const j = lista.find(x=>normalizar(x.nombre) === normalizar(jugador));
+async function abrirFoto(equipo, jugador){
   const modal = document.getElementById("fotoModal");
   const cuerpo = document.getElementById("fotoModalCuerpo");
   if(!modal || !cuerpo) return;
+  // Se abre de inmediato y se avisa que va en camino: la foto tarda un par
+  // de segundos la primera vez que se pide de ese equipo.
+  if(!fotosYaCargadas(equipo)){
+    cuerpo.innerHTML = '<div class="foto-sin">Cargando la foto…</div>' +
+      `<div class="foto-nombre">${jugador}</div><div class="foto-equipo">${equipo}</div>`;
+    modal.classList.add("open");
+    await cargarFotosDe(equipo);
+  }
+  const lista = ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [];
+  const j = lista.find(x=>normalizar(x.nombre) === normalizar(jugador));
   cuerpo.innerHTML = (j && j.foto)
     ? `<img src="${j.foto}" alt="${jugador}"><div class="foto-nombre">${jugador}</div>
        <div class="foto-equipo">${equipo}</div>`
@@ -3314,6 +3386,13 @@ function renderEquipos(){
 }
 
 function verRoster(nombreEquipo){
+  // Las fotos llegan después; el roster se ve al momento con las iniciales.
+  if(!fotosYaCargadas(nombreEquipo)){
+    cargarFotosDe(nombreEquipo).then(()=>{
+      const abierto = document.getElementById("rosterModal");
+      if(abierto && abierto.classList.contains("open")) verRoster(nombreEquipo);
+    });
+  }
   const equipo = EQUIPOS.find(t=>t.nombre === nombreEquipo);
   const jugadores = ROSTERS[nombreEquipo] || [];
   document.getElementById("rosterModalTitle").textContent = nombreEquipo;
@@ -3967,6 +4046,12 @@ let JUGADORES_EQUIPO = null;   // el equipo abierto, o null
 
 function verRosterJugadores(equipo){
   JUGADORES_EQUIPO = (JUGADORES_EQUIPO === equipo) ? null : equipo;
+  // Igual que en el roster: se pinta ya y las fotos entran cuando llegan.
+  if(JUGADORES_EQUIPO && !fotosYaCargadas(equipo)){
+    cargarFotosDe(equipo).then(()=>{
+      if(JUGADORES_EQUIPO === equipo) renderJugadores();
+    });
+  }
   renderJugadores();
   if(JUGADORES_EQUIPO){
     const caja = document.getElementById("rosterCredenciales");
