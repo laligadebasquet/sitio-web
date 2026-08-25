@@ -217,6 +217,97 @@
     background:#5a1010;border:1px solid #e23b3b;color:#ffb3b3;
     padding:6px 11px;border-radius:8px;font-size:11px;font-weight:800;text-transform:uppercase;
   }
+  /* ---------- Pestaña CORREOS ---------- */
+  .correos-layout{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start;}
+  @media(max-width:900px){ .correos-layout{grid-template-columns:1fr;} }
+  .correos-lista{display:flex;flex-direction:column;gap:8px;}
+  .correo-item{
+    background:#101010;border:1px solid #262626;border-radius:10px;
+    padding:11px 12px;cursor:pointer;text-align:left;
+  }
+  .correo-item:hover{border-color:#3a3a3a;}
+  .correo-item.activo{border-color:#E8912E;background:#1a1409;}
+  .correo-item-nom{font-size:13px;font-weight:800;color:#eee;line-height:1.25;}
+  .correo-item-pie{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap;}
+  /* Verde = sale. Rojo = está callado. Se ve desde la lista, sin abrir. */
+  .correo-luz{
+    font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+    border-radius:20px;padding:2px 8px;
+  }
+  .correo-luz.on{color:#8de0a0;background:#12301c;border:1px solid #2f6d3f;}
+  .correo-luz.off{color:#ff9b9b;background:#2a0d0d;border:1px solid #7a2a2a;}
+  .correo-item-hora{font-size:10px;color:#888;font-weight:700;}
+  .correos-detalle{background:#101010;border:1px solid #262626;border-radius:12px;padding:18px;}
+  .correo-tit{font-size:17px;font-weight:900;color:#fff;margin:0 0 4px;}
+  .correo-explica{font-size:12px;color:#999;line-height:1.5;margin:0 0 16px;}
+  .correo-fila{
+    display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;
+    padding:14px 0;border-top:1px solid #222;
+  }
+  .correo-campo{display:flex;flex-direction:column;gap:5px;}
+  .correo-campo label{
+    font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;
+  }
+  /* El interruptor: grande y claro, que no haya duda de si sale o no. */
+  .correo-switch{
+    display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+    background:#151515;border:1px solid #2e2e2e;border-radius:24px;padding:6px 14px 6px 8px;
+  }
+  .correo-switch .bolita{
+    width:42px;height:22px;border-radius:20px;background:#3a1414;
+    border:1px solid #7a2a2a;position:relative;transition:background .15s,border-color .15s;
+  }
+  .correo-switch .bolita::after{
+    content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:#ff9b9b;transition:left .15s,background .15s;
+  }
+  .correo-switch.on .bolita{background:#12301c;border-color:#2f6d3f;}
+  .correo-switch.on .bolita::after{left:22px;background:#8de0a0;}
+  .correo-switch .txt{font-size:12px;font-weight:900;color:#ff9b9b;text-transform:uppercase;letter-spacing:.5px;}
+  .correo-switch.on .txt{color:#8de0a0;}
+  .correo-hora-input{
+    background:#000;border:1px solid #444;border-radius:7px;color:#fff;
+    padding:7px 9px;font-size:14px;font-weight:800;font-family:inherit;
+  }
+  .correo-nota{font-size:11px;color:#7a6a3a;background:#1c1608;border:1px solid #4a3a12;
+    border-radius:8px;padding:8px 11px;line-height:1.5;}
+  .correo-bloque{margin-top:14px;}
+  .correo-bloque label{
+    display:block;font-size:10px;font-weight:900;color:#888;
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;
+  }
+  .correo-bloque textarea, .correo-bloque input[type=text]{
+    width:100%;background:#0a0a0a;border:1px solid #333;border-radius:8px;color:#eee;
+    padding:9px 11px;font-size:13px;font-family:inherit;line-height:1.55;resize:vertical;
+  }
+  .correo-bloque textarea:focus, .correo-bloque input[type=text]:focus{
+    outline:none;border-color:#E8912E;
+  }
+  .correo-ayuda{font-size:10px;color:#666;margin-top:4px;line-height:1.5;}
+  .correo-ayuda code{
+    background:#1a1a1a;border:1px solid #2e2e2e;border-radius:4px;
+    padding:1px 5px;color:#e0a63c;font-size:10px;
+  }
+  .correo-para{font-size:12px;color:#bbb;line-height:1.6;}
+  .correo-fijos{
+    background:#0d0d0d;border:1px dashed #333;border-radius:8px;
+    padding:9px 11px;font-size:12px;color:#9a9a9a;line-height:1.6;
+  }
+  .correo-extras{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+  .correo-chip{
+    display:inline-flex;align-items:center;gap:7px;background:#12301c;
+    border:1px solid #2f6d3f;border-radius:20px;padding:4px 6px 4px 11px;
+    font-size:12px;color:#cfe8d5;font-weight:700;
+  }
+  .correo-chip button{
+    background:none;border:none;color:#8de0a0;cursor:pointer;font-size:14px;
+    line-height:1;padding:0 4px;font-weight:900;
+  }
+  .correo-acciones{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid #222;}
+  .correo-msg{font-size:12px;font-weight:700;margin-top:10px;}
+  .correo-msg.ok{color:#8de0a0;}
+  .correo-msg.err{color:#ff9b9b;}
+  .correo-img-previa{max-width:230px;border-radius:8px;border:1px solid #333;margin-top:9px;display:block;}
   /* Jugadores */
   .hd-jug{
     display:grid;grid-template-columns:24px 46px minmax(0,1fr) auto;gap:7px;align-items:center;
@@ -726,6 +817,7 @@
     <button data-view="cedulas">Cédulas</button>
     <button data-view="links">Link y Pendientes</button>
     <button data-view="inscripciones">Inscripciones</button>
+    <button data-view="correos">Correos</button>
     <button data-view="pruebas">Pruebas</button>
   </nav>
 </header>
@@ -1214,6 +1306,24 @@
     </div>
   </section>
 
+  <!-- ============ TAB: CORREOS ============ -->
+  <section class="view" id="view-correos">
+    <div class="card">
+      <h2>Correos</h2>
+      <div class="empty-state" style="text-align:left;padding:0 0 12px 0;">
+        Aquí se prende o apaga cada correo y se cambian sus textos. El diseño
+        (los colores, el logo, las tablas de datos) no se toca: lo que se
+        edita es lo que dice.
+        <strong style="color:#e0a63c;">Apagado no sale</strong>, aunque pase lo
+        que normalmente lo dispara.
+      </div>
+      <div class="correos-layout">
+        <div class="correos-lista" id="correosLista"></div>
+        <div class="correos-detalle" id="correosDetalle"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ TAB: PRUEBAS ============ -->
   <section class="view" id="view-pruebas">
     <div class="card">
@@ -1450,7 +1560,7 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", pruebas: "view-pruebas" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -1465,6 +1575,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
     if(btn.dataset.view === "inscripciones") renderInscripciones();
+    if(btn.dataset.view === "correos") renderCorreos();
     if(btn.dataset.view === "pruebas") renderPruebas();
   });
 });
@@ -1482,6 +1593,7 @@ function repintarVistaActual(){
     else if(vista === "cruces") renderCruces();
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
+    else if(vista === "correos") renderCorreos();
     else if(vista === "pruebas") renderPruebas();
     else { // pestaña Rol de Juego
       if(typeof renderScheduleList === "function") renderScheduleList();
@@ -5969,6 +6081,337 @@ async function guardarPago(){
   }finally{
     btn.disabled = false;
     btn.textContent = "Guardar pago";
+  }
+}
+
+/* ============================================================
+   PESTAÑA CORREOS
+   ------------------------------------------------------------
+   Prender o apagar cada correo, cambiarle la hora, editar sus textos y
+   agregar destinatarios.
+
+   Dos decisiones que vale la pena explicar:
+
+   1) Los destinatarios de siempre se muestran pero no se pueden borrar. No
+      es un descuido: si alguien quita por error el correo del capitán, el
+      aviso del partido deja de llegarle a un equipo entero y nadie se entera
+      hasta que no se presentan a jugar. Lo que sí se puede es AGREGAR.
+
+   2) El interruptor no pregunta ni confirma, pero la lista de la izquierda
+      trae un semáforo verde/rojo para que se vea de un vistazo cuáles están
+      callados sin tener que abrir uno por uno.
+   ============================================================ */
+
+let CORREOS_CFG = null;      // lo que devolvió el servidor
+let CORREO_ABIERTO = null;   // id del que se está editando
+let CORREOS_CARGANDO = false;
+
+/* Qué campo usar para cada bloque: los cortos van en una línea y los largos
+   en un cuadro, con la altura acorde a lo que suelen traer. */
+const CORREO_CAMPOS = {
+  asunto:            { etiqueta: "Asunto del correo", filas: 0 },
+  saludo:            { etiqueta: "Saludo", filas: 2 },
+  intro:             { etiqueta: "Primera línea", filas: 2 },
+  cuerpo:            { etiqueta: "Cuerpo", filas: 4 },
+  tituloDatos:       { etiqueta: "Título del recuadro de datos", filas: 0 },
+  pieCredencial:     { etiqueta: "Texto debajo de la credencial", filas: 2 },
+  tituloReglamento:  { etiqueta: "Título del reglamento", filas: 0 },
+  reglas:            { etiqueta: "Puntos del reglamento (uno por renglón)", filas: 7 },
+  etiquetaRival:     { etiqueta: "Etiqueta arriba del rival", filas: 0 },
+  aviso1:            { etiqueta: "Aviso 1 · altas", filas: 3 },
+  aviso2:            { etiqueta: "Aviso 2 · uniformes y casacas", filas: 5 },
+  aviso3:            { etiqueta: "Aviso 3 · pagos", filas: 4 },
+  titulo:            { etiqueta: "Título", filas: 0 },
+  tituloParcial:     { etiqueta: "Título del parcial", filas: 0 },
+  cierre:            { etiqueta: "Frase de cierre", filas: 2 }
+};
+
+/* Los {{datos}} que puede usar cada correo. Se enseñan debajo del campo para
+   que no tenga que adivinar cuáles existen. */
+const CORREO_MARCAS = {
+  bienvenida: "{{equipo}} {{categoria}} {{codigo}}",
+  credencial: "{{nombre}} {{equipo}} {{categoria}}",
+  recordatorioCapitanes: "{{dia}} {{equipo}} {{rival}} {{hora}} {{fecha}} {{semana}} {{categoria}} · y los links {{linkAlta}} {{linkPagos}}",
+  recordatorioOliver: "",
+  recordatorioStaff: "",
+  rol: "{{semana}}",
+  cedula: "{{local}} {{visit}} {{ptsLocal}} {{ptsVisit}} {{categoria}}"
+};
+
+async function renderCorreos(){
+  const lista = document.getElementById("correosLista");
+  const detalle = document.getElementById("correosDetalle");
+  if(!lista) return;
+
+  if(!CORREOS_CFG && !CORREOS_CARGANDO){
+    CORREOS_CARGANDO = true;
+    lista.innerHTML = '<div class="empty-state">Cargando…</div>';
+    detalle.innerHTML = "";
+    try{
+      const r = await postAppsScript({ action: "leerCorreosConfig", clave: CONFIG.adminPassword });
+      CORREOS_CFG = r.correos || {};
+    }catch(e){
+      lista.innerHTML = '<div class="empty-state">No se pudieron leer los correos: ' + e.message + '</div>';
+      CORREOS_CARGANDO = false;
+      return;
+    }
+    CORREOS_CARGANDO = false;
+  }
+  if(!CORREOS_CFG) return;
+
+  const ids = Object.keys(CORREOS_CFG);
+  if(!CORREO_ABIERTO || ids.indexOf(CORREO_ABIERTO) === -1) CORREO_ABIERTO = ids[0];
+
+  lista.innerHTML = ids.map(id=>{
+    const c = CORREOS_CFG[id];
+    return `<button class="correo-item${id === CORREO_ABIERTO ? " activo" : ""}" onclick="abrirCorreo('${id}')">
+      <div class="correo-item-nom">${c.nombre}</div>
+      <div class="correo-item-pie">
+        <span class="correo-luz ${c.activo ? "on" : "off"}">${c.activo ? "sale" : "no sale"}</span>
+        ${c.porEvento ? '' : '<span class="correo-item-hora">' + c.hora + '</span>'}
+      </div>
+    </button>`;
+  }).join("");
+
+  detalle.innerHTML = correoDetalleHTML(CORREO_ABIERTO);
+}
+
+function abrirCorreo(id){
+  CORREO_ABIERTO = id;
+  renderCorreos();
+}
+
+function correoDetalleHTML(id){
+  const c = CORREOS_CFG[id];
+  if(!c) return "";
+
+  const bloques = Object.keys(c.bloques || {}).map(b=>{
+    const campo = CORREO_CAMPOS[b] || { etiqueta: b, filas: 3 };
+    const valor = String(c.bloques[b] || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const control = campo.filas
+      ? `<textarea id="cb_${b}" rows="${campo.filas}">${valor}</textarea>`
+      : `<input type="text" id="cb_${b}" value="${valor.replace(/"/g,"&quot;")}">`;
+    return `<div class="correo-bloque">
+      <label for="cb_${b}">${campo.etiqueta}</label>
+      ${control}
+    </div>`;
+  }).join("");
+
+  const marcas = CORREO_MARCAS[id];
+  const extras = (c.extras || []).map(e=>
+    `<span class="correo-chip">${e}<button onclick="quitarExtraCorreo('${e}')" title="Quitar">×</button></span>`).join("");
+
+  return `
+    <h3 class="correo-tit">${c.nombre}</h3>
+    <p class="correo-explica">${c.explica}</p>
+
+    <div class="correo-fila">
+      <div class="correo-campo">
+        <label>¿Sale este correo?</label>
+        <div class="correo-switch${c.activo ? " on" : ""}" onclick="alternarCorreo('${id}')">
+          <span class="bolita"></span><span class="txt">${c.activo ? "Sí sale" : "No sale"}</span>
+        </div>
+      </div>
+      <div class="correo-campo">
+        <label>Hora de envío</label>
+        <input type="time" class="correo-hora-input" id="correoHora" value="${c.hora}">
+      </div>
+      ${c.porEvento ? `<div class="correo-nota" style="flex:1 1 240px;">
+        Este correo no sale a una hora fija: sale en cuanto pasa lo que lo
+        dispara. La hora se guarda pero no se usa.</div>` : ''}
+    </div>
+
+    <div class="correo-fila" style="display:block;">
+      <label style="font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;">A quién le llega</label>
+      <div class="correo-fijos" style="margin-top:6px;">
+        <strong style="color:#ccc;">Siempre:</strong> ${c.paraQuien}
+        <div style="font-size:11px;color:#6a6a6a;margin-top:3px;">
+          Estos no se pueden quitar. Si se borra uno por error, alguien se queda sin su aviso.
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <input type="text" id="correoExtraNuevo" placeholder="agregar otro correo…"
+               style="flex:1 1 220px;background:#0a0a0a;border:1px solid #333;border-radius:8px;color:#eee;padding:8px 11px;font-size:13px;font-family:inherit;">
+        <button class="mini-btn" onclick="agregarExtraCorreo()">Agregar</button>
+      </div>
+      ${extras ? `<div class="correo-extras">${extras}</div>` : ''}
+    </div>
+
+    <div class="correo-fila" style="display:block;">
+      <label style="font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;">Imagen (opcional)</label>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+        <input type="file" id="correoImgArchivo" accept="image/*" style="font-size:12px;color:#aaa;">
+        <button class="mini-btn" onclick="subirImagenCorreo()">Subir</button>
+        ${c.imagen ? '<button class="mini-btn" onclick="quitarImagenCorreo()">Quitar imagen</button>' : ''}
+      </div>
+      <div class="correo-ayuda">Se pone arriba del cuerpo del correo.</div>
+      ${c.imagen ? `<img src="${c.imagen}" class="correo-img-previa" alt="">` : ''}
+    </div>
+
+    <div class="correo-fila" style="display:block;">
+      <label style="font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;">Los textos</label>
+      <div class="correo-ayuda" style="margin:6px 0 4px;">
+        Para poner algo en <strong>negritas</strong>, ponlo entre dos asteriscos:
+        <code>**así**</code>.
+        ${marcas ? 'Lo que va entre llaves se rellena solo: <code>' + marcas + '</code>' : ''}
+      </div>
+      ${bloques}
+    </div>
+
+    <div class="correo-acciones">
+      <button class="save-btn" onclick="guardarCorreo()">Guardar cambios</button>
+      <button class="mini-btn" onclick="restaurarCorreo()">Volver al texto original</button>
+    </div>
+    <div class="correo-msg" id="correoMsg"></div>
+  `;
+}
+
+/* El interruptor guarda al momento: es un cambio de una sola cosa y esperar
+   a "Guardar" invitaba a dejarlo a medias sin darse cuenta. */
+async function alternarCorreo(id){
+  const c = CORREOS_CFG[id];
+  const nuevo = !c.activo;
+  c.activo = nuevo;                  // se pinta ya, sin esperar al servidor
+  renderCorreos();
+  try{
+    await postAppsScript({ action: "guardarCorreoConfig", clave: CONFIG.adminPassword, id: id, activo: nuevo });
+    correoAviso(nuevo ? "Prendido: este correo ya sale." : "Apagado: este correo ya no sale.", true);
+  }catch(e){
+    c.activo = !nuevo;               // no se guardó: se regresa como estaba
+    renderCorreos();
+    correoAviso("No se pudo guardar: " + e.message, false);
+  }
+}
+
+function correoAviso(texto, bien){
+  const el = document.getElementById("correoMsg");
+  if(!el) return;
+  el.className = "correo-msg " + (bien ? "ok" : "err");
+  el.textContent = texto;
+}
+
+async function guardarCorreo(){
+  const id = CORREO_ABIERTO;
+  const c = CORREOS_CFG[id];
+  const bloques = {};
+  Object.keys(c.bloques || {}).forEach(b=>{
+    const el = document.getElementById("cb_" + b);
+    if(el) bloques[b] = el.value;
+  });
+  const hora = (document.getElementById("correoHora") || {}).value || c.hora;
+
+  correoAviso("Guardando…", true);
+  try{
+    const r = await postAppsScript({
+      action: "guardarCorreoConfig", clave: CONFIG.adminPassword,
+      id: id, hora: hora, bloques: bloques
+    });
+    CORREOS_CFG[id] = r.correo;
+    renderCorreos();
+    correoAviso("Guardado.", true);
+  }catch(e){
+    correoAviso("No se pudo guardar: " + e.message, false);
+  }
+}
+
+async function restaurarCorreo(){
+  const id = CORREO_ABIERTO;
+  if(!confirm("¿Regresar '" + CORREOS_CFG[id].nombre + "' a su texto original?\n\nSe pierde lo que hayas cambiado en este correo.")) return;
+  try{
+    const r = await postAppsScript({ action: "restaurarCorreoConfig", clave: CONFIG.adminPassword, id: id });
+    CORREOS_CFG[id] = r.correo;
+    renderCorreos();
+    correoAviso("Quedó como estaba de origen.", true);
+  }catch(e){
+    correoAviso("No se pudo restaurar: " + e.message, false);
+  }
+}
+
+async function agregarExtraCorreo(){
+  const campo = document.getElementById("correoExtraNuevo");
+  const correo = String(campo.value || "").trim().toLowerCase();
+  if(!correo) return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){
+    correoAviso("Ese correo no se ve bien escrito.", false);
+    return;
+  }
+  const c = CORREOS_CFG[CORREO_ABIERTO];
+  if((c.extras || []).indexOf(correo) !== -1){
+    correoAviso("Ese correo ya estaba en la lista.", false);
+    return;
+  }
+  const extras = (c.extras || []).concat([correo]);
+  await guardarExtras(extras, "Agregado " + correo + ".");
+}
+
+async function quitarExtraCorreo(correo){
+  const c = CORREOS_CFG[CORREO_ABIERTO];
+  const extras = (c.extras || []).filter(x=>x !== correo);
+  await guardarExtras(extras, "Quitado " + correo + ".");
+}
+
+async function guardarExtras(extras, aviso){
+  const id = CORREO_ABIERTO;
+  try{
+    const r = await postAppsScript({
+      action: "guardarCorreoConfig", clave: CONFIG.adminPassword, id: id, extras: extras
+    });
+    CORREOS_CFG[id] = r.correo;
+    renderCorreos();
+    correoAviso(aviso, true);
+  }catch(e){
+    correoAviso("No se pudo guardar: " + e.message, false);
+  }
+}
+
+/* La imagen se manda en base64 y el servidor la guarda en Drive. Se limita el
+   tamaño aquí: una imagen enorme tarda en subir y además hace que el correo
+   se vea lento del otro lado. */
+async function subirImagenCorreo(){
+  const campo = document.getElementById("correoImgArchivo");
+  const archivo = campo && campo.files && campo.files[0];
+  if(!archivo){ correoAviso("Primero elige una imagen.", false); return; }
+  if(archivo.size > 3 * 1024 * 1024){
+    correoAviso("Esa imagen pesa mucho (más de 3 MB). Usa una más ligera.", false);
+    return;
+  }
+  correoAviso("Subiendo la imagen…", true);
+  try{
+    const base64 = await new Promise((listo, falla)=>{
+      const lector = new FileReader();
+      lector.onload = ()=> listo(String(lector.result).split(",")[1]);
+      lector.onerror = ()=> falla(new Error("No se pudo leer el archivo."));
+      lector.readAsDataURL(archivo);
+    });
+    const sub = await postAppsScript({
+      action: "subirImagenCorreo", clave: CONFIG.adminPassword,
+      base64: base64, tipo: archivo.type, nombre: archivo.name
+    });
+    const url = (sub.imagen || {}).url;
+    if(!url) throw new Error("El servidor no devolvió la liga de la imagen.");
+    const r = await postAppsScript({
+      action: "guardarCorreoConfig", clave: CONFIG.adminPassword,
+      id: CORREO_ABIERTO, imagen: url
+    });
+    CORREOS_CFG[CORREO_ABIERTO] = r.correo;
+    renderCorreos();
+    correoAviso("Imagen puesta.", true);
+  }catch(e){
+    correoAviso("No se pudo subir: " + e.message, false);
+  }
+}
+
+async function quitarImagenCorreo(){
+  try{
+    const r = await postAppsScript({
+      action: "guardarCorreoConfig", clave: CONFIG.adminPassword,
+      id: CORREO_ABIERTO, imagen: ""
+    });
+    CORREOS_CFG[CORREO_ABIERTO] = r.correo;
+    renderCorreos();
+    correoAviso("Imagen quitada.", true);
+  }catch(e){
+    correoAviso("No se pudo quitar: " + e.message, false);
   }
 }
 
