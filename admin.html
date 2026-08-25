@@ -163,13 +163,48 @@
   /* El tablero va pegado a la izquierda del llenado y se queda ahí mientras
      la mesa baja por la lista de jugadores: el marcador y las faltas del
      cuarto son justo lo que preguntan los entrenadores a media captura. */
-  .hd-conmarcador{display:grid;grid-template-columns:158px 1fr;gap:14px;align-items:start;}
-  @media(max-width:1000px){ .hd-conmarcador{grid-template-columns:1fr;} }
+  /* Tres columnas: tablero pegado, los jugadores en medio y los tiempos
+     fuera pegados a la derecha. Los dos paneles van delgados a propósito:
+     lo que necesita ancho de verdad son los botones de cada jugador. */
+  .hd-conmarcador{display:grid;grid-template-columns:150px 1fr 150px;gap:12px;align-items:start;}
+  @media(max-width:1240px){ .hd-conmarcador{grid-template-columns:140px 1fr 140px;gap:10px;} }
+  @media(max-width:1060px){ .hd-conmarcador{grid-template-columns:1fr;} }
   .hd-tablero{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:14px 12px;
   }
-  @media(max-width:1000px){ .hd-tablero{position:static;} }
+  @media(max-width:1060px){ .hd-tablero{position:static;} }
+  /* Los botones de periodo, dentro del tablero */
+  .hd-tab-periodos{border-top:1px solid #222;margin-top:10px;padding-top:10px;}
+  .hd-tab-botones{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px;}
+  .hd-tab-botones .hd-cuarto-btn{
+    padding:9px 2px;font-size:12px;min-width:0;border-radius:8px;
+  }
+  .hd-tab-ayuda{font-size:9px;color:#5a5a5a;line-height:1.4;margin-top:7px;}
+  /* Panel de la derecha: los tiempos fuera de los dos equipos */
+  .hd-tiempos{
+    position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
+    border-radius:12px;padding:14px 12px;
+  }
+  @media(max-width:1060px){ .hd-tiempos{position:static;} }
+  .hd-tf-eq{padding:10px 0;}
+  .hd-tf-eq + .hd-tf-eq{border-top:1px solid #222;}
+  .hd-tf-nombre{
+    font-size:11px;font-weight:900;color:#bbb;text-transform:uppercase;
+    letter-spacing:.4px;line-height:1.25;margin-bottom:7px;
+  }
+  .hd-tf-grande{
+    width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:11px 6px;border-radius:10px;border:1px solid #3a5;background:#152;
+    color:#cfc;cursor:pointer;font-family:inherit;
+  }
+  .hd-tf-grande:hover{background:#1c6b33;}
+  .hd-tf-grande.agotado{opacity:.4;cursor:not-allowed;background:#151515;border-color:#333;}
+  .hd-tf-icono{font-size:17px;line-height:1;}
+  .hd-tf-cuenta{font-size:19px;font-weight:900;color:#fff;line-height:1.1;}
+  .hd-tf-grande.agotado .hd-tf-cuenta{color:#888;}
+  .hd-tf-txt{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+  .hd-tf-nota{font-size:9px;color:#5a5a5a;line-height:1.4;margin-top:10px;border-top:1px solid #222;padding-top:8px;}
   .hd-tab-eq{padding:8px 0;}
   .hd-tab-eq + .hd-tab-eq{border-top:1px solid #222;margin-top:6px;padding-top:12px;}
   .hd-tab-nombre{
@@ -4223,25 +4258,18 @@ function hdRender(){
       <select onchange="hdOficial('mesa',this.value)">${opts(CONFIG.mesa, HD.mesa)}</select></div>
   </div>`;
 
-  // Cuartos y tiempos extra
-  html += '<div class="hd-cuartos">';
-  hdPeriodosVisibles().forEach(c=>{
-    const activo = HD.cuarto === c ? " activo" : "";
-    const cerrado = (c < HD.cuartoMax) ? " cerrado" : "";
-    const extra = hdEsExtra(c) ? " extra" : "";
-    const bloqueado = (c < HD.cuartoMax || HD.cerrado) ? " disabled" : "";
-    const texto = c <= HD_CUARTOS ? c + "º cuarto" : (c === 5 ? "Tiempo extra" : (c - HD_CUARTOS) + "º T. extra");
-    html += `<button class="hd-cuarto-btn${activo}${cerrado}${extra}"${bloqueado} onclick="hdSeleccionarCuarto(${c})">${texto}</button>`;
-  });
-  html += '</div><p class="hd-nota">Selecciona el periodo en el que va el partido. Una vez que avanzas ya no puedes regresar: así los puntos siempre quedan donde van. Si acaban empatados, pásale a <strong>Tiempo extra</strong>: ahí cada equipo tiene un tiempo fuera nuevo, y del segundo tiempo extra en adelante ya no hay ninguno.</p>';
+  /* Los botones de periodo se fueron al tablero de la izquierda: se pican a
+     cada rato y ahí quedan siempre a la vista, sin tener que subir. */
   html += `</div>`;
 
-  // Tablero pegado a la izquierda + los dos equipos
+  // Tablero pegado a la izquierda · jugadores en medio · tiempos fuera a la derecha
   html += '<div class="hd-conmarcador">';
   html += hdTableroHTML();
   html += '<div class="hd-split">';
   ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
-  html += '</div></div>';
+  html += '</div>';
+  html += hdPanelTiemposHTML();
+  html += '</div>';
 
   // Parcial por cuartos: va al final, debajo de los rosters. Durante el
   // partido lo que se usa a cada rato son los botones de los jugadores; el
@@ -4307,10 +4335,58 @@ function hdTableroHTML(){
       ${enBonus ? '<div class="hd-tab-bonus">▲ Bonus a favor</div>' : ''}
     </div>`;
   };
+  const botones = hdPeriodosVisibles().map(c=>{
+    const activo = HD.cuarto === c ? " activo" : "";
+    const cerrado = (c < HD.cuartoMax) ? " cerrado" : "";
+    const extra = hdEsExtra(c) ? " extra" : "";
+    const bloqueado = (c < HD.cuartoMax || HD.cerrado) ? " disabled" : "";
+    const texto = c <= HD_CUARTOS ? c + "º" : (c === 5 ? "T. EXTRA" : (c - HD_CUARTOS) + "º T.E.");
+    return `<button class="hd-cuarto-btn${activo}${cerrado}${extra}"${bloqueado}
+              onclick="hdSeleccionarCuarto(${c})" title="${hdNombrePeriodo(c)}">${texto}</button>`;
+  }).join("");
+
   return `<div class="hd-tablero">
     <div class="hd-tab-periodo">${HD.cuarto ? hdNombrePeriodo(HD.cuarto) : "Sin iniciar"}</div>
     ${fila("local")}
     ${fila("visit")}
+    <div class="hd-tab-periodos">
+      <div class="hd-tab-tit">Periodo</div>
+      <div class="hd-tab-botones">${botones}</div>
+      <div class="hd-tab-ayuda">No se puede regresar: los puntos quedan donde van.</div>
+    </div>
+  </div>`;
+}
+
+/* Panel de la derecha: los dos equipos con su tiempo fuera, también pegado.
+   Antes cada botón vivía arriba de su columna y al bajar por la lista de
+   jugadores desaparecía justo cuando un entrenador lo pedía. */
+function hdPanelTiemposHTML(){
+  const mitad = hdMitadActual();
+  const tope = hdTiemposFueraTope(mitad);
+
+  const bloque = (lado)=>{
+    const usados = HD.tiemposFuera[lado][mitad] || 0;
+    const sinTiempos = tope === 0;
+    const agotados = usados >= tope;
+    return `<div class="hd-tf-eq">
+      <div class="hd-tf-nombre">${HD[lado]}</div>
+      <button class="hd-tf-grande${agotados || sinTiempos ? " agotado" : ""}"
+              ${agotados || sinTiempos ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')"
+              title="${sinTiempos ? "Del segundo tiempo extra en adelante no hay tiempos fuera" : "Tiempos fuera de " + hdNombreMitad(mitad)}">
+        <span class="hd-tf-icono">⏱</span>
+        <span class="hd-tf-cuenta">${usados}/${tope}</span>
+        <span class="hd-tf-txt">Tiempo fuera</span>
+      </button>
+    </div>`;
+  };
+
+  return `<div class="hd-tiempos">
+    <div class="hd-tab-periodo">${mitad === "primera" ? "1ª mitad" : (mitad === "segunda" ? "2ª mitad" : hdNombreMitad(mitad))}</div>
+    ${bloque("local")}
+    ${bloque("visit")}
+    ${tope === 0
+      ? '<div class="hd-tf-nota">Del 2º tiempo extra en adelante no hay tiempos fuera.</div>'
+      : '<div class="hd-tf-nota">Se reinician en cada mitad y en el tiempo extra.</div>'}
   </div>`;
 }
 
@@ -4346,9 +4422,7 @@ function hdCambioHTML(){
 function hdColumnaEquipo(lado){
   const equipo = HD[lado];
   const rival = lado === "local" ? "visit" : "local";
-  const mitad = hdMitadActual();
-  const tope = hdTiemposFueraTope(mitad);
-  const usados = HD.tiemposFuera[lado][mitad] || 0;
+  // Los tiempos fuera viven en el panel de la derecha; aquí ya no se usan.
   const faltasCuarto = HD.cuarto ? hdFaltasEquipoCuarto(HD, lado, HD.cuarto) : 0;
   // El BONUS es para MI equipo cuando el RIVAL ya cometió 5 faltas en el cuarto.
   const faltasRival = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) : 0;
@@ -4362,10 +4436,8 @@ function hdColumnaEquipo(lado){
       ${hdPendientesTotal(HD, lado) ? ' · <span style="color:#e0a63c;font-weight:800;">' + hdPendientesTotal(HD, lado) + ' pts pendientes</span>' : ''}
     </div>
     <div class="hd-acciones-equipo">
-      <button class="hd-tf-btn" ${usados >= tope ? "disabled" : ""} onclick="hdTiempoFuera('${lado}')"
-              title="${tope === 0 ? "Del segundo tiempo extra en adelante no hay tiempos fuera" : "Tiempos fuera de " + hdNombreMitad(mitad)}">
-        ⏱ Tiempo fuera (${usados}/${tope})
-      </button>
+      <!-- El tiempo fuera se fue al panel de la derecha, que no se pierde al
+           bajar por la lista de jugadores. -->
       <!-- A la mano, en la propia captura: si alguien se acaba de dar de alta
            aparece sin salir del partido y sin perder lo que ya se anotó. -->
       <button class="hd-tf-btn" onclick="hdRefrescarRosters()" title="Trae a los jugadores que se acaban de dar de alta">
