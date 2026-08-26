@@ -252,6 +252,64 @@
     background:#5a1010;border:1px solid #e23b3b;color:#ffb3b3;
     padding:6px 11px;border-radius:8px;font-size:11px;font-weight:800;text-transform:uppercase;
   }
+  /* ---------- Pestaña EDITAR ---------- */
+  .ed-nota{font-size:11px;color:#888;line-height:1.5;margin:0 0 12px;}
+  .ed-marcador{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;}
+  .ed-marcador > div{display:flex;flex-direction:column;gap:5px;}
+  .ed-marcador label{
+    font-size:11px;font-weight:900;color:#bbb;text-transform:uppercase;letter-spacing:.4px;
+  }
+  .ed-marcador input{
+    width:110px;background:#000;border:1px solid #444;border-radius:8px;color:#fff;
+    padding:9px 11px;font-size:24px;font-weight:900;font-family:inherit;text-align:center;
+  }
+  .ed-vs{font-size:20px;font-weight:900;color:#666;padding-bottom:12px;}
+  .ed-parcial-fila{
+    display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+    padding:11px 0;border-top:1px solid #222;
+  }
+  .ed-parcial-eq{
+    font-size:11px;font-weight:900;color:#bbb;text-transform:uppercase;
+    letter-spacing:.4px;min-width:150px;padding-bottom:8px;
+  }
+  .ed-parcial-celda{display:flex;flex-direction:column;gap:4px;}
+  .ed-parcial-celda label{font-size:9px;font-weight:900;color:#777;text-align:center;}
+  .ed-parcial-celda input{
+    width:56px;background:#000;border:1px solid #444;border-radius:7px;color:#fff;
+    padding:7px 4px;font-size:15px;font-weight:800;font-family:inherit;text-align:center;
+  }
+  /* El semáforo: verde si cuadra, ámbar con lo que falta o sobra. */
+  .ed-chequeo{font-size:11px;font-weight:800;padding-bottom:9px;}
+  .ed-ok{color:#8de0a0;}
+  .ed-dif{color:#e0a63c;}
+  .ed-equipos{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:1100px){ .ed-equipos{grid-template-columns:1fr;} }
+  .ed-equipo{background:#101010;border:1px solid #262626;border-radius:12px;padding:13px;min-width:0;}
+  .ed-equipo h3{margin:0 0 6px;font-size:14px;font-weight:900;color:#fff;text-transform:uppercase;}
+  .ed-tabla-scroll{overflow-x:auto;}
+  .ed-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+  .ed-tabla th{
+    font-size:9px;font-weight:900;color:#777;text-transform:uppercase;
+    letter-spacing:.4px;padding:5px 3px;border-bottom:1px solid #2a2a2a;text-align:center;
+  }
+  .ed-tabla td{padding:4px 3px;border-bottom:1px solid #1c1c1c;text-align:center;}
+  .ed-tabla .ed-nombre{
+    text-align:left;color:#eee;font-weight:700;font-size:12px;
+    max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .ed-tabla .ed-total{font-weight:900;color:#fff;font-size:14px;}
+  .ed-num{
+    width:42px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#eee;
+    padding:5px 3px;font-size:13px;font-weight:700;font-family:inherit;text-align:center;
+  }
+  .ed-num:focus{outline:none;border-color:#E8912E;}
+  .ed-jersey{
+    width:38px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;
+    padding:5px 3px;font-size:13px;font-weight:900;font-family:inherit;text-align:center;
+  }
+  .ed-asis input{width:16px;height:16px;cursor:pointer;}
+  /* Quien no vino se ve apagado, pero sigue ahí por si hay que corregirlo. */
+  .ed-nojugo{opacity:.45;}
   /* ---------- Pestaña CORREOS ---------- */
   .correos-layout{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start;}
   @media(max-width:900px){ .correos-layout{grid-template-columns:1fr;} }
@@ -854,7 +912,7 @@
     <button data-view="rol" class="active">Rol de Juego</button>
     <button data-view="equipos">Equipos</button>
     <button data-view="asistencia">Asistencia</button>
-    <button data-view="pasado">Resultados</button>
+    <button data-view="pasado">Editar</button>
     <button data-view="cruces">Cruces</button>
     <button data-view="pagos">Pagos</button>
     <button data-view="cedulas">Cédulas</button>
@@ -1107,54 +1165,22 @@
   </section>
 
   <!-- ============ TAB: PASADO (editar partidos ya jugados) ============ -->
-  <section class="view" id="view-pasado">
-    <div class="empty-state" style="text-align:left; padding:0 0 14px 0;">Aquí están los partidos que ya se jugaron y subieron a la plataforma. Úsalo solo para corregir un marcador mal capturado o la asistencia de algún jugador.</div>
-
+  <!-- ============ TAB: EDITAR ============ -->
+  <section class="view" id="view-editar-partido">
     <div class="card">
-      <h2>1. Selecciona el partido a corregir</h2>
-      <label for="matchSelectPasado">Semana / Partido</label>
-      <select id="matchSelectPasado"></select>
-    </div>
-
-    <div class="card">
-      <h2>2. Marcador (corregir si hace falta)</h2>
-      <div class="matchup">
-        <div class="team-score">
-          <div class="team-name" id="nombreLocalPasado">—</div>
-          <input type="number" id="scoreLocalPasado" min="0" placeholder="0">
-        </div>
-        <div class="vs">VS</div>
-        <div class="team-score">
-          <div class="team-name" id="nombreVisitPasado">—</div>
-          <input type="number" id="scoreVisitPasado" min="0" placeholder="0">
-        </div>
+      <h2>Editar un partido jugado</h2>
+      <div class="empty-state" style="text-align:left;padding:0 0 12px 0;">
+        Aquí se corrige todo lo de un partido que ya se subió: el marcador, el
+        parcial, los puntos y triples de cada jugador, sus faltas y quién vino.
+        El orden importa: primero el <strong>total</strong>, luego el
+        <strong>parcial</strong> y al final lo demás.
+        Corregir <strong>no vuelve a mandar</strong> la cédula por correo.
       </div>
+      <label for="edPartido">Partido</label>
+      <select id="edPartido" onchange="edCargarPartido()"></select>
+      <div id="edAviso" style="font-size:11px;color:#777;margin-top:5px;"></div>
     </div>
-
-    <div class="card">
-      <h2>3. Asistencia (corregir si hace falta)</h2>
-      <div class="roster-columns">
-        <div class="roster-col">
-          <h3 id="rosterLocalTitlePasado">Equipo Local</h3>
-          <div class="roster-toolbar">
-            <button type="button" onclick="toggleAll('rosterLocalPasado', true)">Marcar todos</button>
-            <button type="button" onclick="toggleAll('rosterLocalPasado', false)">Ninguno</button>
-          </div>
-          <div class="roster-list" id="rosterLocalPasado"></div>
-        </div>
-        <div class="roster-col">
-          <h3 id="rosterVisitTitlePasado">Equipo Visitante</h3>
-          <div class="roster-toolbar">
-            <button type="button" onclick="toggleAll('rosterVisitPasado', true)">Marcar todos</button>
-            <button type="button" onclick="toggleAll('rosterVisitPasado', false)">Ninguno</button>
-          </div>
-          <div class="roster-list" id="rosterVisitPasado"></div>
-        </div>
-      </div>
-    </div>
-
-    <button class="save-btn" id="saveBtnPasado" onclick="guardarCorreccion()">Guardar corrección</button>
-    <div class="msg" id="msgPasado"></div>
+    <div id="edCuerpo"></div>
   </section>
 
   <!-- ============ TAB: CRUCES ============ -->
@@ -1603,7 +1629,7 @@ document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-pasado", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -1618,6 +1644,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "cruces") renderCruces();
     if(btn.dataset.view === "pagos") renderPagos();
     if(btn.dataset.view === "inscripciones") renderInscripciones();
+    if(btn.dataset.view === "pasado") renderEditarPartido();
     if(btn.dataset.view === "correos") renderCorreos();
     if(btn.dataset.view === "pruebas") renderPruebas();
   });
@@ -1636,6 +1663,7 @@ function repintarVistaActual(){
     else if(vista === "cruces") renderCruces();
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
+    else if(vista === "pasado") renderEditarPartido();
     else if(vista === "correos") renderCorreos();
     else if(vista === "pruebas") renderPruebas();
     else { // pestaña Rol de Juego
@@ -1910,6 +1938,9 @@ let MATCHES = DEMO_MATCHES;
 let ROSTERS = DEMO_ROSTERS;
 let RESULTADOS = DEMO_RESULTADOS;
 let ASISTENCIA = DEMO_ASISTENCIA;
+/* La hoja Estadísticas: un renglón por jugador y partido, con sus puntos por
+   periodo, triples y faltas. La usa la pestaña Editar. */
+let ESTADISTICAS_ADMIN = [];
 let PAGOS = DEMO_PAGOS;
 
 /* Inscripciones llegadas desde el formulario público de la Consola.
@@ -1960,7 +1991,7 @@ async function initData(){
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
     // Lo que NO es privado se lee por la vía abierta (rápida, sin contraseña).
     const datos = await leerDelSheetConReintentos([
-      "Equipos","Rol de Juego","Resultados","Asistencia"
+      "Equipos","Rol de Juego","Resultados","Asistencia","Estadísticas"
     ]);
     if(datos){
       if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
@@ -1968,6 +1999,7 @@ async function initData(){
       if(datos["Rol de Juego"])             MATCHES = mapRolCsv(datos["Rol de Juego"]);
       if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Asistencia"])            ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
+      if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
     } else {
       usedFallback = true;
       ERRORES_CARGA.push("equipos y calendario");
@@ -2028,15 +2060,7 @@ async function initData(){
   renderBotonesOliver();
   oliverCargarRestricciones();
 
-  // --- Tab Pasado (solo partidos que YA se jugaron / subieron) ---
-  const jugados = MATCHES.filter(m=>m.estatus === "Jugado");
-  const selectPasado = document.getElementById("matchSelectPasado");
-  selectPasado.innerHTML = jugados.length
-    ? jugados.map(m=>`<option value="${MATCHES.indexOf(m)}">Semana ${m.jornada} — ${m.local} vs ${m.visit} (${m.fecha})</option>`).join("")
-    : '<option value="">Todavía no hay partidos jugados</option>';
-  selectPasado.addEventListener("change", renderMatchPasado);
-  if(jugados.length) renderMatchPasado();
-  else document.getElementById("saveBtnPasado").disabled = true;
+  // La pestaña Editar se arma sola al entrar (ver renderEditarPartido).
 
   // La pestaña Cédulas ya no tiene selector de semana: la hoja digital elige
   // el partido con su propio menú. Esas líneas quedaron huérfanas cuando se
@@ -3492,79 +3516,402 @@ async function oliverGuardarEnRol(){
   }
 }
 
-/* ============================================================
-   PASADO — corregir un partido que ya se jugó y se subió
-   ============================================================ */
-
 function buscarResultado(m){
   return RESULTADOS.find(r => r.jornada === m.jornada && r.local === m.local && r.visit === m.visit);
 }
-
 function asistioJugador(m, equipo, jugador){
   const val = ASISTENCIA[`${m.jornada}|${equipo}|${jugador}`];
   return val === undefined ? true : val === "Sí"; // si no hay registro previo, se muestra marcado por default
 }
+/* ============================================================
+   EDITAR — corregir un partido que ya se jugó y se subió
 
-function renderMatchPasado(){
-  const select = document.getElementById("matchSelectPasado");
-  const m = MATCHES[Number(select.value)];
-  if(!m) return;
-  document.getElementById("nombreLocalPasado").textContent = m.local;
-  document.getElementById("nombreVisitPasado").textContent = m.visit;
-  document.getElementById("rosterLocalTitlePasado").textContent = m.local;
-  document.getElementById("rosterVisitTitlePasado").textContent = m.visit;
+   El orden de la pantalla no es decorativo, es el orden en el que hay que
+   pensar la corrección:
 
-  const resultadoPrevio = buscarResultado(m);
-  document.getElementById("scoreLocalPasado").value = resultadoPrevio ? resultadoPrevio.ptsLocal : "";
-  document.getElementById("scoreVisitPasado").value = resultadoPrevio ? resultadoPrevio.ptsVisit : "";
+     1) el TOTAL de cada equipo — el marcador es el dato que ya está
+        publicado y del que cuelga todo lo demás;
+     2) el PARCIAL por periodo, que tiene que sumar ese total;
+     3) los JUGADORES (puntos por periodo, triples, faltas) y la asistencia.
 
-  renderRosterList("rosterLocalPasado", m.local, (jugador)=>asistioJugador(m, m.local, jugador));
-  renderRosterList("rosterVisitPasado", m.visit, (jugador)=>asistioJugador(m, m.visit, jugador));
+   Debajo de cada paso hay un semáforo que dice si cuadra o cuánto falta. No
+   se bloquea nada: a veces el marcador real trae puntos que nadie supo de
+   quién fueron, y obligar a que cuadre haría imposible guardar. Lo que sí se
+   hace es AVISAR, para que quien corrige sepa lo que está dejando.
+
+   Guardar aquí NO vuelve a mandar la cédula por correo.
+   ============================================================ */
+
+let ED_PARTIDO = null;     // el partido que se está editando, ya cargado
+let ED_ESTAD = [];         // filas de la hoja Estadísticas de ese partido
+let ED_GUARDANDO = false;
+
+const ED_PERIODOS = ["1º", "2º", "3º", "4º"];
+
+function edClave(m){ return [m.jornada, m.local, m.visit].join("|"); }
+
+/* Los partidos que ya se jugaron, del más reciente al más viejo: casi siempre
+   lo que se corrige es lo de anoche. */
+function edPartidosJugados(){
+  return MATCHES
+    .map((m, i)=>({ m, i }))
+    .filter(x => x.m.estatus === "Jugado")
+    .sort((a,b)=> String(b.m.fecha || "").localeCompare(String(a.m.fecha || "")));
 }
 
-async function guardarCorreccion(){
-  const select = document.getElementById("matchSelectPasado");
-  const m = MATCHES[Number(select.value)];
-  const scoreLocal = document.getElementById("scoreLocalPasado").value;
-  const scoreVisit = document.getElementById("scoreVisitPasado").value;
-  const msg = document.getElementById("msgPasado");
-  msg.className = "msg";
+function renderEditarPartido(){
+  const sel = document.getElementById("edPartido");
+  if(!sel) return;
+  const lista = edPartidosJugados();
+  const aviso = document.getElementById("edAviso");
 
-  if(scoreLocal === "" || scoreVisit === ""){
-    msg.className = "msg err";
-    msg.textContent = "Falta capturar el marcador de ambos equipos.";
+  if(!lista.length){
+    sel.innerHTML = '<option value="">Todavía no hay partidos jugados</option>';
+    if(aviso) aviso.textContent = "";
+    document.getElementById("edCuerpo").innerHTML =
+      '<div class="card"><div class="empty-state">Cuando se juegue y se suba un partido, aparecerá aquí para poder corregirlo.</div></div>';
     return;
   }
 
-  const payload = {
-    action: "editar",
-    jornada: m.jornada, fecha: m.fecha, sede: m.sede,
-    equipoLocal: m.local, ptsLocal: Number(scoreLocal),
-    equipoVisit: m.visit, ptsVisit: Number(scoreVisit),
-    asistencia: [
-      ...collectAsistencia("rosterLocalPasado", m.local),
-      ...collectAsistencia("rosterVisitPasado", m.visit),
-    ]
+  const elegido = sel.value;
+  sel.innerHTML = lista.map(x=>
+    `<option value="${x.i}"${String(x.i) === elegido ? " selected" : ""}>Semana ${x.m.jornada} · ${x.m.fecha} — ${x.m.local} vs ${x.m.visit}</option>`
+  ).join("");
+  if(aviso) aviso.textContent = lista.length + " partido" + (lista.length === 1 ? "" : "s") + " jugado" + (lista.length === 1 ? "" : "s") + ".";
+  if(!elegido) sel.value = String(lista[0].i);
+  edCargarPartido();
+}
+
+/* Junta en un solo objeto lo que está repartido en tres hojas: el marcador
+   (Resultados), los puntos por jugador (Estadísticas) y quién vino
+   (Asistencia). */
+function edCargarPartido(){
+  const sel = document.getElementById("edPartido");
+  const m = MATCHES[Number(sel.value)];
+  const cuerpo = document.getElementById("edCuerpo");
+  if(!m){ cuerpo.innerHTML = ""; ED_PARTIDO = null; return; }
+
+  const res = buscarResultado(m) || {};
+  const dePartido = (ESTADISTICAS_ADMIN || []).filter(r=>
+    String(r["Semana"]) === String(m.jornada) &&
+    (nombreEquipo(r["Equipo"]) === nombreEquipo(m.local) || nombreEquipo(r["Equipo"]) === nombreEquipo(m.visit))
+  );
+  ED_ESTAD = dePartido;
+
+  const jugadoresDe = (equipo)=>{
+    const enHoja = dePartido.filter(r => nombreEquipo(r["Equipo"]) === nombreEquipo(equipo));
+    const vistos = {};
+    const salida = enHoja.map(r=>{
+      const nom = String(r["Jugador"] || "").trim();
+      vistos[normalizarNombre(nom)] = true;
+      return {
+        nombre: nom,
+        jersey: String(r["Jersey"] || ""),
+        q: ED_PERIODOS.map(p => Number(r[p] || 0)),
+        triples: Number(r["Triples"] || 0),
+        fp: Number(r["FP"] || 0),
+        ftf: Number(r["FTF"] || 0),
+        asistio: true,
+        enHoja: true
+      };
+    });
+    /* Los del roster que no salen en Estadísticas: no anotaron o no vinieron.
+       Se enseñan igual, para poder agregarles puntos si se les olvidó a la
+       mesa, o marcarles asistencia. */
+    (ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || []).forEach(j=>{
+      const nom = typeof j === "string" ? j : j.nombre;
+      if(vistos[normalizarNombre(nom)]) return;
+      salida.push({ nombre: nom, jersey: "", q: [0,0,0,0], triples: 0, fp: 0, ftf: 0,
+                    asistio: asistioJugador(m, equipo, nom), enHoja: false });
+    });
+    return salida;
   };
 
-  const btn = document.getElementById("saveBtnPasado");
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
+  ED_PARTIDO = {
+    m,
+    ptsLocal: res.ptsLocal !== undefined ? Number(res.ptsLocal) : 0,
+    ptsVisit: res.ptsVisit !== undefined ? Number(res.ptsVisit) : 0,
+    // El parcial no se guarda como tal: se reconstruye sumando a los jugadores.
+    parcial: {
+      local: edParcialDe(dePartido, m.local),
+      visit: edParcialDe(dePartido, m.visit)
+    },
+    jugadores: { local: jugadoresDe(m.local), visit: jugadoresDe(m.visit) }
+  };
+  edPintar();
+}
+
+function edParcialDe(filas, equipo){
+  return ED_PERIODOS.map((p, k)=>
+    filas.filter(r => nombreEquipo(r["Equipo"]) === nombreEquipo(equipo))
+         .reduce((s, r)=> s + Number(r[p] || 0), 0));
+}
+
+function normalizarNombre(s){
+  return String(s || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+/* ---------- las cuentas que se enseñan ---------- */
+function edSumaParcial(lado){ return ED_PARTIDO.parcial[lado].reduce((a,b)=>a+Number(b||0), 0); }
+function edSumaJugadores(lado){
+  return ED_PARTIDO.jugadores[lado].reduce((s,j)=> s + j.q.reduce((a,b)=>a+Number(b||0),0), 0);
+}
+function edPuntosJugador(j){ return j.q.reduce((a,b)=>a+Number(b||0),0); }
+
+function edSemaforo(esperado, real, queEs){
+  const dif = real - esperado;
+  if(dif === 0) return `<span class="ed-ok">cuadra (${real})</span>`;
+  return `<span class="ed-dif">${queEs}: ${real} de ${esperado} · ${dif > 0 ? "sobran " + dif : "faltan " + (-dif)}</span>`;
+}
+
+/* ---------- pintado ---------- */
+function edPintar(){
+  const cuerpo = document.getElementById("edCuerpo");
+  if(!ED_PARTIDO){ cuerpo.innerHTML = ""; return; }
+  const p = ED_PARTIDO, m = p.m;
+
+  const columnaEquipo = (lado)=>{
+    const equipo = lado === "local" ? m.local : m.visit;
+    const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
+    const filas = p.jugadores[lado].map((j, i)=>`
+      <tr class="${j.asistio ? "" : "ed-nojugo"}">
+        <td class="ed-asis">
+          <input type="checkbox" ${j.asistio ? "checked" : ""}
+                 onchange="edCampo('${lado}',${i},'asistio',this.checked)" title="¿Vino al partido?">
+        </td>
+        <td><input class="ed-jersey" value="${j.jersey}" maxlength="3"
+                   onchange="edCampo('${lado}',${i},'jersey',this.value)" placeholder="#"></td>
+        <td class="ed-nombre">${j.nombre}</td>
+        ${j.q.map((val, k)=>`<td><input class="ed-num" type="number" min="0" value="${val}"
+             onchange="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
+        <td class="ed-total">${edPuntosJugador(j)}</td>
+        <td><input class="ed-num" type="number" min="0" value="${j.triples}"
+             onchange="edCampo('${lado}',${i},'triples',this.value)"></td>
+        <td><input class="ed-num" type="number" min="0" value="${j.fp}"
+             onchange="edCampo('${lado}',${i},'fp',this.value)"></td>
+        <td><input class="ed-num" type="number" min="0" value="${j.ftf}"
+             onchange="edCampo('${lado}',${i},'ftf',this.value)"></td>
+      </tr>`).join("");
+
+    return `<div class="ed-equipo">
+      <h3>${equipo}</h3>
+      <div class="ed-chequeo">${edSemaforo(total, edSumaJugadores(lado), "los jugadores suman")}</div>
+      <div class="ed-tabla-scroll">
+        <table class="ed-tabla">
+          <thead><tr>
+            <th title="¿Vino?">✓</th><th>#</th><th>Jugador</th>
+            ${ED_PERIODOS.map(x=>`<th>${x}</th>`).join("")}
+            <th>Pts</th><th>3P</th><th>FP</th><th>FTF</th>
+          </tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  };
+
+  cuerpo.innerHTML = `
+    <div class="card">
+      <h2>1 · Puntos totales</h2>
+      <p class="ed-nota">Es el marcador que ya está publicado. Todo lo demás tiene que dar este número.</p>
+      <div class="ed-marcador">
+        <div><label>${m.local}</label>
+          <input type="number" min="0" id="edPtsLocal" value="${p.ptsLocal}" onchange="edTotal('local',this.value)"></div>
+        <div class="ed-vs">—</div>
+        <div><label>${m.visit}</label>
+          <input type="number" min="0" id="edPtsVisit" value="${p.ptsVisit}" onchange="edTotal('visit',this.value)"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Parcial del partido</h2>
+      <p class="ed-nota">Cuánto anotó cada equipo en cada periodo. Al cambiar un
+        periodo se reparte solo entre los jugadores de ese equipo si hace falta;
+        si no cuadra, aquí abajo lo dice.</p>
+      ${["local","visit"].map(lado=>{
+        const equipo = lado === "local" ? m.local : m.visit;
+        const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
+        return `<div class="ed-parcial-fila">
+          <div class="ed-parcial-eq">${equipo}</div>
+          ${p.parcial[lado].map((val,k)=>`<div class="ed-parcial-celda">
+            <label>${ED_PERIODOS[k]}</label>
+            <input type="number" min="0" value="${val}" onchange="edParcial('${lado}',${k},this.value)">
+          </div>`).join("")}
+          <div class="ed-chequeo">${edSemaforo(total, edSumaParcial(lado), "el parcial suma")}</div>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="card">
+      <h2>3 · Jugadores, faltas y asistencia</h2>
+      <p class="ed-nota">La palomita de la izquierda es si vino al partido. Los
+        puntos por periodo suman el total de cada jugador, y todos juntos deben
+        dar el marcador de arriba.</p>
+      <div class="ed-equipos">
+        ${columnaEquipo("local")}
+        ${columnaEquipo("visit")}
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="save-btn" onclick="edGuardar()" ${ED_GUARDANDO ? "disabled" : ""}>
+        ${ED_GUARDANDO ? "Guardando…" : "Guardar los cambios"}</button>
+      <div class="ed-nota" style="margin-top:8px;">
+        Se reescriben el marcador, las estadísticas y la asistencia de este
+        partido. La cédula por correo NO se vuelve a mandar.
+      </div>
+      <div class="msg" id="edMsg"></div>
+    </div>`;
+}
+
+/* ---------- cambios ---------- */
+function edTotal(lado, valor){
+  ED_PARTIDO[lado === "local" ? "ptsLocal" : "ptsVisit"] = Math.max(0, Number(valor) || 0);
+  edPintar();
+}
+
+function edCampo(lado, i, campo, valor){
+  const j = ED_PARTIDO.jugadores[lado][i];
+  if(campo === "asistio") j.asistio = !!valor;
+  else if(campo === "jersey") j.jersey = String(valor).trim().slice(0,3);
+  else j[campo] = Math.max(0, Number(valor) || 0);
+  edPintar();
+}
+
+function edPeriodo(lado, i, k, valor){
+  ED_PARTIDO.jugadores[lado][i].q[k] = Math.max(0, Number(valor) || 0);
+  // El parcial de ese periodo se vuelve a calcular con lo que traen ahora los jugadores.
+  ED_PARTIDO.parcial[lado][k] = ED_PARTIDO.jugadores[lado].reduce((s,j)=> s + Number(j.q[k] || 0), 0);
+  edPintar();
+}
+
+/* Cambiar el parcial de un periodo a mano: la diferencia se le carga al
+   jugador que más anotó en ese periodo, que es lo que suele pasar cuando la
+   mesa se salta una canasta. Si el equipo no tiene a nadie con puntos ahí, el
+   parcial se queda como se escribió y el semáforo avisa que no cuadra. */
+function edParcial(lado, k, valor){
+  const nuevo = Math.max(0, Number(valor) || 0);
+  const jugadores = ED_PARTIDO.jugadores[lado];
+  const actual = jugadores.reduce((s,j)=> s + Number(j.q[k] || 0), 0);
+  const dif = nuevo - actual;
+  ED_PARTIDO.parcial[lado][k] = nuevo;
+
+  if(dif !== 0 && jugadores.length){
+    let mejor = -1, mas = -1;
+    jugadores.forEach((j, i)=>{ const v = Number(j.q[k] || 0); if(v > mas){ mas = v; mejor = i; } });
+    if(mejor >= 0){
+      const puesto = Math.max(0, Number(jugadores[mejor].q[k] || 0) + dif);
+      jugadores[mejor].q[k] = puesto;
+      ED_PARTIDO.parcial[lado][k] = jugadores.reduce((s,j)=> s + Number(j.q[k] || 0), 0);
+    }
+  }
+  edPintar();
+}
+
+/* Vuelve a leer del Sheet lo que la pestaña Editar necesita, para que
+   después de guardar se vea exactamente lo que quedó escrito y no lo que
+   había en pantalla. */
+async function recargarDatosAdmin(){
+  const datos = await leerDelSheetConReintentos([
+    "Rol de Juego","Resultados","Asistencia","Estadísticas"
+  ]);
+  if(!datos) return false;
+  if(datos["Rol de Juego"])   MATCHES = mapRolCsv(datos["Rol de Juego"]);
+  if(datos["Resultados"])     RESULTADOS = mapResultadosCsv(datos["Resultados"]);
+  if(datos["Asistencia"])     ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
+  if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
+  return true;
+}
+
+/* ---------- guardar ---------- */
+function edPayload(){
+  const p = ED_PARTIDO, m = p.m;
+  const jugadores = [], asistencia = [];
+
+  ["local","visit"].forEach(lado=>{
+    const equipo = lado === "local" ? m.local : m.visit;
+    p.jugadores[lado].forEach(j=>{
+      const total = edPuntosJugador(j);
+      // A la hoja de Estadísticas solo van los que hicieron algo: puntos,
+      // faltas o al menos número. Si no, quedaría llena de renglones en cero.
+      if(total > 0 || j.triples > 0 || j.fp > 0 || j.ftf > 0 || String(j.jersey).trim()){
+        jugadores.push({
+          equipo: equipo, jugador: j.nombre, jersey: j.jersey,
+          q1: j.q[0], q2: j.q[1], q3: j.q[2], q4: j.q[3],
+          total: total, triples: j.triples, fp: j.fp, ftf: j.ftf
+        });
+      }
+      asistencia.push({ equipo: equipo, jugador: j.nombre, asistio: j.asistio ? "Sí" : "No" });
+    });
+  });
+
+  return {
+    action: "guardarHojaDigital",
+    clave: CONFIG.adminPassword,
+    sinCedula: true,                 // corregir no vuelve a mandar el correo
+    semana: m.jornada, fecha: m.fecha, categoria: m.categoria,
+    equipoLocal: m.local, equipoVisit: m.visit,
+    ptsLocal: p.ptsLocal, ptsVisit: p.ptsVisit,
+    porCuarto: { local: p.parcial.local.slice(), visit: p.parcial.visit.slice() },
+    periodos: ED_PERIODOS.map((x,k)=>"C"+(k+1)),
+    jugadores: jugadores,
+    asistencia: asistencia,
+    pendientes: { local: {}, visit: {} }
+  };
+}
+
+/* Antes de guardar se dice en voz alta lo que no cuadra. No se prohíbe —
+   un marcador puede traer puntos que nadie supo de quién fueron— pero que
+   quede claro qué se está dejando así. */
+function edDescuadres(){
+  const p = ED_PARTIDO, m = p.m, avisos = [];
+  ["local","visit"].forEach(lado=>{
+    const equipo = lado === "local" ? m.local : m.visit;
+    const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
+    const deJugadores = edSumaJugadores(lado);
+    const delParcial = edSumaParcial(lado);
+    if(deJugadores !== total){
+      avisos.push(equipo + ": los jugadores suman " + deJugadores + " y el marcador dice " + total + ".");
+    }
+    if(delParcial !== total){
+      avisos.push(equipo + ": el parcial suma " + delParcial + " y el marcador dice " + total + ".");
+    }
+  });
+  return avisos;
+}
+
+async function edGuardar(){
+  if(!ED_PARTIDO || ED_GUARDANDO) return;
+  const avisos = edDescuadres();
+  if(avisos.length){
+    const seguir = confirm("Hay números que no cuadran:\n\n· " + avisos.join("\n· ") +
+      "\n\nSe puede guardar así (a veces hay puntos sin dueño), pero la tabla y las estadísticas van a reflejar esto.\n\n¿Guardar de todos modos?");
+    if(!seguir) return;
+  }
+
+  ED_GUARDANDO = true;
+  edPintar();
+  const msg = document.getElementById("edMsg");
+  if(msg){ msg.className = "msg"; msg.textContent = "Guardando…"; }
 
   try{
-    const data = await postAppsScript(payload);
-    if(data.ok){
-      msg.className = "msg ok";
-      msg.textContent = "Corregido: " + m.local + " " + scoreLocal + " - " + scoreVisit + " " + m.visit + ". Asistencia actualizada.";
-    }else{
-      throw new Error(data.error || "Error desconocido");
+    const r = await postAppsScript(edPayload());
+    if(!r.ok) throw new Error(r.error || "Error desconocido");
+    ED_GUARDANDO = false;
+    // Se recargan las hojas para que lo guardado sea lo que se ve.
+    await recargarDatosAdmin();
+    edCargarPartido();
+    const m2 = document.getElementById("edMsg");
+    if(m2){
+      m2.className = "msg ok";
+      m2.textContent = "Guardado: " + ED_PARTIDO.m.local + " " + ED_PARTIDO.ptsLocal +
+        " - " + ED_PARTIDO.ptsVisit + " " + ED_PARTIDO.m.visit + ".";
     }
-  }catch(err){
-    msg.className = "msg err";
-    msg.textContent = "No se pudo guardar la corrección: " + err.message + ". Revisa CONFIG.appsScriptUrl.";
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Guardar corrección";
+  }catch(e){
+    ED_GUARDANDO = false;
+    edPintar();
+    const m2 = document.getElementById("edMsg");
+    if(m2){ m2.className = "msg err"; m2.textContent = "No se pudo guardar: " + e.message; }
   }
 }
 
