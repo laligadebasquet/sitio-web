@@ -158,7 +158,7 @@
   .hd-porcuarto th{background:#1c1c1c;font-size:11px;text-transform:uppercase;color:#999;}
   .hd-porcuarto td.eq{text-align:left;font-weight:800;}
   /* Dos columnas de equipos */
-  .hd-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .hd-split{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
   @media(max-width:1000px){ .hd-split{grid-template-columns:1fr;} }
   /* El tablero va pegado a la izquierda del llenado y se queda ahí mientras
      la mesa baja por la lista de jugadores: el marcador y las faltas del
@@ -173,50 +173,74 @@
      lo que cede son los paneles de los lados, no la captura.
      Cuando ya ni así cabe, los cuatro se apilan y la captura se lleva
      la pantalla completa. */
-  .hd-conmarcador{display:grid;grid-template-columns:112px 114px minmax(400px,1fr) 106px;gap:6px;align-items:start;}
-  @media(max-width:1417px){ .hd-conmarcador{grid-template-columns:1fr;gap:10px;} }
+  /* La minuta necesita más ancho que antes porque ahora va partida en dos,
+     pero la fila de jugador adelgazó lo suficiente para pagarlo: los botones
+     miden 129px y el panel de equipo ya no desperdicia relleno. */
+  .hd-conmarcador{display:grid;grid-template-columns:150px 108px minmax(342px,1fr) 102px;gap:6px;align-items:start;}
+  @media(max-width:1390px){ .hd-conmarcador{grid-template-columns:1fr;gap:10px;} }
   /* ---------- La minuta ---------- */
   .hd-minuta{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1417px){ .hd-minuta{position:static;} }
-  .hd-min-leyenda{
-    display:flex;flex-direction:column;gap:3px;margin:9px 0 8px;
-    font-size:9px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.3px;
+  @media(max-width:1390px){ .hd-minuta{position:static;} }
+  /* Partida en dos: un equipo de cada lado, como la hoja de papel. */
+  .hd-min-dos{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px;}
+  .hd-min-col{min-width:0;}
+  /* El encabezado ES el color del equipo, y picándolo se cambia. */
+  .hd-min-eq{
+    width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;
+    border:none;border-radius:7px;padding:5px 3px;cursor:pointer;
+    font-family:inherit;line-height:1.1;
   }
-  .hd-min-leyenda span{display:flex;align-items:center;gap:5px;min-width:0;}
-  .hd-min-leyenda i{width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
-  .hd-min-leyenda i.local{background:#E8912E;}
-  .hd-min-leyenda i.visit{background:#4a90d9;}
+  .hd-min-eq:hover{filter:brightness(1.12);}
+  .hd-min-eq-nom{
+    font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.2px;
+    width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+  }
+  .hd-min-eq-pts{font-size:16px;font-weight:900;}
   /* Se limita el alto para que la minuta no empuje el resto de la pantalla:
      lo viejo se consulta con scroll dentro del propio panel. */
-  .hd-min-lista{max-height:62vh;overflow-y:auto;border-top:1px solid #222;padding-top:7px;}
+  .hd-min-lista{max-height:58vh;overflow-y:auto;margin-top:5px;}
   .hd-min-periodo{
-    font-size:9px;font-weight:900;color:#777;text-transform:uppercase;
-    letter-spacing:.6px;margin:9px 0 4px;padding-bottom:3px;border-bottom:1px dashed #2a2a2a;
+    font-size:8px;font-weight:900;color:#777;text-transform:uppercase;
+    letter-spacing:.5px;margin:6px 0 3px;padding-bottom:2px;border-bottom:1px dashed #2a2a2a;
   }
   .hd-min-periodo:first-child{margin-top:0;}
   .hd-min-fila{
-    display:flex;align-items:center;gap:5px;padding:4px 3px 4px 7px;
-    border-left:3px solid #444;margin-bottom:3px;border-radius:0 5px 5px 0;
-    background:#111;
+    display:flex;align-items:center;justify-content:space-between;gap:4px;
+    padding:2px 4px;margin-bottom:2px;border-radius:5px;background:#141414;
   }
-  .hd-min-fila.local{border-left-color:#E8912E;}
-  .hd-min-fila.visit{border-left-color:#4a90d9;}
   .hd-min-pts{font-size:12px;font-weight:900;color:#8de0a0;flex:0 0 auto;}
-  .hd-min-quien{
-    font-size:10px;font-weight:700;color:#ddd;flex:1 1 auto;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* El número, circulado en blanco: es lo que la mesa busca de un vistazo. */
+  .hd-min-num{
+    flex:0 0 auto;min-width:20px;height:20px;padding:0 3px;border-radius:50%;
+    background:#fff;color:#111;font-size:11px;font-weight:900;
+    display:inline-flex;align-items:center;justify-content:center;
   }
-  .hd-min-quien.sinduenio{color:#e0a63c;font-style:italic;}
-  .hd-min-marca{font-size:10px;font-weight:800;color:#888;flex:0 0 auto;}
-  .hd-min-vacia{font-size:10px;color:#666;line-height:1.6;padding:8px 2px;}
+  .hd-min-num.sinduenio{background:#e0a63c;color:#2a1f00;}
+  .hd-min-vacia{font-size:9px;color:#5a5a5a;padding:6px 2px;text-align:center;}
+  /* Elegir el color del equipo */
+  .hd-tab-color{
+    background:none;border:none;padding:0;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;gap:5px;text-align:left;width:100%;
+  }
+  .hd-tab-color i{width:10px;height:10px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(255,255,255,.25);}
+  .hd-tab-color:hover{opacity:.8;}
+  .hd-color-paleta{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:14px 0 18px;
+  }
+  .hd-color-op{
+    aspect-ratio:1;border-radius:50%;border:2px solid #333;cursor:pointer;padding:0;
+  }
+  .hd-color-op:hover{transform:scale(1.12);}
+  .hd-color-op.elegido{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25);}
+  .hd-color-op.tomado{opacity:.3;cursor:not-allowed;}
   .hd-tablero{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1417px){ .hd-tablero{position:static;} }
+  @media(max-width:1390px){ .hd-tablero{position:static;} }
   /* Los botones de periodo, dentro del tablero */
   .hd-tab-periodos{border-top:1px solid #222;margin-top:10px;padding-top:10px;}
   .hd-tab-botones{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px;}
@@ -229,7 +253,7 @@
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1417px){ .hd-tiempos{position:static;} }
+  @media(max-width:1390px){ .hd-tiempos{position:static;} }
   .hd-tf-eq{padding:10px 0;}
   .hd-tf-eq + .hd-tf-eq{border-top:1px solid #222;}
   .hd-tf-nombre{
@@ -279,8 +303,12 @@
     margin-top:5px;font-size:9px;font-weight:900;color:#ffb3b3;
     text-transform:uppercase;letter-spacing:.5px;
   }
-  .hd-col{background:#101010;border:1px solid #262626;border-radius:12px;padding:14px;min-width:0;}
-  .hd-col h3{margin:0 0 4px;font-size:14px;color:#fff;font-weight:900;text-transform:uppercase;}
+  .hd-col{background:#101010;border:1px solid #262626;border-radius:12px;padding:9px;min-width:0;}
+  .hd-col h3{
+    margin:0 0 3px;font-size:13px;color:#fff;font-weight:900;text-transform:uppercase;
+    display:flex;align-items:center;gap:6px;line-height:1.2;
+  }
+  .hd-col-color{width:11px;height:11px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(255,255,255,.25);}
   .hd-col-sub{font-size:11px;color:#888;margin-bottom:12px;}
   .hd-acciones-equipo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
   .hd-tf-btn{
@@ -449,14 +477,14 @@
      botones baja COMPLETO a un segundo renglón en vez de cortarse. Antes,
      con la rejilla, el −1 se quedaba a medias fuera de la tarjeta. */
   .hd-jug{
-    display:flex;flex-wrap:wrap;align-items:center;gap:6px;
-    padding:8px 6px;border-bottom:1px solid #1e1e1e;
+    display:flex;flex-wrap:wrap;align-items:center;gap:4px;
+    padding:4px 3px;border-bottom:1px solid #1e1e1e;
   }
   .hd-jug > .hd-circulo{flex:0 0 auto;}
-  .hd-jug > .hd-jcol{flex:0 0 44px;}
+  .hd-jug > .hd-jcol{flex:0 0 36px;}
   /* El nombre cede ancho, pero nunca baja de 110 px: por debajo de eso los
      datos se parten renglón por palabra y no se entiende nada. */
-  .hd-jug-info{flex:1 1 110px;min-width:0;}
+  .hd-jug-info{flex:1 1 92px;min-width:0;}
   .hd-jug > .hd-btns{flex:0 0 auto;margin-left:auto;}
   .hd-jug:last-child{border-bottom:none;}
   .hd-jug.expulsado{background:rgba(226,59,59,.12);}
@@ -464,7 +492,7 @@
      la mesa necesita sin leer, nada más de reojo. */
   .hd-jug.en-cancha{background:rgba(46,125,70,.16);}
   .hd-circulo{
-    width:20px;height:20px;border-radius:50%;padding:0;cursor:pointer;
+    width:17px;height:17px;border-radius:50%;padding:0;cursor:pointer;
     background:transparent;border:2px solid #555;transition:background .12s,border-color .12s;
   }
   .hd-circulo:hover{border-color:#9a9a9a;}
@@ -539,19 +567,19 @@
     width:48px;padding:6px 4px;text-align:center;font-weight:900;font-size:15px;
     background:#000;border:1px solid #444;border-radius:7px;color:#fff;
   }
-  .hd-jug-nombre{font-size:13px;color:#eee;font-weight:700;line-height:1.25;min-width:0;}
-  .hd-jug-datos{font-size:10px;color:#888;font-weight:600;margin-top:2px;}
+  .hd-jug-nombre{font-size:12px;color:#eee;font-weight:700;line-height:1.2;min-width:0;}
+  .hd-jug-datos{font-size:9px;color:#888;font-weight:600;margin-top:1px;}
   .hd-jug-datos b{color:#ddd;}
   .hd-jug-datos .falta-alta{color:#ff8080;}
   /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
      FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
      acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
   .hd-btns{
-    display:grid;grid-template-columns:repeat(4,33px);gap:4px;justify-content:end;
+    display:grid;grid-template-columns:repeat(4,30px);gap:3px;justify-content:end;
   }
   .hd-b{
-    min-width:0;padding:7px 4px;border-radius:7px;border:1px solid #333;
-    background:#1c1c1c;color:#ddd;font-weight:800;font-size:12px;cursor:pointer;
+    min-width:0;padding:5px 2px;border-radius:6px;border:1px solid #333;
+    background:#1c1c1c;color:#ddd;font-weight:800;font-size:11px;cursor:pointer;
   }
   .hd-b:hover{background:#2a2a2a;}
   .hd-b.mas{border-color:#2f6d3f;color:#8de0a0;}
@@ -4746,6 +4774,7 @@ function hdRender(){
   html += `</div>`;
 
   // Tablero pegado a la izquierda · jugadores en medio · tiempos fuera a la derecha
+  html += hdPaletaHTML();
   html += '<div class="hd-conmarcador">';
   html += hdMinutaHTML();
   html += hdTableroHTML();
@@ -4808,8 +4837,12 @@ function hdTableroHTML(){
     const enBonus = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) >= 5 : false;
     const f = HD.cuarto ? hdFaltasEquipoCuarto(HD, lado, HD.cuarto) : 0;
     const clase = !HD.cuarto ? " apagada" : (f >= 5 ? " bonus" : " actual");
-    return `<div class="hd-tab-eq">
-      <div class="hd-tab-nombre">${HD[lado]}</div>
+    const color = hdColorEquipo(HD[lado], lado);
+    return `<div class="hd-tab-eq" style="border-left:4px solid ${color};padding-left:7px;">
+      <button class="hd-tab-nombre hd-tab-color" onclick="hdAbrirPaleta('${lado}')"
+              title="Cambiar el color de ${HD[lado]}">
+        <i style="background:${color}"></i>${HD[lado]}
+      </button>
       <div class="hd-tab-pts">${hdTotal(HD, lado)}</div>
       <div class="hd-tab-tit">Faltas ${HD.cuarto ? "en " + hdNombreCorto(HD.cuarto) : "de equipo"}</div>
       <div class="hd-tab-faltas">
@@ -4841,6 +4874,106 @@ function hdTableroHTML(){
   </div>`;
 }
 
+/* ---------- El color de cada equipo ----------
+   Los equipos llegan con su uniforme y la mesa los identifica por el color,
+   no por si son "local" o "visitante". Si la hoja pinta a los dos con los
+   colores de siempre, quien captura tiene que traducir mentalmente cada vez
+   y ahí es donde se equivocan de equipo. Así que el color se elige a mano y
+   se queda pegado al NOMBRE del equipo: la próxima vez que jueguen, aunque
+   sea en otro partido y de otro lado, salen con el mismo color. */
+const HD_COLORES_KEY = "HD_COLORES_EQUIPOS_V1";
+const HD_COLOR_LOCAL = "#E8912E";
+const HD_COLOR_VISIT = "#4a90d9";
+/* Los colores de camiseta que de verdad se usan en la liga. Cada uno trae su
+   tono de texto para que el número encima siempre se lea. */
+const HD_PALETA = [
+  { nombre: "Blanco",   color: "#f2f2f2" },
+  { nombre: "Negro",    color: "#2b2b2b" },
+  { nombre: "Rojo",     color: "#d63b3b" },
+  { nombre: "Vino",     color: "#8e2440" },
+  { nombre: "Naranja",  color: "#E8912E" },
+  { nombre: "Amarillo", color: "#e8c62e" },
+  { nombre: "Verde",    color: "#2f9e50" },
+  { nombre: "Turquesa", color: "#25a8a0" },
+  { nombre: "Azul",     color: "#4a90d9" },
+  { nombre: "Marino",   color: "#2a4a8c" },
+  { nombre: "Morado",   color: "#7a4bc4" },
+  { nombre: "Rosa",     color: "#d95ba0" },
+  { nombre: "Gris",     color: "#8a8a8a" },
+  { nombre: "Café",     color: "#7a5230" }
+];
+let HD_PALETA_ABIERTA = null;   // "local" | "visit" | null
+
+function hdLeerColores(){
+  try { return JSON.parse(localStorage.getItem(HD_COLORES_KEY) || "{}") || {}; }
+  catch (e) { return {}; }
+}
+function hdGuardarColores(mapa){
+  try { localStorage.setItem(HD_COLORES_KEY, JSON.stringify(mapa)); } catch (e) {}
+}
+function hdClaveColor(equipo){
+  return String(equipo || "").trim().toUpperCase();
+}
+/* Mientras nadie elija, cada lado conserva el color de siempre: así la mesa
+   no ve un cambio raro el día que estrenamos esto. */
+function hdColorEquipo(equipo, lado){
+  const guardado = hdLeerColores()[hdClaveColor(equipo)];
+  if(guardado) return guardado;
+  return lado === "visit" ? HD_COLOR_VISIT : HD_COLOR_LOCAL;
+}
+/* Blanco o negro encima, según qué tanto brille el fondo. */
+function hdColorTexto(fondo){
+  const h = String(fondo || "").replace("#", "");
+  if(h.length !== 6) return "#fff";
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return (r*0.299 + g*0.587 + b*0.114) > 150 ? "#111" : "#fff";
+}
+function hdAbrirPaleta(lado){
+  HD_PALETA_ABIERTA = lado;
+  hdRender();
+}
+function hdCerrarPaleta(){
+  HD_PALETA_ABIERTA = null;
+  hdRender();
+}
+function hdElegirColor(color){
+  const lado = HD_PALETA_ABIERTA;
+  if(!lado || !HD) return;
+  const otro = lado === "local" ? "visit" : "local";
+  if(hdColorEquipo(HD[otro], otro) === color){
+    alert("Ese color ya lo tiene " + HD[otro] + ".\n\nElige otro: la idea es que no se confundan.");
+    return;
+  }
+  const mapa = hdLeerColores();
+  mapa[hdClaveColor(HD[lado])] = color;
+  hdGuardarColores(mapa);
+  HD_PALETA_ABIERTA = null;
+  hdRender();
+}
+function hdPaletaHTML(){
+  if(!HD_PALETA_ABIERTA) return "";
+  const lado = HD_PALETA_ABIERTA;
+  const actual = hdColorEquipo(HD[lado], lado);
+  const otro = lado === "local" ? "visit" : "local";
+  const delOtro = hdColorEquipo(HD[otro], otro);
+  const cuadros = HD_PALETA.map(function (c) {
+    const tomado = c.color === delOtro;
+    return `<button class="hd-color-op${c.color === actual ? " elegido" : ""}${tomado ? " tomado" : ""}"
+              style="background:${c.color}" onclick="hdElegirColor('${c.color}')"
+              title="${c.nombre}${tomado ? " · ya lo tiene " + HD[otro] : ""}"></button>`;
+  }).join("");
+  return `<div class="hd-cambio-fondo" onclick="if(event.target===this) hdCerrarPaleta()">
+    <div class="hd-cambio-caja">
+      <h3 class="hd-cambio-tit">¿De qué color viene ${HD[lado]}?</h3>
+      <div class="hd-cambio-sale">Se queda guardado para este equipo: la próxima vez sale igual</div>
+      <div class="hd-color-paleta">${cuadros}</div>
+      <div class="hd-cambio-pie">
+        <button class="hd-b" onclick="hdCerrarPaleta()">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* Panel de la izquierda del todo: la MINUTA del partido.
    ------------------------------------------------------------
    En la hoja de papel la mesa va tachando los puntos y anotando quién los
@@ -4854,48 +4987,50 @@ function hdTableroHTML(){
    momento. */
 function hdMinutaHTML(){
   const jugadas = (HD.jugadas || []);
+  return `<div class="hd-minuta">
+    <div class="hd-tab-periodo">Minuta</div>
+    <div class="hd-min-dos">
+      ${hdMinutaColumna("local", jugadas)}
+      ${hdMinutaColumna("visit", jugadas)}
+    </div>
+  </div>`;
+}
+
+/* Una columna por equipo. Cada canasta es el número de jersey dentro de un
+   círculo y cuántos puntos fueron: es exactamente lo que la mesa apunta en la
+   hoja de papel, sin nombres que no caben ni hay tiempo de leer. */
+function hdMinutaColumna(lado, jugadas){
+  const mias = jugadas.filter(function (x) { return x.lado === lado; });
+  const color = hdColorEquipo(HD[lado], lado);
 
   let cuerpo;
-  if(!jugadas.length){
-    cuerpo = '<div class="hd-min-vacia">Todavía no cae la primera canasta.<br>' +
-             'Aquí va apareciendo quién anota qué, del más reciente al primero.</div>';
+  if(!mias.length){
+    cuerpo = '<div class="hd-min-vacia">Sin anotar</div>';
   }else{
-    // Del más reciente al primero, agrupadas por periodo.
     let html = "", periodoPrevio = null;
-    for(let i = jugadas.length - 1; i >= 0; i--){
-      const x = jugadas[i];
+    for(let i = mias.length - 1; i >= 0; i--){      // lo más reciente arriba
+      const x = mias[i];
       if(x.c !== periodoPrevio){
-        html += `<div class="hd-min-periodo">${hdNombrePeriodo(x.c)}</div>`;
+        html += `<div class="hd-min-periodo">${hdNombreCorto(x.c)}</div>`;
         periodoPrevio = x.c;
       }
-      const quien = x.nombre
-        ? (x.jersey ? "#" + x.jersey + " " : "") + hdMinutaNombreCorto(x.nombre)
-        : "sin asignar";
-      html += `<div class="hd-min-fila ${x.lado}">
+      const num = x.jersey ? x.jersey : "?";
+      html += `<div class="hd-min-fila">
         <span class="hd-min-pts">+${x.pts}</span>
-        <span class="hd-min-quien${x.nombre ? "" : " sinduenio"}">${quien}</span>
-        <span class="hd-min-marca">${x.ml}-${x.mv}</span>
+        <span class="hd-min-num${x.jersey ? "" : " sinduenio"}" title="${x.nombre || "Todavía sin asignar"}">${num}</span>
       </div>`;
     }
     cuerpo = html;
   }
 
-  return `<div class="hd-minuta">
-    <div class="hd-tab-periodo">Minuta</div>
-    <div class="hd-min-leyenda">
-      <span><i class="local"></i>${HD.local}</span>
-      <span><i class="visit"></i>${HD.visit}</span>
-    </div>
+  return `<div class="hd-min-col">
+    <button class="hd-min-eq" style="background:${color};color:${hdColorTexto(color)}"
+            onclick="hdAbrirPaleta('${lado}')" title="Cambiar el color de ${HD[lado]}">
+      <span class="hd-min-eq-nom">${HD[lado]}</span>
+      <span class="hd-min-eq-pts">${hdTotal(HD, lado)}</span>
+    </button>
     <div class="hd-min-lista">${cuerpo}</div>
   </div>`;
-}
-
-/* En una columna angosta no cabe "MARIA FERNANDA GONZALEZ": se deja el primer
-   nombre y la inicial del apellido, que es como se le grita en la cancha. */
-function hdMinutaNombreCorto(nombre){
-  const partes = String(nombre || "").trim().split(/\s+/);
-  if(partes.length <= 1) return partes[0] || "";
-  return partes[0] + " " + partes[1].charAt(0) + ".";
 }
 
 /* Panel de la derecha: los dos equipos con su tiempo fuera, también pegado.
@@ -4972,8 +5107,9 @@ function hdColumnaEquipo(lado){
   const enBonus = faltasRival >= 5;
   const pend = HD.cuarto ? (HD.pendientes[lado][HD.cuarto] || 0) : 0;
 
-  let html = `<div class="hd-col">
-    <h3>${equipo}</h3>
+  const colorEq = hdColorEquipo(equipo, lado);
+  let html = `<div class="hd-col" style="border-top:3px solid ${colorEq}">
+    <h3><i class="hd-col-color" style="background:${colorEq}"></i>${equipo}</h3>
     <div class="hd-col-sub">
       ${hdTotal(HD, lado)} pts · faltas de equipo en el periodo: ${faltasCuarto}
       ${hdPendientesTotal(HD, lado) ? ' · <span style="color:#e0a63c;font-weight:800;">' + hdPendientesTotal(HD, lado) + ' pts pendientes</span>' : ''}
