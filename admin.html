@@ -189,16 +189,14 @@
   .hd-min-col{min-width:0;}
   /* El encabezado ES el color del equipo, y picándolo se cambia. */
   .hd-min-eq{
-    width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;
-    border:none;border-radius:7px;padding:5px 3px;cursor:pointer;
-    font-family:inherit;line-height:1.1;
+    width:100%;display:block;border:none;border-radius:7px;padding:6px 3px;
+    cursor:pointer;font-family:inherit;line-height:1.15;
   }
   .hd-min-eq:hover{filter:brightness(1.12);}
   .hd-min-eq-nom{
-    font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.2px;
-    width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+    font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.2px;
+    display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
   }
-  .hd-min-eq-pts{font-size:16px;font-weight:900;}
   /* Se limita el alto para que la minuta no empuje el resto de la pantalla:
      lo viejo se consulta con scroll dentro del propio panel. */
   .hd-min-lista{max-height:58vh;overflow-y:auto;margin-top:5px;}
@@ -211,7 +209,12 @@
     display:flex;align-items:center;justify-content:space-between;gap:4px;
     padding:2px 4px;margin-bottom:2px;border-radius:5px;background:#141414;
   }
-  .hd-min-pts{font-size:12px;font-weight:900;color:#8de0a0;flex:0 0 auto;}
+  .hd-min-pts{font-size:11px;font-weight:900;color:#8de0a0;flex:0 0 auto;}
+  /* El marcador corrido del equipo, canasta por canasta. */
+  .hd-min-corrido{
+    flex:1 1 auto;text-align:center;font-size:13px;font-weight:900;color:#fff;
+    min-width:0;
+  }
   /* El número, circulado en blanco: es lo que la mesa busca de un vistazo. */
   .hd-min-num{
     flex:0 0 auto;min-width:20px;height:20px;padding:0 3px;border-radius:50%;
@@ -5015,8 +5018,13 @@ function hdMinutaColumna(lado, jugadas){
         periodoPrevio = x.c;
       }
       const num = x.jersey ? x.jersey : "?";
+      /* En medio va el marcador corrido del equipo: es el número que en la
+         hoja de papel se va tachando canasta por canasta, y sirve para
+         cuadrar contra el tablero sin recontar nada. */
+      const corrido = lado === "local" ? x.ml : x.mv;
       html += `<div class="hd-min-fila">
         <span class="hd-min-pts">+${x.pts}</span>
+        <span class="hd-min-corrido">${corrido}</span>
         <span class="hd-min-num${x.jersey ? "" : " sinduenio"}" title="${x.nombre || "Todavía sin asignar"}">${num}</span>
       </div>`;
     }
@@ -5027,7 +5035,6 @@ function hdMinutaColumna(lado, jugadas){
     <button class="hd-min-eq" style="background:${color};color:${hdColorTexto(color)}"
             onclick="hdAbrirPaleta('${lado}')" title="Cambiar el color de ${HD[lado]}">
       <span class="hd-min-eq-nom">${HD[lado]}</span>
-      <span class="hd-min-eq-pts">${hdTotal(HD, lado)}</span>
     </button>
     <div class="hd-min-lista">${cuerpo}</div>
   </div>`;
