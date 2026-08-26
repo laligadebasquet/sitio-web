@@ -4409,8 +4409,10 @@ function hdAnotar(lado, indice, puntos){
       c: c, lado: lado, nombre: j.nombre, jersey: j.jersey, pts: puntos
     });
   }else{
-    /* El −1 es para corregir un dedazo, así que se borra el último apunte de
-       ese jugador en este periodo en vez de dejar un renglón en negativo. */
+    /* El −1 quita un punto, no una canasta entera, así que la minuta hace lo
+       mismo: le baja uno al último apunte de ese jugador en este periodo, y
+       solo lo borra si se queda en cero. Así la suma de la minuta siempre da
+       exactamente los puntos del equipo. */
     hdQuitarDeMinuta(c, lado, j.nombre);
   }
 
@@ -4440,8 +4442,24 @@ function hdQuitarDeMinuta(c, lado, nombre){
   const minuta = hdMinuta();
   for(let i = minuta.length - 1; i >= 0; i--){
     const x = minuta[i];
-    if(x.c === c && x.lado === lado && x.nombre === nombre){ minuta.splice(i, 1); return; }
+    if(x.c === c && x.lado === lado && x.nombre === nombre){
+      x.pts -= 1;
+      if(x.pts <= 0) minuta.splice(i, 1);
+      hdRecalcularMarcadoresMinuta();
+      return;
+    }
   }
+}
+
+/* Al corregir un punto, el marcador que quedó anotado en ésa y en todas las
+   canastas siguientes deja de cuadrar, así que se vuelven a calcular todos
+   desde el principio. */
+function hdRecalcularMarcadoresMinuta(){
+  let l = 0, v = 0;
+  hdMinuta().forEach(function (x) {
+    if(x.lado === "local") l += x.pts; else v += x.pts;
+    x.ml = l; x.mv = v;
+  });
 }
 
 function hdPendiente(lado, puntos){
