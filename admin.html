@@ -166,9 +166,49 @@
   /* Tres columnas: tablero pegado, los jugadores en medio y los tiempos
      fuera pegados a la derecha. Los dos paneles van delgados a propósito:
      lo que necesita ancho de verdad son los botones de cada jugador. */
-  .hd-conmarcador{display:grid;grid-template-columns:132px 1fr 132px;gap:10px;align-items:start;}
-  @media(max-width:1240px){ .hd-conmarcador{grid-template-columns:120px 1fr 120px;gap:8px;} }
-  @media(max-width:980px){ .hd-conmarcador{grid-template-columns:1fr;} }
+  /* Cuatro columnas: minuta, tablero, la captura y los tiempos fuera. Las
+     tres de los lados van delgadas a propósito: el ancho de verdad lo
+     necesitan los botones de cada jugador. */
+  .hd-conmarcador{display:grid;grid-template-columns:142px 128px 1fr 122px;gap:9px;align-items:start;}
+  @media(max-width:1400px){ .hd-conmarcador{grid-template-columns:130px 118px 1fr 112px;gap:8px;} }
+  @media(max-width:1150px){ .hd-conmarcador{grid-template-columns:1fr;} }
+  /* ---------- La minuta ---------- */
+  .hd-minuta{
+    position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
+    border-radius:12px;padding:12px 9px;
+  }
+  @media(max-width:1150px){ .hd-minuta{position:static;} }
+  .hd-min-leyenda{
+    display:flex;flex-direction:column;gap:3px;margin:9px 0 8px;
+    font-size:9px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.3px;
+  }
+  .hd-min-leyenda span{display:flex;align-items:center;gap:5px;min-width:0;}
+  .hd-min-leyenda i{width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+  .hd-min-leyenda i.local{background:#E8912E;}
+  .hd-min-leyenda i.visit{background:#4a90d9;}
+  /* Se limita el alto para que la minuta no empuje el resto de la pantalla:
+     lo viejo se consulta con scroll dentro del propio panel. */
+  .hd-min-lista{max-height:62vh;overflow-y:auto;border-top:1px solid #222;padding-top:7px;}
+  .hd-min-periodo{
+    font-size:9px;font-weight:900;color:#777;text-transform:uppercase;
+    letter-spacing:.6px;margin:9px 0 4px;padding-bottom:3px;border-bottom:1px dashed #2a2a2a;
+  }
+  .hd-min-periodo:first-child{margin-top:0;}
+  .hd-min-fila{
+    display:flex;align-items:center;gap:5px;padding:4px 3px 4px 7px;
+    border-left:3px solid #444;margin-bottom:3px;border-radius:0 5px 5px 0;
+    background:#111;
+  }
+  .hd-min-fila.local{border-left-color:#E8912E;}
+  .hd-min-fila.visit{border-left-color:#4a90d9;}
+  .hd-min-pts{font-size:12px;font-weight:900;color:#8de0a0;flex:0 0 auto;}
+  .hd-min-quien{
+    font-size:10px;font-weight:700;color:#ddd;flex:1 1 auto;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .hd-min-quien.sinduenio{color:#e0a63c;font-style:italic;}
+  .hd-min-marca{font-size:10px;font-weight:800;color:#888;flex:0 0 auto;}
+  .hd-min-vacia{font-size:10px;color:#666;line-height:1.6;padding:8px 2px;}
   .hd-tablero{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
@@ -4074,6 +4114,12 @@ function hdNuevoPartido(m){
     pendientes: { local: {1:0,2:0,3:0,4:0}, visit: {1:0,2:0,3:0,4:0} },
     tiemposFuera: { local: {primera:0, segunda:0}, visit: {primera:0, segunda:0} },
     faltasEquipo: { local: {1:0,2:0,3:0,4:0}, visit: {1:0,2:0,3:0,4:0} },
+    /* La minuta: cada canasta en el orden en que cayó. Es el equivalente de
+       lo que la mesa iba tachando en la hoja de papel, y sirve para dos
+       cosas que antes no se podían: revisar quién anotó qué sin abrir la
+       hoja de cálculo, y darse cuenta al momento si una canasta se le puso
+       al jugador equivocado. */
+    jugadas: [],
     cerrado: false,
     prorroga: false
   };
@@ -4354,8 +4400,45 @@ function hdAnotar(lado, indice, puntos){
   j.q[c] += puntos;
   if(puntos === 3) j.triples++;
   if(puntos < 0 && j.triples > 0 && j.q[c] % 3 === 0) { /* el conteo de triples solo se corrige a mano */ }
+
+  if(puntos > 0){
+    hdApuntarEnMinuta({
+      c: c, lado: lado, nombre: j.nombre, jersey: j.jersey, pts: puntos
+    });
+  }else{
+    /* El −1 es para corregir un dedazo, así que se borra el último apunte de
+       ese jugador en este periodo en vez de dejar un renglón en negativo. */
+    hdQuitarDeMinuta(c, lado, j.nombre);
+  }
+
   hdGuardarRespaldo();
   hdRender();
+}
+
+/* ---------- La minuta ---------- */
+function hdMinuta(){
+  if(!HD.jugadas) HD.jugadas = [];   // partidos que empezaron antes de que existiera
+  return HD.jugadas;
+}
+
+function hdApuntarEnMinuta(datos){
+  const minuta = hdMinuta();
+  minuta.push({
+    c: datos.c, lado: datos.lado,
+    nombre: datos.nombre || "", jersey: datos.jersey || "",
+    pts: datos.pts,
+    // Cómo iba el partido DESPUÉS de esta canasta: es lo que ubica a
+    // cualquiera que lea la minuta después.
+    ml: hdTotal(HD, "local"), mv: hdTotal(HD, "visit")
+  });
+}
+
+function hdQuitarDeMinuta(c, lado, nombre){
+  const minuta = hdMinuta();
+  for(let i = minuta.length - 1; i >= 0; i--){
+    const x = minuta[i];
+    if(x.c === c && x.lado === lado && x.nombre === nombre){ minuta.splice(i, 1); return; }
+  }
 }
 
 function hdPendiente(lado, puntos){
@@ -4364,6 +4447,8 @@ function hdPendiente(lado, puntos){
   const hay = HD.pendientes[lado][c] || 0;
   if(puntos < 0 && hay <= 0) return;
   HD.pendientes[lado][c] = hay + puntos;
+  if(puntos > 0) hdApuntarEnMinuta({ c: c, lado: lado, nombre: "", jersey: "", pts: puntos });
+  else hdQuitarDeMinuta(c, lado, "");
   hdGuardarRespaldo();
   hdRender();
 }
@@ -4641,6 +4726,7 @@ function hdRender(){
 
   // Tablero pegado a la izquierda · jugadores en medio · tiempos fuera a la derecha
   html += '<div class="hd-conmarcador">';
+  html += hdMinutaHTML();
   html += hdTableroHTML();
   html += '<div class="hd-split">';
   ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
@@ -4732,6 +4818,63 @@ function hdTableroHTML(){
       <div class="hd-tab-ayuda">No se puede regresar: los puntos quedan donde van.</div>
     </div>
   </div>`;
+}
+
+/* Panel de la izquierda del todo: la MINUTA del partido.
+   ------------------------------------------------------------
+   En la hoja de papel la mesa va tachando los puntos y anotando quién los
+   hizo, así que de un vistazo se ve la historia del juego. En la hoja digital
+   eso se perdía: los puntos entraban al total del jugador y ya, sin manera de
+   revisar quién anotó qué ni de cachar al momento que una canasta se le puso
+   al jugador equivocado.
+
+   Se lee de arriba abajo empezando por lo más reciente, separada por periodo,
+   con el equipo marcado con una barra de color y el marcador como iba en ese
+   momento. */
+function hdMinutaHTML(){
+  const jugadas = (HD.jugadas || []);
+
+  let cuerpo;
+  if(!jugadas.length){
+    cuerpo = '<div class="hd-min-vacia">Todavía no cae la primera canasta.<br>' +
+             'Aquí va apareciendo quién anota qué, del más reciente al primero.</div>';
+  }else{
+    // Del más reciente al primero, agrupadas por periodo.
+    let html = "", periodoPrevio = null;
+    for(let i = jugadas.length - 1; i >= 0; i--){
+      const x = jugadas[i];
+      if(x.c !== periodoPrevio){
+        html += `<div class="hd-min-periodo">${hdNombrePeriodo(x.c)}</div>`;
+        periodoPrevio = x.c;
+      }
+      const quien = x.nombre
+        ? (x.jersey ? "#" + x.jersey + " " : "") + hdMinutaNombreCorto(x.nombre)
+        : "sin asignar";
+      html += `<div class="hd-min-fila ${x.lado}">
+        <span class="hd-min-pts">+${x.pts}</span>
+        <span class="hd-min-quien${x.nombre ? "" : " sinduenio"}">${quien}</span>
+        <span class="hd-min-marca">${x.ml}-${x.mv}</span>
+      </div>`;
+    }
+    cuerpo = html;
+  }
+
+  return `<div class="hd-minuta">
+    <div class="hd-tab-periodo">Minuta</div>
+    <div class="hd-min-leyenda">
+      <span><i class="local"></i>${HD.local}</span>
+      <span><i class="visit"></i>${HD.visit}</span>
+    </div>
+    <div class="hd-min-lista">${cuerpo}</div>
+  </div>`;
+}
+
+/* En una columna angosta no cabe "MARIA FERNANDA GONZALEZ": se deja el primer
+   nombre y la inicial del apellido, que es como se le grita en la cancha. */
+function hdMinutaNombreCorto(nombre){
+  const partes = String(nombre || "").trim().split(/\s+/);
+  if(partes.length <= 1) return partes[0] || "";
+  return partes[0] + " " + partes[1].charAt(0) + ".";
 }
 
 /* Panel de la derecha: los dos equipos con su tiempo fuera, también pegado.
