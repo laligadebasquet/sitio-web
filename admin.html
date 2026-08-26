@@ -3599,7 +3599,19 @@ function edCargarPartido(){
   ED_ESTAD = dePartido;
 
   const jugadoresDe = (equipo)=>{
-    const enHoja = dePartido.filter(r => nombreEquipo(r["Equipo"]) === nombreEquipo(equipo));
+    /* De cada jugador se queda UNA fila: la más reciente. Un partido que se
+       guardó dos veces puede haber dejado renglones repetidos en la hoja, y
+       si se leyeran todos el jugador aparecería dos veces y sus puntos se
+       contarían doble. Al guardar desde aquí, los repetidos se van. */
+    const enHoja = [];
+    const porNombre = {};
+    dePartido
+      .filter(r => nombreEquipo(r["Equipo"]) === nombreEquipo(equipo))
+      .forEach(r=>{
+        const k = normalizarNombre(r["Jugador"]);
+        if(porNombre[k] === undefined){ porNombre[k] = enHoja.length; enHoja.push(r); }
+        else enHoja[porNombre[k]] = r;      // gana la última, que es la buena
+      });
     const vistos = {};
     const salida = enHoja.map(r=>{
       const nom = String(r["Jugador"] || "").trim();
