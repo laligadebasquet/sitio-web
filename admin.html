@@ -3551,12 +3551,22 @@ const ED_PERIODOS = ["1º", "2º", "3º", "4º"];
 function edClave(m){ return [m.jornada, m.local, m.visit].join("|"); }
 
 /* Los partidos que ya se jugaron, del más reciente al más viejo: casi siempre
-   lo que se corrige es lo de anoche. */
+   lo que se corrige es lo de anoche.
+
+   "Ya se jugó" es TENER RESULTADO, no que el rol diga "Jugado". Los partidos
+   de la semana 1 se capturaron antes de que existiera ese marcado y en el rol
+   siguen como "Programado": con el filtro anterior salían 7 de 19 y los de la
+   primera semana no se podían corregir. */
 function edPartidosJugados(){
   return MATCHES
     .map((m, i)=>({ m, i }))
-    .filter(x => x.m.estatus === "Jugado")
-    .sort((a,b)=> String(b.m.fecha || "").localeCompare(String(a.m.fecha || "")));
+    .filter(x => x.m.estatus === "Jugado" || !!buscarResultado(x.m))
+    .sort((a,b)=>{
+      const fa = String(a.m.fecha || ""), fb = String(b.m.fecha || "");
+      if(fa !== fb) return fb.localeCompare(fa);
+      // El mismo día, el último partido primero: es el que se acaba de capturar.
+      return String(b.m.hora || "").localeCompare(String(a.m.hora || ""));
+    });
 }
 
 function renderEditarPartido(){
