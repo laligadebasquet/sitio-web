@@ -2286,9 +2286,82 @@ let CEDULAS_PUB = [];
 let ESTADISTICAS = [];
 let PUNTOS_JUGADOR = DEMO_PUNTOS_JUGADOR;
 
-async function init(){
-  let usedFallback = false;
+/* ============================================================
+   LA PÁGINA ABRE AL INSTANTE
 
+   Antes, cada visita se quedaba en blanco esperando a que Google contestara.
+   Medido en vivo: 5.6s, 12.4s y 3.6s en tres cargas seguidas, y pedir una
+   sola hoja de 4 KB también tardaba 5.9s — el costo no son los datos, es que
+   el Apps Script tarda en despertar cada vez. Cuando se pasaba del
+   temporizador salía el aviso de "no se pudo cargar la hoja conectada".
+
+   Ahora la página se acuerda de lo que mostró la última vez: al abrir lo
+   pinta de inmediato (cero espera) y en paralelo le pide a Google lo fresco.
+   Si algo cambió, se repinta solo. Quien entra por primera vez sí espera,
+   pero solo esa vez.
+   ============================================================ */
+const MEMORIA_LLAVE = "LIGA_DATOS_V1";
+const MEMORIA_VIDA_MS = 7 * 24 * 60 * 60 * 1000;   // una semana
+
+function leerDeMemoria(){
+  try{
+    const crudo = localStorage.getItem(MEMORIA_LLAVE);
+    if(!crudo) return null;
+    const guardado = JSON.parse(crudo);
+    if(!guardado || !guardado.hojas || !guardado.cuando) return null;
+    // Datos de hace más de una semana ya no ayudan: mejor esperar los buenos.
+    if(Date.now() - guardado.cuando > MEMORIA_VIDA_MS) return null;
+    return guardado;
+  }catch(e){ return null; }
+}
+
+function guardarEnMemoria(hojas){
+  try{
+    localStorage.setItem(MEMORIA_LLAVE, JSON.stringify({ cuando: Date.now(), hojas: hojas }));
+  }catch(e){
+    /* Si no cabe (el navegador da unos 5 MB), se borra y se sigue sin
+       memoria: la página funciona igual, nada más vuelve a esperar. */
+    try{ localStorage.removeItem(MEMORIA_LLAVE); }catch(e2){}
+  }
+}
+
+/* Lo que se guarda es la respuesta cruda de las hojas, no lo ya procesado:
+   así, si mañana cambia la forma de leer una columna, los datos guardados
+   se reinterpretan con el código nuevo en vez de quedarse viejos. */
+function aplicarDatos(datos){
+  if(!datos) return false;
+  if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
+  if(datos["Rol de Juego"]) ROL = mapRolCsv(datos["Rol de Juego"]);
+  if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
+  if(datos["Integrantes"])  ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
+  if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
+  if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
+  if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
+  return true;
+}
+
+/* Repinta todo lo que depende del Sheet. Reglamento, Inscripción, Dónde
+   Estamos y Contacto quedan fuera a propósito: ya se pintaron al arrancar y
+   volver a pintarlas borraría la categoría que eligió el deep-link. */
+function pintarTodoDelSheet(){
+  _cacheJugadoresQuery = null;
+  _cacheJugadoresSet = null;
+  renderProximos();
+  renderResultados();
+  renderRol();
+  renderRolInicio();
+  renderTabla();
+  renderRachas();
+  renderPlayoffs();
+  renderConcentrado();
+  renderSanciones();
+  renderJugadores();
+}
+
+const HOJAS_DE_INICIO = ["Resultados","Rol de Juego","Equipos","Integrantes",
+                         "Asistencia","Cédulas","Estadísticas"];
+
+async function init(){
   /* Las vistas que NO dependen del Sheet (Reglamento, Inscripción, Dónde
      Estamos, Contacto) se pintan y se aplica el deep-link ANTES de esperar
      los datos. Si no, un link tipo ?view=reglamento&cat=varonil deja al
@@ -2300,48 +2373,37 @@ async function init(){
   renderInscripcion();
   aplicarDeepLink();
 
-  if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
-    /* Sin las fotos: son 12 MB de la hoja Integrantes y hacían que la
-       primera carga tardara más de lo que aguanta el temporizador, con lo
-       que la página terminaba enseñando los datos de ejemplo. Las fotos se
-       piden después, por equipo, solo cuando alguien abre uno. */
-    const datos = await leerDelSheet(
-      ["Resultados","Rol de Juego","Equipos","Integrantes","Asistencia","Cédulas","Estadísticas"],
-      25000, { sinFotos: 1 });
-    if(datos){
-      if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
-      if(datos["Rol de Juego"]) ROL = mapRolCsv(datos["Rol de Juego"]);
-      if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
-      if(datos["Integrantes"])  ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
-      if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
-      if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
-      if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
-    } else {
-      usedFallback = true;
-    }
-  } else {
-    usedFallback = true;
+  if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl){
+    document.getElementById("configNote").style.display = "block";
+    pintarTodoDelSheet();
+    return;
   }
-  if(usedFallback) document.getElementById("configNote").style.display = "block";
 
-  // Los rosters pudieron cambiar al cargar: se limpia el cache de busqueda.
-  _cacheJugadoresQuery = null;
-  _cacheJugadoresSet = null;
+  // 1) Lo de la última visita, al instante.
+  const memoria = leerDeMemoria();
+  let yaHayAlgo = false;
+  if(memoria && aplicarDatos(memoria.hojas)){
+    yaHayAlgo = true;
+    pintarTodoDelSheet();
+  }
 
-  // Solo las vistas que dependen del Sheet. Reglamento, Inscripción, Dónde
-  // Estamos y Contacto ya se pintaron arriba: volver a pintarlas aquí
-  // borraría la categoría/pestaña que eligió el deep-link (por ejemplo
-  // ?view=reglamento&cat=femenil se resetearía a varonil).
-  renderProximos();
-  renderResultados();
-  renderRol();
-  renderRolInicio();
-  renderTabla();
-  renderRachas();
-  renderPlayoffs();
-  renderConcentrado();
-  renderSanciones();
-  renderJugadores();
+  /* 2) Y lo fresco, por detrás. Sin las fotos: son 12 MB de la hoja
+     Integrantes. Se piden después, por equipo, solo cuando alguien abre
+     uno. */
+  const datos = await leerDelSheet(HOJAS_DE_INICIO, 30000, { sinFotos: 1 });
+
+  if(datos){
+    aplicarDatos(datos);
+    guardarEnMemoria(datos);
+    pintarTodoDelSheet();
+    document.getElementById("configNote").style.display = "none";
+  }else if(!yaHayAlgo){
+    /* Solo se avisa cuando de verdad no hay nada que enseñar. Si ya se pintó
+       lo de la visita anterior, el visitante está viendo información buena y
+       no tiene por qué asustarse con un letrero. */
+    document.getElementById("configNote").style.display = "block";
+    pintarTodoDelSheet();
+  }
 }
 
 /* ============================================================
