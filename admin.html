@@ -338,8 +338,8 @@
   .ed-parcial-celda input::-webkit-outer-spin-button,
   .ed-parcial-celda input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .ed-marcador input, .ed-parcial-celda input{-moz-appearance:textfield;appearance:textfield;}
-  .ed-marcador input{
-    width:110px;background:#000;border:1px solid #444;border-radius:8px;color:#fff;
+  .ed-marcador input[type=text]{
+    width:110px;box-sizing:border-box;margin:0;background:#000;border:1px solid #444;border-radius:8px;color:#fff;
     padding:9px 11px;font-size:24px;font-weight:900;font-family:inherit;text-align:center;
   }
   .ed-vs{font-size:20px;font-weight:900;color:#666;padding-bottom:12px;}
@@ -353,8 +353,8 @@
   }
   .ed-parcial-celda{display:flex;flex-direction:column;gap:4px;}
   .ed-parcial-celda label{font-size:9px;font-weight:900;color:#777;text-align:center;}
-  .ed-parcial-celda input{
-    width:56px;background:#000;border:1px solid #444;border-radius:7px;color:#fff;
+  .ed-parcial-celda input[type=text]{
+    width:56px;box-sizing:border-box;margin:0;background:#000;border:1px solid #444;border-radius:7px;color:#fff;
     padding:7px 4px;font-size:15px;font-weight:800;font-family:inherit;text-align:center;
   }
   /* El semáforo: verde si cuadra, ámbar con lo que falta o sobra. */
@@ -390,20 +390,30 @@
      dentro de la casilla y en 36px de ancho se comían el número, que era
      justo lo que se veía en pantalla — cajitas vacías. Con texto se ve
      siempre, y se cambia tecleando, que es como Mauricio lo quiere. */
-  .ed-num{
-    width:40px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#fff;
-    padding:6px 2px;font-size:14px;font-weight:800;font-family:inherit;text-align:center;
+  /* OJO con el selector: tiene que llevar `input.` delante. Más arriba hay
+     una regla general — select, input[type=number], input[type=text], ... —
+     y `input[type=text]` PESA MÁS que una clase suelta como `.ed-num`. Le
+     ganaba: le metía ancho 100% y 24px de relleno horizontal dentro de una
+     celda de 40px, así que el número quedaba fuera del área visible y las
+     casillas se veían VACÍAS. */
+  .ed-tabla input.ed-num{
+    width:40px;min-width:40px;box-sizing:border-box;
+    background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#fff;
+    padding:6px 2px;margin:0;font-size:14px;font-weight:800;
+    font-family:inherit;text-align:center;
   }
-  .ed-num:focus{outline:none;border-color:#E8912E;background:#1a1206;}
+  .ed-tabla input.ed-num:focus{outline:none;border-color:#E8912E;background:#1a1206;}
   /* Por si algún navegador insiste en dibujar las flechas. */
   .ed-num::-webkit-outer-spin-button,
   .ed-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .ed-num{-moz-appearance:textfield;appearance:textfield;}
   /* Un cero se ve apagado: así saltan a la vista los números que sí traen algo. */
   .ed-num.cero{color:#5a5a5a;}
-  .ed-jersey{
-    width:34px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;
-    padding:5px 2px;font-size:13px;font-weight:900;font-family:inherit;text-align:center;
+  .ed-tabla input.ed-jersey{
+    width:38px;min-width:38px;box-sizing:border-box;
+    background:#000;border:1px solid #444;border-radius:6px;color:#fff;
+    padding:5px 2px;margin:0;font-size:13px;font-weight:900;
+    font-family:inherit;text-align:center;
   }
   .ed-asis input{width:16px;height:16px;cursor:pointer;}
   /* Quien no vino se ve apagado, pero sigue ahí por si hay que corregirlo. */
