@@ -333,6 +333,11 @@
   .ed-marcador label{
     font-size:11px;font-weight:900;color:#bbb;text-transform:uppercase;letter-spacing:.4px;
   }
+  .ed-marcador input::-webkit-outer-spin-button,
+  .ed-marcador input::-webkit-inner-spin-button,
+  .ed-parcial-celda input::-webkit-outer-spin-button,
+  .ed-parcial-celda input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .ed-marcador input, .ed-parcial-celda input{-moz-appearance:textfield;appearance:textfield;}
   .ed-marcador input{
     width:110px;background:#000;border:1px solid #444;border-radius:8px;color:#fff;
     padding:9px 11px;font-size:24px;font-weight:900;font-family:inherit;text-align:center;
@@ -381,11 +386,19 @@
     max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .ed-tabla .ed-total{font-weight:900;color:#fff;font-size:15px;background:#161616;}
+  /* Campos de TEXTO, no numéricos: el input number dibuja sus flechitas
+     dentro de la casilla y en 36px de ancho se comían el número, que era
+     justo lo que se veía en pantalla — cajitas vacías. Con texto se ve
+     siempre, y se cambia tecleando, que es como Mauricio lo quiere. */
   .ed-num{
-    width:36px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#eee;
-    padding:5px 2px;font-size:13px;font-weight:700;font-family:inherit;text-align:center;
+    width:40px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#fff;
+    padding:6px 2px;font-size:14px;font-weight:800;font-family:inherit;text-align:center;
   }
   .ed-num:focus{outline:none;border-color:#E8912E;background:#1a1206;}
+  /* Por si algún navegador insiste en dibujar las flechas. */
+  .ed-num::-webkit-outer-spin-button,
+  .ed-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .ed-num{-moz-appearance:textfield;appearance:textfield;}
   /* Un cero se ve apagado: así saltan a la vista los números que sí traen algo. */
   .ed-num.cero{color:#5a5a5a;}
   .ed-jersey{
@@ -3820,15 +3833,16 @@ function edPintar(){
         <td><input class="ed-jersey" value="${j.jersey}" maxlength="3"
                    onchange="edCampo('${lado}',${i},'jersey',this.value)" placeholder="#"></td>
         <td class="ed-nombre">${j.nombre}</td>
-        ${j.q.map((val, k)=>`<td><input class="ed-num${Number(val) ? "" : " cero"}" type="number" min="0" value="${val}"
-             title="${ED_PERIODOS[k]} periodo" onchange="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
+        ${j.q.map((val, k)=>`<td><input class="ed-num${Number(val) ? "" : " cero"}" type="text" inputmode="numeric"
+             value="${val}" title="${ED_PERIODOS[k]} periodo" onfocus="this.select()"
+             oninput="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
         <td class="ed-total" data-total="${lado}-${i}">${edPuntosJugador(j)}</td>
-        <td><input class="ed-num${Number(j.triples) ? "" : " cero"}" type="number" min="0" value="${j.triples}"
-             title="Triples" onchange="edCampo('${lado}',${i},'triples',this.value)"></td>
-        <td><input class="ed-num${Number(j.fp) ? "" : " cero"}" type="number" min="0" value="${j.fp}"
-             title="Faltas personales" onchange="edCampo('${lado}',${i},'fp',this.value)"></td>
-        <td><input class="ed-num${Number(j.ftf) ? "" : " cero"}" type="number" min="0" value="${j.ftf}"
-             title="Faltas técnicas o flagrantes" onchange="edCampo('${lado}',${i},'ftf',this.value)"></td>
+        <td><input class="ed-num${Number(j.triples) ? "" : " cero"}" type="text" inputmode="numeric" value="${j.triples}"
+             title="Triples" onfocus="this.select()" oninput="edCampo('${lado}',${i},'triples',this.value)"></td>
+        <td><input class="ed-num${Number(j.fp) ? "" : " cero"}" type="text" inputmode="numeric" value="${j.fp}"
+             title="Faltas personales" onfocus="this.select()" oninput="edCampo('${lado}',${i},'fp',this.value)"></td>
+        <td><input class="ed-num${Number(j.ftf) ? "" : " cero"}" type="text" inputmode="numeric" value="${j.ftf}"
+             title="Faltas técnicas o flagrantes" onfocus="this.select()" oninput="edCampo('${lado}',${i},'ftf',this.value)"></td>
       </tr>`).join("");
 
     return `<div class="ed-equipo">
@@ -3856,10 +3870,12 @@ function edPintar(){
       <p class="ed-nota">Es el marcador que ya está publicado. Todo lo demás tiene que dar este número.</p>
       <div class="ed-marcador">
         <div><label>${m.local}</label>
-          <input type="number" min="0" id="edPtsLocal" value="${p.ptsLocal}" onchange="edTotal('local',this.value)"></div>
+          <input type="text" inputmode="numeric" id="edPtsLocal" value="${p.ptsLocal}"
+                 onfocus="this.select()" oninput="edTotal('local',this.value)"></div>
         <div class="ed-vs">—</div>
         <div><label>${m.visit}</label>
-          <input type="number" min="0" id="edPtsVisit" value="${p.ptsVisit}" onchange="edTotal('visit',this.value)"></div>
+          <input type="text" inputmode="numeric" id="edPtsVisit" value="${p.ptsVisit}"
+                 onfocus="this.select()" oninput="edTotal('visit',this.value)"></div>
       </div>
     </div>
 
@@ -3875,8 +3891,8 @@ function edPintar(){
           <div class="ed-parcial-eq">${equipo}</div>
           ${p.parcial[lado].map((val,k)=>`<div class="ed-parcial-celda">
             <label>${ED_PERIODOS[k]}</label>
-            <input type="number" min="0" value="${val}" data-parcial="${lado}-${k}"
-                   onchange="edParcial('${lado}',${k},this.value)">
+            <input type="text" inputmode="numeric" value="${val}" data-parcial="${lado}-${k}"
+                   onfocus="this.select()" onchange="edParcial('${lado}',${k},this.value)">
           </div>`).join("")}
           <div class="ed-chequeo" data-sem="par-${lado}">${edSemaforo(total, edSumaParcial(lado), "el parcial suma")}</div>
         </div>`;
