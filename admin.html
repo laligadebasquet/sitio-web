@@ -3801,7 +3801,7 @@ function edPintar(){
     const equipo = lado === "local" ? m.local : m.visit;
     const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
     const filas = p.jugadores[lado].map((j, i)=>`
-      <tr class="${j.asistio ? "" : "ed-nojugo"}">
+      <tr class="${j.asistio ? "" : "ed-nojugo"}" data-fila="${lado}-${i}">
         <td class="ed-asis">
           <input type="checkbox" ${j.asistio ? "checked" : ""}
                  onchange="edCampo('${lado}',${i},'asistio',this.checked)" title="¿Vino al partido?">
@@ -3811,7 +3811,7 @@ function edPintar(){
         <td class="ed-nombre">${j.nombre}</td>
         ${j.q.map((val, k)=>`<td><input class="ed-num" type="number" min="0" value="${val}"
              onchange="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
-        <td class="ed-total">${edPuntosJugador(j)}</td>
+        <td class="ed-total" data-total="${lado}-${i}">${edPuntosJugador(j)}</td>
         <td><input class="ed-num" type="number" min="0" value="${j.triples}"
              onchange="edCampo('${lado}',${i},'triples',this.value)"></td>
         <td><input class="ed-num" type="number" min="0" value="${j.fp}"
@@ -3822,7 +3822,7 @@ function edPintar(){
 
     return `<div class="ed-equipo">
       <h3>${equipo}</h3>
-      <div class="ed-chequeo">${edSemaforo(total, edSumaJugadores(lado), "los jugadores suman")}</div>
+      <div class="ed-chequeo" data-sem="jug-${lado}">${edSemaforo(total, edSumaJugadores(lado), "los jugadores suman")}</div>
       <div class="ed-tabla-scroll">
         <table class="ed-tabla">
           <thead><tr>
@@ -3861,9 +3861,10 @@ function edPintar(){
           <div class="ed-parcial-eq">${equipo}</div>
           ${p.parcial[lado].map((val,k)=>`<div class="ed-parcial-celda">
             <label>${ED_PERIODOS[k]}</label>
-            <input type="number" min="0" value="${val}" onchange="edParcial('${lado}',${k},this.value)">
+            <input type="number" min="0" value="${val}" data-parcial="${lado}-${k}"
+                   onchange="edParcial('${lado}',${k},this.value)">
           </div>`).join("")}
-          <div class="ed-chequeo">${edSemaforo(total, edSumaParcial(lado), "el parcial suma")}</div>
+          <div class="ed-chequeo" data-sem="par-${lado}">${edSemaforo(total, edSumaParcial(lado), "el parcial suma")}</div>
         </div>`;
       }).join("")}
     </div>
@@ -3893,7 +3894,46 @@ function edPintar(){
 /* ---------- cambios ---------- */
 function edTotal(lado, valor){
   ED_PARTIDO[lado === "local" ? "ptsLocal" : "ptsVisit"] = Math.max(0, Number(valor) || 0);
-  edPintar();
+  edRefrescarNumeros();
+}
+
+/* ---------- por qué NO se repinta todo al escribir ----------
+   Antes, cualquier cambio llamaba a edPintar(), que reconstruye el HTML
+   entero. Eso borra y vuelve a crear los <input>, así que el que estabas
+   usando perdía el foco y lo que ibas tecleando se iba a medias. Se sentía
+   como que la pestaña "no funciona".
+
+   Ahora escribir solo refresca lo que de verdad cambió — los totales y los
+   semáforos — sin tocar las casillas. La tabla se reconstruye únicamente
+   cuando cambia de partido o después de guardar. */
+function edRefrescarNumeros(){
+  const p = ED_PARTIDO, m = p.m;
+  if(!p) return;
+
+  const poner = (sel, texto) => {
+    document.querySelectorAll(sel).forEach(e => { e.textContent = texto; });
+  };
+
+  ["local","visit"].forEach(lado=>{
+    const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
+
+    // El total de cada jugador
+    p.jugadores[lado].forEach((j, i)=>{
+      poner(`[data-total="${lado}-${i}"]`, edPuntosJugador(j));
+    });
+
+    // El parcial de cada periodo, por si lo movió un cambio de jugador
+    p.parcial[lado].forEach((val, k)=>{
+      const campo = document.querySelector(`[data-parcial="${lado}-${k}"]`);
+      if(campo && document.activeElement !== campo) campo.value = val;
+    });
+
+    // Los dos semáforos de ese equipo
+    const sJug = document.querySelector(`[data-sem="jug-${lado}"]`);
+    if(sJug) sJug.innerHTML = edSemaforo(total, edSumaJugadores(lado), "los jugadores suman");
+    const sPar = document.querySelector(`[data-sem="par-${lado}"]`);
+    if(sPar) sPar.innerHTML = edSemaforo(total, edSumaParcial(lado), "el parcial suma");
+  });
 }
 
 function edCampo(lado, i, campo, valor){
@@ -3901,14 +3941,19 @@ function edCampo(lado, i, campo, valor){
   if(campo === "asistio") j.asistio = !!valor;
   else if(campo === "jersey") j.jersey = String(valor).trim().slice(0,3);
   else j[campo] = Math.max(0, Number(valor) || 0);
-  edPintar();
+  /* La asistencia sí repinta el renglón, porque lo pinta de otro color. */
+  if(campo === "asistio"){
+    const fila = document.querySelector(`[data-fila="${lado}-${i}"]`);
+    if(fila) fila.className = j.asistio ? "" : "ed-nojugo";
+  }
+  edRefrescarNumeros();
 }
 
 function edPeriodo(lado, i, k, valor){
   ED_PARTIDO.jugadores[lado][i].q[k] = Math.max(0, Number(valor) || 0);
   // El parcial de ese periodo se vuelve a calcular con lo que traen ahora los jugadores.
   ED_PARTIDO.parcial[lado][k] = ED_PARTIDO.jugadores[lado].reduce((s,j)=> s + Number(j.q[k] || 0), 0);
-  edPintar();
+  edRefrescarNumeros();
 }
 
 /* Cambiar el parcial de un periodo a mano: la diferencia se le carga al
@@ -3931,6 +3976,8 @@ function edParcial(lado, k, valor){
       ED_PARTIDO.parcial[lado][k] = jugadores.reduce((s,j)=> s + Number(j.q[k] || 0), 0);
     }
   }
+  /* Aquí SÍ se repinta: repartir la diferencia le cambió los puntos a un
+     jugador, y su casilla tiene que enseñar el número nuevo. */
   edPintar();
 }
 
