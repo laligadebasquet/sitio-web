@@ -356,30 +356,41 @@
   .ed-chequeo{font-size:11px;font-weight:800;padding-bottom:9px;}
   .ed-ok{color:#8de0a0;}
   .ed-dif{color:#e0a63c;}
-  .ed-equipos{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:1100px){ .ed-equipos{grid-template-columns:1fr;} }
+  /* Los dos equipos van uno DEBAJO del otro salvo en pantallas muy anchas.
+     Lado a lado, cada tabla se quedaba con unos 500px para once columnas y
+     las últimas —3P, FP, FTF— caían fuera del scroll: se veía el total del
+     jugador y nada más, que es justo lo que reportó Mauricio. Apiladas, cada
+     tabla usa el ancho completo y se ven todos los rubros de un vistazo. */
+  .ed-equipos{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:1500px){ .ed-equipos{grid-template-columns:1fr 1fr;} }
   .ed-equipo{background:#101010;border:1px solid #262626;border-radius:12px;padding:13px;min-width:0;}
   .ed-equipo h3{margin:0 0 6px;font-size:14px;font-weight:900;color:#fff;text-transform:uppercase;}
   .ed-tabla-scroll{overflow-x:auto;}
   .ed-tabla{width:100%;border-collapse:collapse;font-size:12px;}
   .ed-tabla th{
     font-size:9px;font-weight:900;color:#777;text-transform:uppercase;
-    letter-spacing:.4px;padding:5px 3px;border-bottom:1px solid #2a2a2a;text-align:center;
+    letter-spacing:.4px;padding:5px 2px;border-bottom:1px solid #2a2a2a;text-align:center;
   }
-  .ed-tabla td{padding:4px 3px;border-bottom:1px solid #1c1c1c;text-align:center;}
+  /* Los encabezados de los rubros, con su color: así se lee de un jalón qué
+     es cada columna sin tener que contar. */
+  .ed-tabla th.ed-th-per{color:#8de0a0;}
+  .ed-tabla th.ed-th-falta{color:#ffb3b3;}
+  .ed-tabla td{padding:4px 2px;border-bottom:1px solid #1c1c1c;text-align:center;}
   .ed-tabla .ed-nombre{
     text-align:left;color:#eee;font-weight:700;font-size:12px;
-    max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .ed-tabla .ed-total{font-weight:900;color:#fff;font-size:14px;}
+  .ed-tabla .ed-total{font-weight:900;color:#fff;font-size:15px;background:#161616;}
   .ed-num{
-    width:42px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#eee;
-    padding:5px 3px;font-size:13px;font-weight:700;font-family:inherit;text-align:center;
+    width:36px;background:#0a0a0a;border:1px solid #333;border-radius:6px;color:#eee;
+    padding:5px 2px;font-size:13px;font-weight:700;font-family:inherit;text-align:center;
   }
-  .ed-num:focus{outline:none;border-color:#E8912E;}
+  .ed-num:focus{outline:none;border-color:#E8912E;background:#1a1206;}
+  /* Un cero se ve apagado: así saltan a la vista los números que sí traen algo. */
+  .ed-num.cero{color:#5a5a5a;}
   .ed-jersey{
-    width:38px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;
-    padding:5px 3px;font-size:13px;font-weight:900;font-family:inherit;text-align:center;
+    width:34px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;
+    padding:5px 2px;font-size:13px;font-weight:900;font-family:inherit;text-align:center;
   }
   .ed-asis input{width:16px;height:16px;cursor:pointer;}
   /* Quien no vino se ve apagado, pero sigue ahí por si hay que corregirlo. */
@@ -3809,15 +3820,15 @@ function edPintar(){
         <td><input class="ed-jersey" value="${j.jersey}" maxlength="3"
                    onchange="edCampo('${lado}',${i},'jersey',this.value)" placeholder="#"></td>
         <td class="ed-nombre">${j.nombre}</td>
-        ${j.q.map((val, k)=>`<td><input class="ed-num" type="number" min="0" value="${val}"
-             onchange="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
+        ${j.q.map((val, k)=>`<td><input class="ed-num${Number(val) ? "" : " cero"}" type="number" min="0" value="${val}"
+             title="${ED_PERIODOS[k]} periodo" onchange="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
         <td class="ed-total" data-total="${lado}-${i}">${edPuntosJugador(j)}</td>
-        <td><input class="ed-num" type="number" min="0" value="${j.triples}"
-             onchange="edCampo('${lado}',${i},'triples',this.value)"></td>
-        <td><input class="ed-num" type="number" min="0" value="${j.fp}"
-             onchange="edCampo('${lado}',${i},'fp',this.value)"></td>
-        <td><input class="ed-num" type="number" min="0" value="${j.ftf}"
-             onchange="edCampo('${lado}',${i},'ftf',this.value)"></td>
+        <td><input class="ed-num${Number(j.triples) ? "" : " cero"}" type="number" min="0" value="${j.triples}"
+             title="Triples" onchange="edCampo('${lado}',${i},'triples',this.value)"></td>
+        <td><input class="ed-num${Number(j.fp) ? "" : " cero"}" type="number" min="0" value="${j.fp}"
+             title="Faltas personales" onchange="edCampo('${lado}',${i},'fp',this.value)"></td>
+        <td><input class="ed-num${Number(j.ftf) ? "" : " cero"}" type="number" min="0" value="${j.ftf}"
+             title="Faltas técnicas o flagrantes" onchange="edCampo('${lado}',${i},'ftf',this.value)"></td>
       </tr>`).join("");
 
     return `<div class="ed-equipo">
@@ -3826,9 +3837,12 @@ function edPintar(){
       <div class="ed-tabla-scroll">
         <table class="ed-tabla">
           <thead><tr>
-            <th title="¿Vino?">✓</th><th>#</th><th>Jugador</th>
-            ${ED_PERIODOS.map(x=>`<th>${x}</th>`).join("")}
-            <th>Pts</th><th>3P</th><th>FP</th><th>FTF</th>
+            <th title="¿Vino al partido?">✓</th><th>#</th><th>Jugador</th>
+            ${ED_PERIODOS.map(x=>`<th class="ed-th-per" title="Puntos en el ${x} periodo">${x}</th>`).join("")}
+            <th title="Puntos totales">Pts</th>
+            <th class="ed-th-per" title="Triples anotados">3P</th>
+            <th class="ed-th-falta" title="Faltas personales">FP</th>
+            <th class="ed-th-falta" title="Faltas técnicas o flagrantes">FTF</th>
           </tr></thead>
           <tbody>${filas}</tbody>
         </table>
@@ -3917,9 +3931,12 @@ function edRefrescarNumeros(){
   ["local","visit"].forEach(lado=>{
     const total = lado === "local" ? p.ptsLocal : p.ptsVisit;
 
-    // El total de cada jugador
+    // El total de cada jugador, y el gris de los que están en cero
     p.jugadores[lado].forEach((j, i)=>{
       poner(`[data-total="${lado}-${i}"]`, edPuntosJugador(j));
+      document.querySelectorAll(`[data-fila="${lado}-${i}"] input.ed-num`).forEach(campo=>{
+        campo.classList.toggle("cero", !Number(campo.value));
+      });
     });
 
     // El parcial de cada periodo, por si lo movió un cambio de jugador
