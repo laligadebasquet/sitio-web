@@ -873,6 +873,10 @@
   .lock-error{color:var(--loss); font-size:12px; margin-top:10px; display:none; text-transform:none;}
 
   /* ============ MODAL PAGOS ============ */
+  .pago-historial-der{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+  .pago-historial-btns{display:flex;gap:5px;}
+  .mini-btn.peligro{border-color:#7a2a2a;color:#ffb3b3;}
+  .mini-btn.peligro:hover{background:#3a1414;}
   tr.pago-row{cursor:pointer;}
   tr.pago-row:hover td{background:rgba(255,31,90,.08);}
   .modal-overlay{
@@ -1641,8 +1645,14 @@
             <input type="text" id="f_pago_recibio" placeholder="Nombre">
           </div>
           <div>
-            <label for="f_pago_fecha">Fecha</label>
-            <input type="date" id="f_pago_fecha">
+            <label for="f_pago_fecha">Semana</label>
+            <select id="f_pago_fecha">
+              <option value="Semana 1">Semana 1</option>
+              <option value="Semana 2">Semana 2</option>
+              <option value="Semana 3">Semana 3</option>
+              <option value="Semana 4">Semana 4</option>
+              <option value="Semana 5">Semana 5</option>
+            </select>
           </div>
           <div>
             <label for="f_pago_referencia">Referencia / Comprobante (opcional)</label>
@@ -1936,12 +1946,24 @@ function nombreJugador(nombreCompleto, apellido){
   return (primerNombre + " " + primerApellido).trim();
 }
 
+/* El monto puede venir como número, como "$1,500.00" o con espacios, según
+   cómo se haya capturado en la hoja. Si al final no es un número, vale cero:
+   así una celda rara nunca convierte la suma en NaN y deja la columna
+   "Pagado" en blanco. */
+function montoDePago(v){
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const n = Number(String(v == null ? "" : v).replace(/[$,\s]/g, ""));
+  return isFinite(n) ? n : 0;
+}
+
 function mapPagosCsv(rows){
   return rows.filter(r=>r["Equipo"]).map(r=>({
     fecha: (r["Timestamp"] || "").split(" ")[0], equipo: nombreEquipo(r["Equipo"]), categoria: r["Categoría"] || "",
-    concepto: r["Concepto"] || "", monto: Number(r["Monto ($)"] || r["Monto"] || 0),
+    concepto: r["Concepto"] || "", monto: montoDePago(r["Monto ($)"] !== undefined ? r["Monto ($)"] : r["Monto"]),
     metodoPago: r["Método de Pago"] || "", referencia: r["Referencia/Comprobante"] || "",
-    quienRecibio: r["Registrado por / Quién recibió"] || "", notas: r["Notas"] || ""
+    quienRecibio: r["Registrado por"] || r["Registrado por / Quién recibió"] || "", notas: r["Notas"] || "",
+    // En qué renglón de la hoja vive: es lo que permite editarlo y borrarlo.
+    __fila: r.__fila
   }));
 }
 
@@ -6668,7 +6690,8 @@ function renderPagos(){
 
   let totalCuota = 0, totalPagado = 0;
   lista.forEach(equipo=>{
-    const pagado = PAGOS.filter(p=>p.equipo === equipo).reduce((suma,p)=>suma + p.monto, 0);
+    const pagado = PAGOS.filter(p=>p.equipo === equipo)
+                        .reduce((suma,p)=>suma + montoDePago(p.monto), 0);
     const cuota = cuotaDe(equipo);
     const saldo = cuota - pagado;
     totalCuota += cuota; totalPagado += pagado;
@@ -6704,7 +6727,7 @@ let equipoPagoActual = null;
 function abrirDetallePago(equipo){
   equipoPagoActual = equipo;
   const pagos = PAGOS.filter(p=>p.equipo === equipo).sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||""));
-  const pagado = pagos.reduce((suma,p)=>suma + p.monto, 0);
+  const pagado = pagos.reduce((suma,p)=>suma + montoDePago(p.monto), 0);
   const cuota = cuotaDe(equipo);          // la que él le puso a ESTE equipo
   const saldo = Math.max(0, cuota - pagado);
   const pct = cuota > 0 ? Math.min(100, Math.round(pagado / cuota * 100)) : 0;
@@ -6741,7 +6764,13 @@ function abrirDetallePago(equipo){
           <div>${p.concepto || "Pago"} — ${p.metodoPago || ""}</div>
           <div class="pago-historial-meta">${p.fecha || ""}${p.quienRecibio ? " · Recibió: " + p.quienRecibio : ""}${p.referencia ? " · Ref: " + p.referencia : ""}</div>
         </div>
-        <div class="pago-historial-monto">$${p.monto.toLocaleString("es-MX")}</div>
+        <div class="pago-historial-der">
+          <div class="pago-historial-monto">${montoDePago(p.monto).toLocaleString("es-MX")}</div>
+          ${p.__fila ? `<div class="pago-historial-btns">
+            <button class="mini-btn" onclick="editarPagoDeLista(${p.__fila})">Editar</button>
+            <button class="mini-btn peligro" onclick="borrarPagoDeLista(${p.__fila})">Borrar</button>
+          </div>` : ""}
+        </div>
       </div>`).join("");
   }
 
@@ -6764,13 +6793,83 @@ function cerrarDetallePago(){
 function mostrarFormularioPago(){
   const select = document.getElementById("f_pago_equipo");
   select.innerHTML = EQUIPOS.map(e=>`<option value="${e}" ${e===equipoPagoActual ? "selected" : ""}>${e}</option>`).join("");
-  document.getElementById("f_pago_fecha").value = new Date().toISOString().slice(0,10);
+  document.getElementById("f_pago_fecha").value = SEMANAS_PAGO[0];
   document.getElementById("f_pago_monto").value = "";
   document.getElementById("f_pago_referencia").value = "";
   document.getElementById("f_pago_recibio").value = "";
   toggleQuienRecibio();
+  PAGO_EDITANDO = null;
+  document.getElementById("saveBtnPago").textContent = "Guardar pago";
   document.getElementById("pagoFormulario").style.display = "block";
   document.getElementById("btnIngresarPago").style.display = "none";
+}
+
+/* La temporada son cinco semanas, y así es como Mauricio los registra. */
+const SEMANAS_PAGO = ["Semana 1","Semana 2","Semana 3","Semana 4","Semana 5"];
+
+/* El renglón de la hoja que se está editando, o null si es un pago nuevo. */
+let PAGO_EDITANDO = null;
+
+/* Abre el formulario con los datos de un pago que ya existe. */
+function editarPagoDeLista(fila){
+  const p = PAGOS.find(x => x.__fila === fila);
+  if(!p){ alert("Ese pago ya no está en la lista. Vuelve a abrirla."); return; }
+
+  mostrarFormularioPago();
+  PAGO_EDITANDO = fila;
+
+  const poner = (id, valor) => { const e = document.getElementById(id); if(e) e.value = valor; };
+  poner("f_pago_equipo", p.equipo);
+  poner("f_pago_categoria", p.categoria || "");
+  poner("f_pago_concepto", p.concepto || "Inscripción Equipo");
+  poner("f_pago_monto", montoDePago(p.monto));
+  poner("f_pago_metodo", p.metodoPago || "Transferencia");
+  poner("f_pago_recibio", p.quienRecibio || "");
+  poner("f_pago_referencia", p.referencia || "");
+  /* Los pagos viejos traen una fecha de verdad en vez de una semana; se deja
+     la primera para que el selector no quede en blanco. */
+  poner("f_pago_fecha", SEMANAS_PAGO.indexOf(p.fecha) >= 0 ? p.fecha : SEMANAS_PAGO[0]);
+
+  toggleQuienRecibio();
+  document.getElementById("saveBtnPago").textContent = "Guardar cambios";
+  const msg = document.getElementById("msgPago");
+  msg.className = "msg";
+  msg.textContent = "";
+}
+
+/* Borrar un pago. Se pregunta con el monto de por medio, que es lo que de
+   verdad importa al confirmar. */
+async function borrarPagoDeLista(fila){
+  const p = PAGOS.find(x => x.__fila === fila);
+  if(!p){ alert("Ese pago ya no está en la lista. Vuelve a abrirla."); return; }
+  if(!confirm("¿Borrar este pago de " + p.equipo + " por $" +
+              montoDePago(p.monto).toLocaleString("es-MX") + "?\n\nNo se puede deshacer.")) return;
+
+  const msg = document.getElementById("msgPago");
+  msg.className = "msg";
+  msg.textContent = "Borrando…";
+  try{
+    const data = await postAppsScript({ action: "eliminarPago", clave: CONFIG.adminPassword,
+                                        fila: fila, equipoEsperado: p.equipo });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    /* Al borrar un renglón, los de abajo se recorren: se vuelve a leer todo
+       para que los números de fila no se queden viejos. */
+    await recargarPagos();
+    renderPagos();
+    abrirDetallePago(p.equipo);
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo borrar: " + err.message;
+  }
+}
+
+/* Relee la hoja de Pagos. Hace falta después de borrar o editar, porque lo
+   que identifica a cada pago es su renglón. */
+async function recargarPagos(){
+  try{
+    const d = await postAppsScript({ action: "leerHojasAdmin", clave: CONFIG.adminPassword, hojas: ["Pagos"] });
+    if(d.hojas && d.hojas["Pagos"]) PAGOS = mapPagosCsv(d.hojas["Pagos"]);
+  }catch(err){ console.warn("No se pudieron releer los pagos:", err); }
 }
 
 function ocultarFormularioPago(){
@@ -6812,33 +6911,43 @@ async function guardarPago(){
     return;
   }
 
-  const payload = {
-    action: "registrarPago",
-    equipo, categoria, concepto, monto: Number(monto),
-    metodoPago, quienRecibio, fecha, referencia
-  };
+  /* Si se está editando, el pago viejo se sobrescribe en su renglón; si no,
+     se agrega uno nuevo al final. */
+  const editando = PAGO_EDITANDO;
+  const anterior = editando ? PAGOS.find(x=>x.__fila === editando) : null;
+  const payload = editando
+    ? { action: "editarPago", clave: CONFIG.adminPassword, fila: editando,
+        equipoEsperado: anterior ? anterior.equipo : equipo,
+        equipo, categoria, concepto, monto: Number(monto),
+        metodoPago, quienRecibio, fecha, referencia }
+    : { action: "registrarPago",
+        equipo, categoria, concepto, monto: Number(monto),
+        metodoPago, quienRecibio, fecha, referencia };
 
   const btn = document.getElementById("saveBtnPago");
+  const textoBtn = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Guardando...";
 
   try{
     const data = await postAppsScript(payload);
-    if(data.ok){
-      PAGOS.push({fecha, equipo, categoria, concepto, monto:Number(monto), metodoPago, referencia, quienRecibio, notas:""});
-      msg.className = "msg ok";
-      msg.textContent = "Pago guardado.";
-      renderPagos();
-      abrirDetallePago(equipo);
-    }else{
-      throw new Error(data.error || "Error desconocido");
-    }
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+
+    /* Se relee la hoja en vez de parchar la lista en memoria: así los
+       números de renglón siempre corresponden a la realidad, que es de lo
+       que dependen Editar y Borrar. */
+    await recargarPagos();
+    msg.className = "msg ok";
+    msg.textContent = editando ? "Pago actualizado." : "Pago guardado.";
+    PAGO_EDITANDO = null;
+    renderPagos();
+    abrirDetallePago(equipo);
   }catch(err){
     msg.className = "msg err";
-    msg.textContent = "No se pudo guardar: " + err.message + ". Revisa CONFIG.appsScriptUrl.";
+    msg.textContent = "No se pudo guardar: " + err.message;
   }finally{
     btn.disabled = false;
-    btn.textContent = "Guardar pago";
+    btn.textContent = textoBtn;
   }
 }
 
