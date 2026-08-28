@@ -1956,9 +1956,17 @@ function montoDePago(v){
   return isFinite(n) ? n : 0;
 }
 
+/* Lo que se guarda en Timestamp puede ser "Semana 3" o una fecha con hora
+   ("2026-08-23 1:37"). De la fecha solo interesa el día; la semana se deja
+   completa, porque cortarla en el espacio la dejaba en "Semana" a secas. */
+function cuandoDelPago(v){
+  const s = String(v == null ? "" : v).trim();
+  return /^semana\s/i.test(s) ? s : s.split(" ")[0];
+}
+
 function mapPagosCsv(rows){
   return rows.filter(r=>r["Equipo"]).map(r=>({
-    fecha: (r["Timestamp"] || "").split(" ")[0], equipo: nombreEquipo(r["Equipo"]), categoria: r["Categoría"] || "",
+    fecha: cuandoDelPago(r["Timestamp"]), equipo: nombreEquipo(r["Equipo"]), categoria: r["Categoría"] || "",
     concepto: r["Concepto"] || "", monto: montoDePago(r["Monto ($)"] !== undefined ? r["Monto ($)"] : r["Monto"]),
     metodoPago: r["Método de Pago"] || "", referencia: r["Referencia/Comprobante"] || "",
     quienRecibio: r["Registrado por"] || r["Registrado por / Quién recibió"] || "", notas: r["Notas"] || "",
