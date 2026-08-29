@@ -6863,7 +6863,7 @@ function abrirDetallePago(equipo){
           <div class="pago-historial-meta">${p.fecha || ""}${p.quienRecibio ? " · Recibió: " + p.quienRecibio : ""}${p.referencia ? " · Ref: " + p.referencia : ""}</div>
         </div>
         <div class="pago-historial-der">
-          <div class="pago-historial-monto">${montoDePago(p.monto).toLocaleString("es-MX")}</div>
+          <div class="pago-historial-monto">$${montoDePago(p.monto).toLocaleString("es-MX")}</div>
           ${p.__fila ? `<div class="pago-historial-btns">
             <button class="mini-btn" onclick="editarPagoDeLista(${p.__fila})">Editar</button>
             <button class="mini-btn peligro" onclick="borrarPagoDeLista(${p.__fila})">Borrar</button>
