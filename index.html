@@ -429,6 +429,66 @@
   .rol-cat-btn:hover{border-color:#F37228;color:#F37228;}
   .rol-cat-btn.active{background:#F37228;border-color:#F37228;color:#fff;}
 
+  /* ============================================================
+     RANKING DE ANOTADORES
+
+     Los diez que más han anotado, en general y por fuerza. Al tocar un
+     nombre sale su foto con el equipo debajo.
+     ============================================================ */
+  .rank-modo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .rank-lista{display:flex;flex-direction:column;gap:6px;}
+  .rank-fila{
+    display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;
+    width:100%;text-align:left;background:#fff;cursor:pointer;
+    border:1px solid var(--gray-line);border-radius:12px;padding:11px 14px;
+    font-family:inherit;
+  }
+  .rank-fila:hover{border-color:#F37228;}
+  /* Los tres primeros se marcan: oro, plata y bronce en el número. */
+  .rank-pos{
+    display:flex;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:50%;
+    background:var(--surface-2, #F2F2F4);color:var(--navy);
+    font-weight:900;font-size:14px;
+  }
+  .rank-fila.p1 .rank-pos{background:#E8B10A;color:#fff;}
+  .rank-fila.p2 .rank-pos{background:#A9AEB5;color:#fff;}
+  .rank-fila.p3 .rank-pos{background:#C4783C;color:#fff;}
+  .rank-nom{
+    font-weight:800;font-size:14px;color:var(--navy);line-height:1.3;
+    text-transform:uppercase;letter-spacing:.2px;
+  }
+  .rank-eq{display:block;font-size:11px;font-weight:600;color:#8A8A92;
+    text-transform:none;letter-spacing:0;margin-top:2px;}
+  .rank-pts{text-align:right;line-height:1.1;}
+  .rank-pts b{display:block;font-size:20px;font-weight:900;color:#F37228;}
+  .rank-pts span{font-size:9px;font-weight:800;letter-spacing:.8px;
+    text-transform:uppercase;color:#8A8A92;}
+  /* Cuando hay empate en la última posición, se avisa por qué son diez. */
+  .rank-nota{margin-top:12px;font-size:11px;color:var(--text-soft);line-height:1.5;}
+
+  /* La ficha del jugador: foto grande, nombre arriba, equipo abajo. */
+  .rank-ficha{text-align:center;}
+  .rank-foto{
+    width:150px;height:150px;border-radius:50%;margin:0 auto 14px;
+    background:var(--navy);color:#fff;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    font-size:44px;font-weight:900;letter-spacing:1px;
+  }
+  .rank-foto img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rank-ficha-eq{
+    font-size:13px;font-weight:800;color:var(--navy);text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .rank-ficha-cat{font-size:11px;color:var(--text-soft);margin-top:3px;}
+  .rank-ficha-pts{
+    margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-line);
+    display:flex;justify-content:center;gap:26px;
+  }
+  .rank-ficha-dato b{display:block;font-size:24px;font-weight:900;color:#F37228;line-height:1;}
+  .rank-ficha-dato span{font-size:10px;font-weight:800;letter-spacing:.7px;
+    text-transform:uppercase;color:#8A8A92;}
+
   /* Aviso de YouTube: una sola barra clicable de punta a punta. */
   .yt-aviso{
     display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -1901,7 +1961,9 @@
     <!-- Por dentro la vista se sigue llamando "credencial" (así estaba desde
          el principio); en pantalla ahora dice Jugadores. -->
     <button data-view="credencial">Jugadores</button>
-    <button data-view="tendencias">Tendencias</button>
+    <!-- Por dentro la vista se sigue llamando "tendencias"; en pantalla
+         ahora dice Ranking, que es lo que la gente busca. -->
+    <button data-view="tendencias">Ranking</button>
     <button data-view="inscripcion">Inscripción</button>
     <div class="nav-dropdown" id="navDropInfo">
       <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInfo')">Información <span class="nav-caret">&#9662;</span></button>
@@ -2061,6 +2123,21 @@
      al campo Categoría en el formulario de Inscribir Equipo, para que el
      capitán vea los días y horas antes de elegir categoría, sin salirse
      del formulario ni perder lo que ya escribió. -->
+<!-- Ficha del jugador del ranking: foto grande, nombre arriba y su
+     equipo abajo. Lo llena abrirFichaRanking(). -->
+<div class="modal-overlay" id="rankModal" onclick="if(event.target===this) cerrarFichaRanking()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="rankNombre">Jugador</h3>
+        <span id="rankSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarFichaRanking()">&#10005;</button>
+    </div>
+    <div class="roster-body" id="rankCuerpo"></div>
+  </div>
+</div>
+
 <!-- Ficha del patrocinador. El contenido lo llena abrirPatro() desde
      PATROS, así agregar una marca nueva es tocar un solo lugar. -->
 <div class="modal-overlay" id="patroModal" onclick="if(event.target===this) cerrarPatro()">
@@ -2812,7 +2889,7 @@ function vistaActual(){
 const NOMBRE_DE_VISTA = {
   inicio:"Inicio", rol:"Rol de juego", resultados:"Resultados",
   tabla:"Tabla de posiciones", playoffs:"Playoffs", concentrado:"Concentrado",
-  sanciones:"Sanciones", credencial:"Jugadores", tendencias:"Tendencias",
+  sanciones:"Sanciones", credencial:"Jugadores", tendencias:"Ranking",
   inscripcion:"Inscripción", equipos:"Equipos", reglamento:"Reglamento",
   pagos:"Formas de pago", contacto:"Contacto"
 };
@@ -3448,7 +3525,7 @@ function horaBonita(hora){
 
 let CAT_VISTA = {
   rol: "general", resultados: "general", tabla: "general",
-  playoffs: "general",
+  playoffs: "general", ranking: "general",
   /* JUGADORES abre en Femenil A: esa pestana no lleva boton "General"
      porque ver todos los equipos revueltos no le sirve a nadie. */
   jugadores: "Femenil A"
@@ -3504,6 +3581,7 @@ function filtrarCategoria(vista, cat){
   else if(vista === "tabla")      renderTabla();
   else if(vista === "playoffs")   renderPlayoffs();
   else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; JUGADOR_SEL = null; renderJugadores(); }
+  else if(vista === "ranking")    renderRachas();
 }
 
 /* Texto para cuando el filtro deja la pantalla vacía. */
@@ -4024,12 +4102,170 @@ function computeRachas(){
   return insights;
 }
 
-/* Por ahora Tendencias muestra un mensaje fijo hasta la semana 3 de juego.
-   Cuando llegue ese momento, se puede quitar este "return" para volver a
-   activar el cálculo automático de tendencias de abajo. */
+/* ============================================================
+   RANKING DE ANOTADORES
+
+   La pestaña se llama Ranking y trae dos botones: Ranking y Tendencias.
+   Abre en Ranking, que es lo que hay para ver hoy; las Tendencias siguen
+   esperando a la semana 3.
+
+   El top se saca de la hoja "Estadísticas", sumando los puntos de cada
+   jugador EN SU EQUIPO: si alguien aparece en dos equipos, son dos
+   renglones distintos, no uno con los puntos revueltos.
+   ============================================================ */
+
+let RANK_MODO = "ranking";   // "ranking" o "tendencias"
+
+function elegirModoRanking(modo){
+  RANK_MODO = modo;
+  renderRachas();
+}
+
+/* Suma los puntos de todos y devuelve la lista ordenada de mayor a menor.
+   Si se pide una fuerza, solo entra quien jugó en ella. */
+function anotadores(categoria){
+  const acum = {};
+  ESTADISTICAS.forEach(e=>{
+    const cat = String(e.categoria || "").trim() || categoriaDeEquipo(e.equipo);
+    if(categoria && categoria !== "general" && cat !== categoria) return;
+    const clave = e.equipo + "|" + e.jugador;
+    if(!acum[clave]) acum[clave] = { jugador: e.jugador, equipo: e.equipo,
+                                     categoria: cat, puntos: 0, triples: 0, partidos: 0 };
+    acum[clave].puntos  += Number(e.total)   || 0;
+    acum[clave].triples += Number(e.triples) || 0;
+    acum[clave].partidos++;
+  });
+  return Object.values(acum)
+    .filter(j => j.puntos > 0)
+    .sort((a,b)=> b.puntos - a.puntos ||
+                  String(a.jugador).localeCompare(String(b.jugador)));
+}
+
+/* El top diez. Son DIEZ renglones, ni uno más: si el décimo lugar está
+   empatado, se quedan los que quepan. Lo que sí respeta el empate es el
+   NÚMERO de posición: dos con los mismos puntos llevan el mismo número. */
+function topDiez(categoria){
+  const lista = anotadores(categoria).slice(0, 10);
+  let pos = 0, anterior = null;
+  lista.forEach((j, i)=>{
+    if(j.puntos !== anterior){ pos = i + 1; anterior = j.puntos; }
+    j.posicion = pos;
+  });
+  return lista;
+}
+
+/* ¿Se quedó alguien fuera por el corte de diez, empatado con el último? */
+function hayEmpateEnElCorte(categoria){
+  const todos = anotadores(categoria);
+  if(todos.length <= 10) return 0;
+  const corte = todos[9].puntos;
+  return todos.slice(10).filter(j => j.puntos === corte).length;
+}
+
+function inicialesDe(nombre){
+  return String(nombre || "").split(" ").filter(Boolean)
+    .map(p => p[0]).slice(0,2).join("").toUpperCase();
+}
+
+/* La foto vive en ROSTERS y se pide por equipo, así que puede no estar
+   todavía. Se abre la ficha con las iniciales y, cuando llega la foto,
+   se repinta sola. */
+function fotoDeJugador(equipo, jugador){
+  const lista = ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [];
+  const j = lista.find(x => normalizar(x.nombre) === normalizar(jugador));
+  return (j && j.foto) || "";
+}
+
+function abrirFichaRanking(equipo, jugador){
+  const stats = totalesDelJugador(equipo, jugador);
+  document.getElementById("rankNombre").textContent = jugador;
+  document.getElementById("rankSub").textContent = equipo;
+
+  const foto = fotoDeJugador(equipo, jugador);
+  const cat = categoriaDeEquipo(equipo);
+  document.getElementById("rankCuerpo").innerHTML = `
+    <div class="rank-ficha">
+      <div class="rank-foto">${foto
+        ? `<img src="${foto}" alt="${jugador}">`
+        : inicialesDe(jugador)}</div>
+      <div class="rank-ficha-eq">${equipo}</div>
+      ${cat ? `<div class="rank-ficha-cat">${cat}</div>` : ""}
+      <div class="rank-ficha-pts">
+        <div class="rank-ficha-dato"><b>${stats.puntos}</b><span>Puntos</span></div>
+        <div class="rank-ficha-dato"><b>${stats.triples}</b><span>Triples</span></div>
+        <div class="rank-ficha-dato"><b>${stats.pj}</b><span>PJ</span></div>
+      </div>
+    </div>`;
+  document.getElementById("rankModal").classList.add("open");
+
+  // Si la foto todavía no llega, se pide y se vuelve a pintar la ficha.
+  if(!foto && !fotosYaCargadas(equipo)){
+    cargarFotosDe(equipo).then(()=>{
+      const abierto = document.getElementById("rankModal").classList.contains("open");
+      const mismo = document.getElementById("rankNombre").textContent === jugador;
+      if(abierto && mismo) abrirFichaRanking(equipo, jugador);
+    });
+  }
+}
+
+function cerrarFichaRanking(){
+  document.getElementById("rankModal").classList.remove("open");
+}
+
+function renderRanking(el){
+  let html = '<div class="section-heading">Ranking<span class="line"></span></div>';
+  html += rankBotonesModo();
+  html += botonesCategoria("ranking");
+
+  const cat = CAT_VISTA["ranking"];
+  const lista = topDiez(cat);
+
+  if(!lista.length){
+    html += `<div class="empty-state">Todavía no hay puntos anotados${enCategoria("ranking")}.</div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="rank-lista">';
+  lista.forEach(j=>{
+    const eq = String(j.equipo).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    const nom = String(j.jugador).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    html += `<button type="button" class="rank-fila${j.posicion <= 3 ? " p" + j.posicion : ""}"
+      onclick="abrirFichaRanking('${eq}','${nom}')">
+      <span class="rank-pos">${j.posicion}</span>
+      <span class="rank-nom">${j.jugador}
+        <span class="rank-eq">${j.equipo}${cat === "general" && j.categoria ? " · " + j.categoria : ""}</span>
+      </span>
+      <span class="rank-pts"><b>${j.puntos}</b><span>Puntos</span></span>
+    </button>`;
+  });
+  html += '</div>';
+
+  const fuera = hayEmpateEnElCorte(cat);
+  if(fuera){
+    html += `<div class="rank-nota">Hay ${fuera === 1 ? "un jugador más empatado" :
+      fuera + " jugadores más empatados"} en el último lugar, pero el ranking es de diez.</div>`;
+  }
+  html += '<div class="rank-nota">Toca un nombre para ver su foto. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
+  el.innerHTML = html;
+}
+
+function rankBotonesModo(){
+  const uno = (valor, texto) =>
+    `<button type="button" class="rol-cat-btn${RANK_MODO === valor ? " active" : ""}"
+       onclick="elegirModoRanking('${valor}')">${texto}</button>`;
+  return '<div class="rank-modo">' + uno("ranking", "Ranking") + uno("tendencias", "Tendencias") + '</div>';
+}
+
+/* Las Tendencias siguen esperando a la semana 3 de juego. Cuando llegue
+   ese momento, se quita el "return" y vuelve a correr el cálculo de abajo. */
 function renderRachas(){
   const el = document.getElementById("view-tendencias");
-  el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div><div class="empty-state">Esta información estará disponible a partir de la semana 3 de juego.</div>';
+  if(RANK_MODO === "ranking"){ renderRanking(el); return; }
+
+  el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div>' +
+    rankBotonesModo() +
+    '<div class="empty-state">Esta información estará disponible a partir de la semana 3 de juego.</div>';
   return;
 
   const insights = computeRachas();
