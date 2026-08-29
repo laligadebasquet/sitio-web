@@ -3740,10 +3740,24 @@ function edCargarPartido(){
   if(!m){ cuerpo.innerHTML = ""; ED_PARTIDO = null; return; }
 
   const res = buscarResultado(m) || {};
-  const dePartido = (ESTADISTICAS_ADMIN || []).filter(r=>
-    String(r["Semana"]) === String(m.jornada) &&
-    (nombreEquipo(r["Equipo"]) === nombreEquipo(m.local) || nombreEquipo(r["Equipo"]) === nombreEquipo(m.visit))
-  );
+  /* OJO: se filtra por FECHA, no solo por semana.
+
+     Una "semana" abarca varios días y un equipo puede jugar dos veces dentro
+     de ella. Pasó con FEVER en la semana 2: jugó el 24 y el 29 de agosto.
+     Filtrando solo por semana + equipo se colaba la estadística del otro
+     partido: aparecía una jugadora de más y a FEVER le sobraban 3 puntos en
+     el marcador y en el tercer periodo.
+
+     Si el renglón viene sin fecha —los de la semana 1 se capturaron antes de
+     que se arreglara eso— se acepta igual, para poder seguir corrigiéndolos. */
+  const dePartido = (ESTADISTICAS_ADMIN || []).filter(r=>{
+    if(String(r["Semana"]) !== String(m.jornada)) return false;
+    if(nombreEquipo(r["Equipo"]) !== nombreEquipo(m.local) &&
+       nombreEquipo(r["Equipo"]) !== nombreEquipo(m.visit)) return false;
+    const fr = String(r["Fecha"] || "").slice(0,10);
+    const fm = String(m.fecha || "").slice(0,10);
+    return !fr || !fm || fr === fm;
+  });
   ED_ESTAD = dePartido;
 
   const jugadoresDe = (equipo)=>{
