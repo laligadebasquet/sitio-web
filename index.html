@@ -2536,15 +2536,46 @@ function mapIntegrantesCsv(rows){
   return rosters;
 }
 
+/* Guarda las FECHAS en las que cada jugador viene marcado con "Sí", no un
+   simple contador. Con las fechas se puede cruzar después con lo que dice
+   "Estadísticas" y no contar dos veces el mismo partido. */
 function mapAsistenciaCsv(rows){
-  const counts = {}; // equipo -> jugador -> partidos asistidos
+  const fechas = {}; // equipo -> jugador -> { fecha: true }
   rows.filter(r=>r["Jugador"]).forEach(r=>{
     if(r["Asistió"] !== "Sí") return;
     const equipo = nombreEquipo(r["Equipo"]), jugador = nombreJugador(r["Jugador"], "");
-    if(!counts[equipo]) counts[equipo] = {};
-    counts[equipo][jugador] = (counts[equipo][jugador] || 0) + 1;
+    const fecha = String(r["Fecha"] || "").slice(0,10) || String(r["Jornada"] || "");
+    if(!fechas[equipo]) fechas[equipo] = {};
+    if(!fechas[equipo][jugador]) fechas[equipo][jugador] = {};
+    fechas[equipo][jugador][fecha] = true;
   });
-  return counts;
+  return fechas;
+}
+
+/* ============================================================
+   LOS PARTIDOS JUGADOS DE UN JUGADOR
+
+   Antes se contaban solo las palomitas de la hoja "Asistencia". El problema:
+   si la mesa no capturó la asistencia de un partido —pasó con CORDILLEROS vs
+   OLIMPO del 25 de agosto— el jugador salía con UN partido aunque tuviera
+   puntos en DOS. Y si su nombre estaba duplicado en el roster, una copia
+   quedaba en "Sí" y la otra en "No".
+
+   Ahora se cuentan los partidos DISTINTOS en los que hay señal de que jugó:
+   o la mesa lo palomeó, o le capturó estadística. Aparecer en la hoja de
+   Estadísticas de un partido es prueba de que estuvo ahí. */
+function partidosJugadosDe(equipo, jugador){
+  const eq = nombreEquipo(equipo), jg = normalizar(jugador);
+  const dias = {};
+  ESTADISTICAS.forEach(e=>{
+    if(nombreEquipo(e.equipo) !== eq || normalizar(e.jugador) !== jg) return;
+    dias[String(e.fecha || "").slice(0,10) || String(e.semana || "")] = true;
+  });
+  const porNombre = ASISTENCIA_JUGADOS[eq] || ASISTENCIA_JUGADOS[equipo] || {};
+  const suyas = porNombre[jugador] ||
+                porNombre[Object.keys(porNombre).find(n => normalizar(n) === jg)] || {};
+  Object.keys(suyas).forEach(f=>{ dias[f] = true; });
+  return Object.keys(dias).length;
 }
 
 let RESULTADOS = DEMO_RESULTADOS;
@@ -3745,13 +3776,13 @@ function verRoster(nombreEquipo){
   if(jugadores.length === 0){
     body.innerHTML = '<div class="empty-state">Este equipo todavía no tiene roster capturado.</div>';
   } else {
-    const asistTeam = ASISTENCIA_JUGADOS[nombreEquipo] || {};
+
     body.innerHTML = jugadores.map(j=>{
       const avatar = j.foto
         ? `<img src="${j.foto}" alt="${j.nombre}">`
         : j.nombre.split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
-      const partidos = asistTeam[j.nombre];
-      const badge = partidos !== undefined
+      const partidos = partidosJugadosDe(nombreEquipo, j.nombre);
+      const badge = partidos > 0
         ? `<span class="player-attendance">${partidos} partido${partidos === 1 ? "" : "s"}</span>`
         : "";
       return `<div class="roster-player"><span class="player-avatar">${avatar}</span><span class="player-name">${j.nombre}</span>${badge}</div>`;
@@ -4717,10 +4748,7 @@ function totalesDelJugador(equipo, jugador){
     puntos  += Number(l.total)   || 0;
     triples += Number(l.triples) || 0;
   });
-  const deAsistencia = (ASISTENCIA_JUGADOS[equipo] || {})[jugador];
-  const pj = (deAsistencia !== undefined && deAsistencia !== null)
-    ? (Number(deAsistencia) || 0)
-    : lineas.length;
+  const pj = partidosJugadosDe(equipo, jugador);
   const jersey = (lineas.find(l => String(l.jersey || "").trim()) || {}).jersey || "";
   return { pj, puntos, triples, jersey };
 }
