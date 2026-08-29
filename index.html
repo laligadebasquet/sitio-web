@@ -448,6 +448,122 @@
   }
   .yt-aviso:hover .yt-aviso-btn{filter:brightness(1.12);}
 
+  /* ============================================================
+     LA TIRA DE ARRIBA: mitad YouTube, mitad patrocinadores
+
+     Antes el aviso de YouTube se llevaba el ancho completo. Ahora comparte
+     el renglón: a la izquierda YouTube, a la derecha los patrocinadores
+     desfilando de derecha a izquierda. En celular se apilan, porque lado a
+     lado no cabrían.
+     ============================================================ */
+  .inicio-tira{
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;
+    align-items:stretch;margin-bottom:26px;
+  }
+  @media(max-width:880px){ .inicio-tira{grid-template-columns:1fr;} }
+  .inicio-tira .yt-aviso{margin-bottom:0;height:100%;}
+
+  .patros{
+    background:#000;border-radius:14px;padding:12px 0;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:center;gap:9px;
+  }
+  .patros-titulo{
+    color:#fff;font-weight:900;font-size:12px;letter-spacing:1px;
+    text-transform:uppercase;text-align:center;padding:0 14px;line-height:1.35;
+  }
+  .patros-titulo span{
+    display:block;color:#F37228;font-size:10px;letter-spacing:.6px;
+    font-weight:800;margin-top:2px;
+  }
+  /* La cinta se arma con la misma lista DOS veces y se corre justo la
+     mitad: al terminar, el cuadro final es idéntico al inicial y el salto
+     no se nota. Los bordes se difuminan para que no aparezcan de golpe. */
+  .patros-cinta{
+    overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+  }
+  .patros-pista{
+    display:flex;width:max-content;
+    animation:patrosCorre 26s linear infinite;
+  }
+  .patros:hover .patros-pista{animation-play-state:paused;}
+  @keyframes patrosCorre{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  /* A quien le molesta el movimiento, se le queda quieta. */
+  @media(prefers-reduced-motion:reduce){ .patros-pista{animation:none;} }
+
+  .patro-btn{
+    flex:0 0 auto;margin:0 5px;height:60px;min-width:132px;
+    background:#fff;border:2px solid transparent;border-radius:10px;
+    padding:8px 14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .patro-btn:hover{border-color:#F37228;}
+  .patro-btn img{height:32px;width:auto;display:block;}
+
+  /* Zurit todavía no manda su logo en archivo: se dibuja con tipografía,
+     respetando la "u" azul y el subtítulo en azul de su marca. */
+  .zurit-wm{display:flex;align-items:center;gap:7px;font-family:'Montserrat',Arial,sans-serif;}
+  .zurit-nom{font-size:25px;font-weight:800;color:#58585B;letter-spacing:-1px;line-height:1;}
+  .zurit-nom .u{color:#2E7CB8;}
+  .zurit-sub{
+    font-size:8px;font-weight:800;color:#2E7CB8;letter-spacing:1.4px;
+    line-height:1.3;text-transform:uppercase;text-align:left;
+  }
+
+  /* ---------- La ficha del patrocinador ---------- */
+  .patro-marca{
+    display:flex;align-items:center;justify-content:center;
+    background:#fff;border:1px solid var(--gray-line);border-radius:12px;
+    padding:14px;margin-bottom:14px;min-height:74px;
+  }
+  .patro-marca img{height:40px;width:auto;display:block;}
+  .patro-chip{
+    display:inline-block;background:#F37228;color:#fff;border-radius:999px;
+    padding:7px 16px;font-size:15px;font-weight:900;letter-spacing:.3px;
+  }
+  .patro-que{margin:9px 0 0;font-size:14px;color:var(--text);line-height:1.45;}
+  .patro-seccion{
+    margin-top:16px;font-size:11px;font-weight:900;letter-spacing:.8px;
+    text-transform:uppercase;color:var(--text-soft);
+  }
+  .patro-premio{
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:9px 0;border-bottom:1px solid var(--gray-line);
+  }
+  .patro-premio b{font-size:12px;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;}
+  .patro-premio span{font-size:13px;font-weight:700;color:#F37228;text-align:right;}
+  .patro-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .patro-accion{
+    display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+    border:1px solid var(--gray-line);background:#fff;border-radius:999px;
+    padding:9px 15px;font-size:12px;font-weight:800;color:var(--navy);
+    cursor:pointer;font-family:inherit;
+  }
+  .patro-accion:hover{border-color:#F37228;color:#F37228;}
+  .patro-accion.ig{
+    border:none;color:#fff;
+    background:linear-gradient(45deg,#F58529,#DD2A7B 50%,#8134AF 80%,#515BD4);
+  }
+  .patro-accion.ig:hover{color:#fff;filter:brightness(1.08);}
+  /* El recado de las sucursales: aparece debajo, como un post-it pegado. */
+  .patro-postit{
+    display:none;margin-top:12px;background:#FFF8C4;border-radius:8px;
+    padding:13px 15px;box-shadow:0 3px 10px rgba(0,0,0,.14);
+    transform:rotate(-.5deg);
+  }
+  .patro-postit.abierto{display:block;}
+  .patro-postit-ciudad{
+    font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;
+    color:#8A6D1E;margin-top:9px;
+  }
+  .patro-postit-ciudad:first-child{margin-top:0;}
+  .patro-postit-suc{font-size:14px;font-weight:700;color:#4A3B08;line-height:1.5;}
+  .patro-chico{
+    margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-line);
+    font-size:10px;line-height:1.55;color:var(--text-soft);
+  }
+
   .rol-inicio-sub{
     margin:0 0 12px 0;font-size:20px;text-transform:uppercase;
     letter-spacing:.5px;color:var(--navy);font-weight:900;
@@ -1813,18 +1929,28 @@
 
       <div class="rol-cats" id="rolInicioCats"></div>
 
-      <a class="yt-aviso" href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" target="_blank" rel="noopener">
-        <span class="yt-aviso-texto">
-          Todos los partidos se transmiten por YouTube
-          <strong>¡Suscríbete a nuestro canal!</strong>
-        </span>
-        <span class="yt-aviso-btn">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
-            <path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.9 2.6 12 2.6 12 2.6h0s-4.9 0-8.2.3c-.5 0-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S0 8.1 0 10v1.9c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.6 1 1.9.2 8.3.3 8.3.3s4.9 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V10c0-1.9-.2-3.8-.2-3.8zM9.5 14.3V7.7l6.4 3.3-6.4 3.3z"></path>
-          </svg>
-          Ver el canal
-        </span>
-      </a>
+      <!-- Mitad YouTube, mitad patrocinadores. La lista de marcas y sus
+           beneficios vive en PATROS, allá abajo en el script. -->
+      <div class="inicio-tira">
+        <a class="yt-aviso" href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" target="_blank" rel="noopener">
+          <span class="yt-aviso-texto">
+            Todos los partidos se transmiten por YouTube
+            <strong>¡Suscríbete a nuestro canal!</strong>
+          </span>
+          <span class="yt-aviso-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+              <path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.9 2.6 12 2.6 12 2.6h0s-4.9 0-8.2.3c-.5 0-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S0 8.1 0 10v1.9c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.6 1 1.9.2 8.3.3 8.3.3s4.9 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V10c0-1.9-.2-3.8-.2-3.8zM9.5 14.3V7.7l6.4 3.3-6.4 3.3z"></path>
+            </svg>
+            Ver el canal
+          </span>
+        </a>
+        <div class="patros">
+          <div class="patros-titulo">Patrocinadores
+            <span>Toca un logo y mira tu beneficio</span>
+          </div>
+          <div class="patros-cinta"><div class="patros-pista" id="patrosPista"></div></div>
+        </div>
+      </div>
 
       <!-- Ficha de lo que se buscó: sale aquí arriba, encima de los
            próximos partidos, y desaparece al borrar la búsqueda. -->
@@ -1935,6 +2061,21 @@
      al campo Categoría en el formulario de Inscribir Equipo, para que el
      capitán vea los días y horas antes de elegir categoría, sin salirse
      del formulario ni perder lo que ya escribió. -->
+<!-- Ficha del patrocinador. El contenido lo llena abrirPatro() desde
+     PATROS, así agregar una marca nueva es tocar un solo lugar. -->
+<div class="modal-overlay" id="patroModal" onclick="if(event.target===this) cerrarPatro()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="patroTitulo">Patrocinador</h3>
+        <span id="patroSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarPatro()">&#10005;</button>
+    </div>
+    <div class="roster-body" id="patroCuerpo"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="horariosModal" onclick="if(event.target===this) cerrarHorarios()">
   <div class="modal-box">
     <div class="modal-header">
@@ -2416,6 +2557,7 @@ async function init(){
   renderDondeEstamos();
   renderContacto();
   renderInscripcion();
+  renderPatrocinadores();
   aplicarDeepLink();
 
   if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl){
@@ -4146,6 +4288,164 @@ ${o.incluirOptOutImagen ? '<p>En caso de que algún integrante no desee que su i
 
 const REGLAMENTO_VARONIL_HTML = construirReglamentoHTML({ cuota:10000, forma1:9000, forma2:10000, forma3:11000, incluirOptOutImagen:true });
 const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9000, forma1:8000, forma2:9000, forma3:10000, incluirOptOutImagen:false });
+
+/* ============================================================
+   PATROCINADORES
+
+   Desfilan en la mitad derecha de la tira de arriba y, al tocarlos, se
+   abre su ficha con el beneficio, los premios y dónde están.
+
+   Los logos van incrustados en el propio archivo (PNG en base64, 4 y 2 KB)
+   para no depender de que otro servidor esté vivo ni sumar dos viajes más
+   a la carga de la página. El de Zurit se dibuja con tipografía mientras
+   no tengamos el archivo original.
+
+   La letra chica es la misma para todos y se arma una sola vez, en
+   PATRO_LETRA_CHICA: si cambia la vigencia, se cambia ahí y ya.
+   ============================================================ */
+
+const PATRO_LOGO_MANGIOZ = "data:image/png;base64,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";
+const PATRO_LOGO_TECHNO  = "data:image/png;base64,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";
+
+/* Zurit todavía no manda su logo en archivo. Se dibuja con la tipografía
+   de la página respetando la "u" azul y el subtítulo en azul. */
+const PATRO_LOGO_ZURIT_HTML = `<span class="zurit-wm">
+  <span class="zurit-nom">z<span class="u">u</span>rit</span>
+  <span class="zurit-sub">Dental<br>Studio</span>
+</span>`;
+
+const PATRO_LETRA_CHICA =
+  "Válido del 29 de agosto al 30 de noviembre de 2026. " +
+  "El descuento o cupón es válido por una sola ocasión por jugador. " +
+  "No es transferible ni canjeable por efectivo, y se aplica presentando " +
+  "tu credencial vigente de La Liga de Basquet.";
+
+const PATROS = {
+  zurit: {
+    nombre: "Zurit Dental Studio",
+    sub: "Dental · San Pedro",
+    logoHTML: PATRO_LOGO_ZURIT_HTML,
+    beneficio: "10% de descuento",
+    que: "En check up dental + limpieza, mostrando tu credencial de La Liga de Basquet.",
+    como: "Manda mensaje por Instagram para agendar tu cita.",
+    premios: [["MVP Final", "1 limpieza gratis"]],
+    instagram: "zurit.dentalstudio",
+    mapa: "https://www.google.com/search?q=zurit+dental+studio",
+    mapaTexto: "Ubicación"
+  },
+  mangioz: {
+    nombre: "Mangioz",
+    sub: "Pizza",
+    logo: PATRO_LOGO_MANGIOZ,
+    beneficio: "15% de descuento",
+    que: "En un pedido, mostrando tu credencial al hacer tu compra en sucursal.",
+    premios: [
+      ["MVP Temporada Regular", "1 pizza gratis"],
+      ["Equipo campeón", "2 pizzas gratis"]
+    ],
+    mapa: "https://www.google.com/search?q=mangioz",
+    mapaTexto: "Ubicación"
+  },
+  techno: {
+    nombre: "Techno Fusion",
+    sub: "Reparación de celulares, tabletas y laptops",
+    logo: PATRO_LOGO_TECHNO,
+    beneficio: "15% de descuento",
+    que: "En una reparación de celular, tableta o laptop, mostrando tu credencial.",
+    premios: [["MVP Final", "1 mantenimiento general (limpieza y revisión) a tu celular"]],
+    sucursales: [
+      ["San Pedro", ["Colorines", "Humberto Lobo"]],
+      ["Cumbres",   ["Sucursal Forum"]],
+      ["San Nicolás", ["Sucursal La Proeza"]]
+    ],
+    mapa: "https://www.technofusion.mx/sucursales-monterrey",
+    mapaTexto: "Ubicaciones"
+  }
+};
+
+const PATRO_ORDEN = ["zurit", "mangioz", "techno"];
+
+/* El logo, ya sea imagen o el dibujado con letras. */
+function patroLogoHTML(p, alto){
+  if(p.logoHTML) return p.logoHTML;
+  return `<img src="${p.logo}" alt="${p.nombre}"${alto ? ` style="height:${alto}px"` : ""}>`;
+}
+
+/* La cinta se arma con la lista repetida y luego DUPLICADA: la animación
+   corre justo la mitad, así el último cuadro es idéntico al primero y el
+   regreso al inicio no se ve. */
+function renderPatrocinadores(){
+  const pista = document.getElementById("patrosPista");
+  if(!pista) return;
+  const mitad = [];
+  for(let v = 0; v < 3; v++){
+    PATRO_ORDEN.forEach(id=>{
+      const p = PATROS[id];
+      mitad.push(`<button type="button" class="patro-btn" onclick="abrirPatro('${id}')"
+        aria-label="Beneficio de ${p.nombre}">${patroLogoHTML(p)}</button>`);
+    });
+  }
+  pista.innerHTML = mitad.join("") + mitad.join("");
+}
+
+function abrirPatro(id){
+  const p = PATROS[id];
+  if(!p) return;
+  document.getElementById("patroTitulo").textContent = p.nombre;
+  document.getElementById("patroSub").textContent = p.sub;
+
+  let html = `<div class="patro-marca">${patroLogoHTML(p, 40)}</div>`;
+  html += `<div><span class="patro-chip">${p.beneficio}</span></div>`;
+  html += `<p class="patro-que">${p.que}</p>`;
+  if(p.como) html += `<p class="patro-que">${p.como}</p>`;
+
+  if(p.premios && p.premios.length){
+    html += '<div class="patro-seccion">Premios de la temporada</div>';
+    p.premios.forEach(([quien, que])=>{
+      html += `<div class="patro-premio"><b>${quien}</b><span>${que}</span></div>`;
+    });
+  }
+
+  html += '<div class="patro-btns">';
+  if(p.instagram){
+    html += `<a class="patro-accion ig" href="https://www.instagram.com/${p.instagram}/"
+      target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+        <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 3.1A6.7 6.7 0 1 0 18.7 12 6.7 6.7 0 0 0 12 5.3zm0 11A4.3 4.3 0 1 1 16.3 12 4.3 4.3 0 0 1 12 16.3zm6.9-11.2a1.6 1.6 0 1 1-1.6-1.6 1.6 1.6 0 0 1 1.6 1.6z"></path>
+      </svg>
+      @${p.instagram}</a>`;
+  }
+  if(p.sucursales){
+    html += `<button type="button" class="patro-accion" onclick="togglePatroPostit()">📍 ${p.mapaTexto}</button>`;
+    html += `<a class="patro-accion" href="${p.mapa}" target="_blank" rel="noopener">Ver el mapa</a>`;
+  } else if(p.mapa){
+    html += `<a class="patro-accion" href="${p.mapa}" target="_blank" rel="noopener">📍 ${p.mapaTexto}</a>`;
+  }
+  html += '</div>';
+
+  if(p.sucursales){
+    html += '<div class="patro-postit" id="patroPostit">';
+    p.sucursales.forEach(([ciudad, lista])=>{
+      html += `<div class="patro-postit-ciudad">${ciudad}</div>`;
+      html += `<div class="patro-postit-suc">${lista.join("<br>")}</div>`;
+    });
+    html += '</div>';
+  }
+
+  html += `<div class="patro-chico">${PATRO_LETRA_CHICA}</div>`;
+
+  document.getElementById("patroCuerpo").innerHTML = html;
+  document.getElementById("patroModal").classList.add("open");
+}
+
+function cerrarPatro(){
+  document.getElementById("patroModal").classList.remove("open");
+}
+
+function togglePatroPostit(){
+  const n = document.getElementById("patroPostit");
+  if(n) n.classList.toggle("abierto");
+}
 
 /* ============================================================
    JUGADORES — antes "Credencial"
