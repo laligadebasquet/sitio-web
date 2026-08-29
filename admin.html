@@ -409,6 +409,10 @@
   .ed-num{-moz-appearance:textfield;appearance:textfield;}
   /* Un cero se ve apagado: así saltan a la vista los números que sí traen algo. */
   .ed-num.cero{color:#5a5a5a;}
+  /* Triples que no caben en los puntos del jugador: imposible, va en rojo. */
+  .ed-tabla input.ed-num.ed-imposible{
+    color:#fff;background:#3a0d0d;border-color:#E4572E;
+  }
   .ed-tabla input.ed-jersey{
     width:38px;min-width:38px;box-sizing:border-box;
     background:#000;border:1px solid #444;border-radius:6px;color:#fff;
@@ -3833,6 +3837,24 @@ function edSumaJugadores(lado){
 }
 function edPuntosJugador(j){ return j.q.reduce((a,b)=>a+Number(b||0),0); }
 
+/* Cuántos triples le caben a un jugador: uno por cada 3 puntos. Con 3 puntos
+   cabe 1, con 9 caben 3. Más que eso es imposible. */
+function edTriplesQueCaben(j){ return Math.floor(Math.max(0, edPuntosJugador(j)) / 3); }
+function edTriplesImposibles(){
+  const p = ED_PARTIDO, m = p.m, malos = [];
+  ["local","visit"].forEach(lado=>{
+    const equipo = lado === "local" ? m.local : m.visit;
+    p.jugadores[lado].forEach((j, i)=>{
+      const caben = edTriplesQueCaben(j);
+      if(Number(j.triples || 0) > caben){
+        malos.push({ lado: lado, i: i, equipo: equipo, nombre: j.nombre,
+                     triples: Number(j.triples || 0), puntos: edPuntosJugador(j), caben: caben });
+      }
+    });
+  });
+  return malos;
+}
+
 function edSemaforo(esperado, real, queEs){
   const dif = real - esperado;
   if(dif === 0) return `<span class="ed-ok">cuadra (${real})</span>`;
@@ -3861,7 +3883,8 @@ function edPintar(){
              value="${val}" title="${ED_PERIODOS[k]} periodo" onfocus="this.select()"
              oninput="edPeriodo('${lado}',${i},${k},this.value)"></td>`).join("")}
         <td class="ed-total" data-total="${lado}-${i}">${edPuntosJugador(j)}</td>
-        <td><input class="ed-num${Number(j.triples) ? "" : " cero"}" type="text" inputmode="numeric" value="${j.triples}"
+        <td><input class="ed-num${Number(j.triples) ? "" : " cero"}${Number(j.triples) > edTriplesQueCaben(j) ? " ed-imposible" : ""}"
+             type="text" inputmode="numeric" value="${j.triples}" data-tri="${lado}-${i}"
              title="Triples" onfocus="this.select()" oninput="edCampo('${lado}',${i},'triples',this.value)"></td>
         <td><input class="ed-num${Number(j.fp) ? "" : " cero"}" type="text" inputmode="numeric" value="${j.fp}"
              title="Faltas personales" onfocus="this.select()" oninput="edCampo('${lado}',${i},'fp',this.value)"></td>
@@ -3977,6 +4000,9 @@ function edRefrescarNumeros(){
       document.querySelectorAll(`[data-fila="${lado}-${i}"] input.ed-num`).forEach(campo=>{
         campo.classList.toggle("cero", !Number(campo.value));
       });
+      // Los triples que no caben en los puntos se pintan de rojo al momento.
+      const tri = document.querySelector(`[data-tri="${lado}-${i}"]`);
+      if(tri) tri.classList.toggle("ed-imposible", Number(j.triples || 0) > edTriplesQueCaben(j));
     });
 
     // El parcial de cada periodo, por si lo movió un cambio de jugador
@@ -4068,7 +4094,9 @@ function edPayload(){
         jugadores.push({
           equipo: equipo, jugador: j.nombre, jersey: j.jersey,
           q1: j.q[0], q2: j.q[1], q3: j.q[2], q4: j.q[3],
-          total: total, triples: j.triples, fp: j.fp, ftf: j.ftf
+          // Nunca se manda un número de triples que no quepa en los puntos.
+          total: total, triples: Math.min(Number(j.triples || 0), edTriplesQueCaben(j)),
+          fp: j.fp, ftf: j.ftf
         });
       }
       asistencia.push({ equipo: equipo, jugador: j.nombre, asistio: j.asistio ? "Sí" : "No" });
@@ -4106,6 +4134,13 @@ function edDescuadres(){
     if(delParcial !== total){
       avisos.push(equipo + ": el parcial suma " + delParcial + " y el marcador dice " + total + ".");
     }
+  });
+  /* Los triples imposibles no son un descuadre opinable: son aritmética. Se
+     avisa y al guardar se recortan solos al máximo que caben. */
+  edTriplesImposibles().forEach(x=>{
+    avisos.push(x.equipo + " · " + x.nombre + ": tiene " + x.triples + " triples con " +
+      x.puntos + " puntos. Imposible; se va a guardar con " + x.caben +
+      (x.caben === 1 ? " triple." : " triples."));
   });
   return avisos;
 }
@@ -4488,6 +4523,24 @@ function hdPeriodosJugados(p){
 
 /* ---------- Cuentas ---------- */
 function hdPuntosJugador(j){ return HD_PERIODOS.reduce((s,c)=>s + (j.q[c] || 0), 0); }
+
+/* Un triple vale 3 puntos, así que un jugador nunca puede tener más triples
+   de los que le caben en su total: con 3 puntos cabe 1 triple, con 9 caben 3.
+
+   Esto se rompía así: el botón +3 le subía uno al contador de triples, pero
+   el botón −1 bajaba el punto y NUNCA bajaba el triple. Si la mesa apuntaba
+   un triple de más y lo corregía con tres −1, el jugador se quedaba con el
+   triple fantasma. Por eso ZUEMI CASTILLO salía con 3 puntos y 2 triples.
+
+   Ahora, cada vez que se toca la anotación, se le quitan los triples que ya
+   no le caben. */
+function hdCuadrarTriples(j){
+  const puntos = hdPuntosJugador(j);
+  const caben = Math.floor(Math.max(0, puntos) / 3);
+  if(j.triples > caben) j.triples = caben;
+  if(j.triples < 0) j.triples = 0;
+  return j.triples;
+}
 function hdPuntosCuarto(p, lado, c){
   return p.jugadores[lado].reduce((s,j)=>s + (j.q[c] || 0), 0) + (p.pendientes[lado][c] || 0);
 }
@@ -4567,7 +4620,7 @@ function hdAnotar(lado, indice, puntos){
   }
   j.q[c] += puntos;
   if(puntos === 3) j.triples++;
-  if(puntos < 0 && j.triples > 0 && j.q[c] % 3 === 0) { /* el conteo de triples solo se corrige a mano */ }
+  hdCuadrarTriples(j);
 
   if(puntos > 0){
     hdApuntarEnMinuta({
@@ -5399,7 +5452,7 @@ async function hdFinalizar(){
       HD.jugadores[lado]
         .filter(j=>hdPuntosJugador(j) > 0 || j.fp || j.ftf)
         .map(j=>({ equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
-                   total: hdPuntosJugador(j), triples: j.triples, fp: j.fp, ftf: j.ftf })))
+                   total: hdPuntosJugador(j), triples: hdCuadrarTriples(j), fp: j.fp, ftf: j.ftf })))
   });
 
   // 2) Si es prueba, se muestra el resumen y NO se guarda nada en el Sheet
@@ -5453,7 +5506,7 @@ async function hdFinalizar(){
       jugadoresPayload.push({
         equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
         q1: j.q[1], q2: j.q[2], q3: j.q[3], q4: j.q[4],
-        total, triples: j.triples, fp: j.fp, ftf: j.ftf
+        total, triples: hdCuadrarTriples(j), fp: j.fp, ftf: j.ftf
       });
     });
   });
