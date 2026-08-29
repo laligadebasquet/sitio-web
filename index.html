@@ -500,6 +500,30 @@
     gap:18px;justify-items:center;
   }
 
+  /* La lista de jugadores del equipo elegido. Primero se ve la lista y solo
+     al picar un jugador aparece su credencial: asi lo pidio Mauricio. */
+  .roster-lista{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    gap:8px;margin-bottom:20px;
+  }
+  .jugador-btn{
+    display:flex;align-items:center;gap:10px;text-align:left;background:#fff;
+    border:1px solid var(--gray-line);border-radius:10px;padding:10px 12px;
+    cursor:pointer;width:100%;
+  }
+  .jugador-btn:hover{border-color:#F37228;}
+  .jugador-btn.abierto{border-color:#F37228;background:#FFF7F2;}
+  .jugador-btn .jg-ini{
+    flex:0 0 auto;width:30px;height:30px;border-radius:50%;
+    background:var(--navy);color:#fff;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .jugador-btn .jg-ini img{width:100%;height:100%;object-fit:cover;}
+  .jugador-btn .jg-nom{
+    font-weight:800;font-size:13px;color:var(--navy);line-height:1.25;
+  }
+  .jugador-btn .jg-sub{display:block;font-size:11px;color:#8A8A92;font-weight:600;}
+
   /* Cada partido en tres filas: izquierda, centro y derecha. */
   .partido-fila{
     display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;
@@ -1013,6 +1037,27 @@
     font-size:12px;
     font-weight:700;
     color:#fff;
+  }
+
+  /* Reverso partido en dos mitades: puntos de un lado, triples del otro,
+     y abajo los balones de los partidos jugados. Sin nombre ni liga. */
+  .id-card-back-split{
+    display:grid;grid-template-columns:1fr 1fr;width:100%;align-items:center;
+  }
+  .id-card-back-half{padding:0 8px;}
+  .id-card-back-half + .id-card-back-half{
+    border-left:1px solid rgba(255,255,255,.28);
+  }
+  .id-card-back-pj{
+    margin-top:18px;width:100%;padding-top:12px;
+    border-top:1px solid rgba(255,255,255,.28);
+  }
+  .id-card-back-pj-cifra{
+    font-size:20px;font-weight:800;color:#fff;line-height:1;
+  }
+  .id-card-back-pj-balls{
+    margin-top:5px;font-size:13px;line-height:1.4;letter-spacing:1px;
+    word-break:break-word;
   }
   .credencial-hint{
     font-size:11px;
@@ -3261,7 +3306,10 @@ function horaBonita(hora){
 
 let CAT_VISTA = {
   rol: "general", resultados: "general", tabla: "general",
-  playoffs: "general", jugadores: "general"
+  playoffs: "general",
+  /* JUGADORES abre en Femenil A: esa pestana no lleva boton "General"
+     porque ver todos los equipos revueltos no le sirve a nadie. */
+  jugadores: "Femenil A"
 };
 
 /**
@@ -3297,7 +3345,10 @@ function pasaCategoria(vista, ...equipos){
 
 function botonesCategoria(vista){
   const actual = CAT_VISTA[vista];
-  const lista = [["general", "General"]].concat(CATS_ROL.map(c => [c, c]));
+  /* La pestana JUGADORES no lleva "General" (se quito a peticion de
+     Mauricio); las demas si. El orden de CATS_ROL se respeta tal cual. */
+  const lista = (vista === "jugadores" ? [] : [["general", "General"]])
+    .concat(CATS_ROL.map(c => [c, c]));
   return '<div class="rol-cats">' + lista.map(([valor, texto])=>
     `<button type="button" class="rol-cat-btn${actual === valor ? " active" : ""}"
        onclick="filtrarCategoria('${vista}','${valor}')">${texto}</button>`
@@ -3310,7 +3361,7 @@ function filtrarCategoria(vista, cat){
   else if(vista === "resultados") renderResultados();
   else if(vista === "tabla")      renderTabla();
   else if(vista === "playoffs")   renderPlayoffs();
-  else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; renderJugadores(); }
+  else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; JUGADOR_SEL = null; renderJugadores(); }
 }
 
 /* Texto para cuando el filtro deja la pantalla vacía. */
@@ -4105,9 +4156,42 @@ const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9000, forma1:800
    ============================================================ */
 
 let JUGADORES_EQUIPO = null;   // el equipo abierto, o null
+let JUGADOR_SEL = null;        // el jugador abierto de ese equipo, o null
+
+/* Lo que un jugador lleva en la temporada, sacado de la hoja "Estadísticas"
+   (un renglón por jugador y partido, ya sin repetidos).
+
+   Los partidos jugados salen de "Asistencia", que es donde se palomean; si
+   ahí no aparece, se cuentan los partidos en que anotó — más vale un número
+   real que un cero que no es cierto. */
+function totalesDelJugador(equipo, jugador){
+  const lineas = partidosDelJugador(equipo, jugador);
+  let puntos = 0, triples = 0;
+  lineas.forEach(l=>{
+    puntos  += Number(l.total)   || 0;
+    triples += Number(l.triples) || 0;
+  });
+  const deAsistencia = (ASISTENCIA_JUGADOS[equipo] || {})[jugador];
+  const pj = (deAsistencia !== undefined && deAsistencia !== null)
+    ? (Number(deAsistencia) || 0)
+    : lineas.length;
+  const jersey = (lineas.find(l => String(l.jersey || "").trim()) || {}).jersey || "";
+  return { pj, puntos, triples, jersey };
+}
+
+/* Picar un jugador abre su credencial; volver a picarlo la cierra. */
+function verCredencialJugador(nombre){
+  JUGADOR_SEL = (JUGADOR_SEL === nombre) ? null : nombre;
+  renderJugadores();
+  if(JUGADOR_SEL){
+    const caja = document.getElementById("credencialAbierta");
+    if(caja) caja.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
 
 function verRosterJugadores(equipo){
   JUGADORES_EQUIPO = (JUGADORES_EQUIPO === equipo) ? null : equipo;
+  JUGADOR_SEL = null;          // cambiar de equipo cierra la credencial abierta
   // Igual que en el roster: se pinta ya y las fotos entran cuando llegan.
   if(JUGADORES_EQUIPO && !fotosYaCargadas(equipo)){
     cargarFotosDe(equipo).then(()=>{
@@ -4157,11 +4241,37 @@ function renderJugadores(){
       .slice()
       .sort((a,b)=> String(a.nombre).localeCompare(String(b.nombre)));
     html += `<div class="jornada-heading">${JUGADORES_EQUIPO}<span class="line"></span></div>`;
-    html += jugadores.length
-      ? '<div class="roster-credenciales">' +
-          jugadores.map(j => credencialHTML(j, JUGADORES_EQUIPO)).join("") +
-        '</div>'
-      : '<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta.</div>';
+    if(!jugadores.length){
+      html += '<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta.</div>';
+    } else {
+      /* Primero la LISTA del equipo. La credencial solo sale cuando se pica
+         un jugador — antes salían las doce de golpe y no se entendía nada. */
+      html += '<div class="roster-lista">';
+      jugadores.forEach(j=>{
+        const t = totalesDelJugador(JUGADORES_EQUIPO, j.nombre);
+        const nom = String(j.nombre).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const abierto = (JUGADOR_SEL === j.nombre) ? " abierto" : "";
+        const ini = j.foto
+          ? `<img src="${j.foto}" alt="${j.nombre}">`
+          : String(j.nombre).split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
+        html += `<button type="button" class="jugador-btn${abierto}" onclick="verCredencialJugador('${nom}')">
+          <span class="jg-ini">${ini}</span>
+          <span class="jg-nom">${j.nombre}
+            <span class="jg-sub">${t.jersey ? "#" + t.jersey + " · " : ""}${t.puntos} pts · ${t.triples} triples</span>
+          </span>
+        </button>`;
+      });
+      html += '</div>';
+
+      const elegido = jugadores.find(j => j.nombre === JUGADOR_SEL);
+      html += '<div id="credencialAbierta">';
+      if(elegido){
+        html += '<div class="roster-credenciales">' +
+                  credencialHTML(elegido, JUGADORES_EQUIPO) +
+                '</div>';
+      }
+      html += '</div>';
+    }
   }
   html += '</div>';
 
@@ -4176,9 +4286,10 @@ function renderCredencial(){ renderJugadores(); }
 function credencialHTML(jugador, equipo){
   const equipoInfo = EQUIPOS.find(t => t.nombre === equipo);
   const categoria = categoriaCorta(equipoInfo ? equipoInfo.categoria : "");
-  const partidos = (ASISTENCIA_JUGADOS[equipo] || {})[jugador.nombre];
-  const puntos = (PUNTOS_JUGADOR[equipo] || {})[jugador.nombre];
-  const puntosTexto = puntos !== undefined ? puntos : "\u2014";
+  const stats = totalesDelJugador(equipo, jugador.nombre);
+  const partidos = stats.pj;
+  const puntosTexto = stats.puntos;
+  const triplesTexto = stats.triples;
   const avatar = jugador.foto
     ? `<img src="${jugador.foto}" alt="${jugador.nombre}">`
     : jugador.nombre.split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
@@ -4208,10 +4319,21 @@ function credencialHTML(jugador, equipo){
             <div class="id-card-balls-caption">Cada 🏀 representa un partido jugado</div>
           </div>
           <div class="id-card-face id-card-back">
-            <div class="id-card-back-header">${CONFIG.nombreLiga}<br><span style="font-weight:400;letter-spacing:2.2px;font-size:8px;">${CONFIG.subtituloLiga}</span></div>
-            <div class="id-card-back-stat-value">${puntosTexto}</div>
-            <div class="id-card-back-stat-label">Puntos Anotados</div>
-            <div class="id-card-back-sub">${jugador.nombre} · ${equipo}</div>
+            <div class="id-card-back-split">
+              <div class="id-card-back-half">
+                <div class="id-card-back-stat-value">${puntosTexto}</div>
+                <div class="id-card-back-stat-label">Puntos Anotados</div>
+              </div>
+              <div class="id-card-back-half">
+                <div class="id-card-back-stat-value">${triplesTexto}</div>
+                <div class="id-card-back-stat-label">Triples Anotados</div>
+              </div>
+            </div>
+            <div class="id-card-back-pj">
+              <div class="id-card-back-pj-cifra">${Number(partidos) || 0}</div>
+              <div class="id-card-back-stat-label">PJ · Partidos Jugados</div>
+              <div class="id-card-back-pj-balls">${pelotasHTML(partidos)}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -4272,10 +4394,21 @@ function abrirEjemploCredencial(){
               <div class="id-card-balls-caption">Cada 🏀 representa un partido jugado</div>
             </div>
             <div class="id-card-face id-card-back">
-              <div class="id-card-back-header">${CONFIG.nombreLiga}<br><span style="font-weight:400;letter-spacing:2.2px;font-size:8px;">${CONFIG.subtituloLiga}</span></div>
-              <div class="id-card-back-stat-value">0</div>
-              <div class="id-card-back-stat-label">Puntos Anotados</div>
-              <div class="id-card-back-sub">NOMBRE · EQUIPO</div>
+              <div class="id-card-back-split">
+                <div class="id-card-back-half">
+                  <div class="id-card-back-stat-value">0</div>
+                  <div class="id-card-back-stat-label">Puntos Anotados</div>
+                </div>
+                <div class="id-card-back-half">
+                  <div class="id-card-back-stat-value">0</div>
+                  <div class="id-card-back-stat-label">Triples Anotados</div>
+                </div>
+              </div>
+              <div class="id-card-back-pj">
+                <div class="id-card-back-pj-cifra">0</div>
+                <div class="id-card-back-stat-label">PJ · Partidos Jugados</div>
+                <div class="id-card-back-pj-balls">${pelotasHTML(0)}</div>
+              </div>
             </div>
           </div>
         </div>
