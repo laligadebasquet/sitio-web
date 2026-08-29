@@ -1743,6 +1743,15 @@
     }
     .insc-cerradas p{margin:6px 0; color:#bbb; font-size:14px;}
     .insc-cerradas a{color:#F37228;}
+    /* El WhatsApp va como botón, no como link suelto: es lo único que
+       queremos que toquen en esta pantalla. */
+    .insc-cerradas .insc-wa{
+      display:inline-flex; align-items:center; gap:8px;
+      margin-top:6px; padding:11px 20px; border-radius:999px;
+      background:#25D366; color:#0b2114; text-decoration:none;
+      font-size:14px; font-weight:800;
+    }
+    .insc-cerradas .insc-wa:hover{ filter:brightness(1.08); color:#0b2114; }
     .insc-btn{
     background:var(--orange);color:#000;border:none;border-radius:8px;
     padding:13px 28px;font-family:'Montserrat',Arial,sans-serif;
@@ -1958,12 +1967,13 @@
         <button data-view="sanciones">Sanciones</button>
       </div>
     </div>
+    <!-- Por dentro la vista se sigue llamando "tendencias"; en pantalla
+         ahora dice Ranking, que es lo que la gente busca. Va ANTES de
+         Jugadores porque es lo que más se consulta. -->
+    <button data-view="tendencias">Ranking</button>
     <!-- Por dentro la vista se sigue llamando "credencial" (así estaba desde
          el principio); en pantalla ahora dice Jugadores. -->
     <button data-view="credencial">Jugadores</button>
-    <!-- Por dentro la vista se sigue llamando "tendencias"; en pantalla
-         ahora dice Ranking, que es lo que la gente busca. -->
-    <button data-view="tendencias">Ranking</button>
     <button data-view="inscripcion">Inscripción</button>
     <div class="nav-dropdown" id="navDropInfo">
       <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInfo')">Información <span class="nav-caret">&#9662;</span></button>
@@ -5246,9 +5256,13 @@ function formEquipoHTML(){
     <div class="insc-form">
       <div class="insc-cerradas">
         <div class="insc-cerradas-titulo">Inscripciones cerradas</div>
-        <p>Por ahora la liga no está recibiendo equipos nuevos.</p>
-        <p>Si tu equipo quiere entrar, escríbenos y vemos qué se puede hacer:
-           <a href="mailto:control@laligadebasquet.com">control@laligadebasquet.com</a>.</p>
+        <p>Por ahora la temporada Agosto 2026 está en curso. La fecha de inicio
+           del siguiente torneo la publicaremos en noviembre 2026.</p>
+        <p><a class="insc-wa" href="https://wa.me/528117817451" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+            <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.7-.9-2.9-1.6-4-3.6-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.3 5.2 4.6 1.9.8 2.7.9 3.7.8.6-.1 1.8-.7 2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4zM12 2.2C6.6 2.2 2.2 6.6 2.2 12c0 1.7.5 3.4 1.3 4.8L2.1 21.9l5.2-1.4c1.4.8 3 1.2 4.7 1.2 5.4 0 9.8-4.4 9.8-9.8S17.4 2.2 12 2.2zm0 17.8c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-3-1.3-4.6C3.6 7.4 7.4 3.6 12 3.6S20.4 7.4 20.4 12 16.6 20 12 20z"></path>
+          </svg>
+          Manda WhatsApp al 81 1781 7451 para más información</a></p>
       </div>
     </div>`;
   }
