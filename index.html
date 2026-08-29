@@ -3442,7 +3442,7 @@ function renderResultadosRecientes(){
   caja.innerHTML = delDia.map(p=>{
     const ganaLocal = Number(p.ptsLocal) > Number(p.ptsVisitante);
     const ganaVisit = Number(p.ptsVisitante) > Number(p.ptsLocal);
-    const ref = JSON.stringify({ semana: p.jornada, local: p.local, visit: p.visitante })
+    const ref = JSON.stringify({ semana: p.jornada, fecha: p.fecha, local: p.local, visit: p.visitante })
       .replace(/"/g, "&quot;");
     return `
       <div class="partido-fila res-fila">
@@ -3475,8 +3475,23 @@ function verEstadistica(ref){
                                    r.local === ref.local && r.visitante === ref.visit);
   const ced = CEDULAS_PUB.find(c => String(c.semana) === String(ref.semana) &&
                                     c.local === ref.local && c.visitante === ref.visit);
-  const stats = ESTADISTICAS.filter(e => String(e.semana) === String(ref.semana) &&
-                                         (e.equipo === ref.local || e.equipo === ref.visit));
+  /* OJO: se filtra por FECHA, no solo por semana.
+
+     Una "semana" abarca varios días y un equipo puede jugar dos veces dentro
+     de ella. Pasó con FEVER en la semana 2: jugó el 24 y el 29 de agosto.
+     Filtrando solo por semana + equipo se mezclaban los dos partidos, así
+     que las jugadoras que jugaron los dos salían DOS VECES y el total decía
+     81 en vez de 39. La fecha es lo que de verdad identifica un partido.
+
+     Si el renglón viene sin fecha —los de la semana 1 se capturaron antes de
+     que se arreglara eso— se acepta igual, para no esconder lo viejo. */
+  const stats = ESTADISTICAS.filter(e => {
+    if(e.equipo !== ref.local && e.equipo !== ref.visit) return false;
+    if(String(e.semana) !== String(ref.semana)) return false;
+    const fe = String(e.fecha || "").slice(0,10);
+    const fr = String(ref.fecha || "").slice(0,10);
+    return !fe || !fr || fe === fr;
+  });
 
   tit.textContent = ref.local + " " + (res ? res.ptsLocal : "") + " - " +
                     (res ? res.ptsVisitante : "") + " " + ref.visit;
