@@ -2463,6 +2463,17 @@ function quitarRepetidosDeEstadisticas(filas){
   return Object.values(porJugador);
 }
 
+/* Un triple vale 3 puntos, así que nadie puede tener más triples de los que
+   le caben en su total: con 3 puntos cabe 1 triple, con 9 caben 3. Si de la
+   hoja llega un número imposible —pasaba cuando la mesa apuntaba un triple y
+   después le bajaba puntos con el −1—, aquí se recorta al máximo posible.
+   Es la última red: la hoja digital y el backend ya lo cuadran antes. */
+function triplesPosibles(triples, total){
+  const t = Math.max(0, Math.floor(Number(triples) || 0));
+  const p = Math.max(0, Math.floor(Number(total) || 0));
+  return Math.min(t, Math.floor(p / 3));
+}
+
 function mapEstadisticasCsv(rows){
   return quitarRepetidosDeEstadisticas(rows.filter(r=>r["Jugador"]).map(r=>({
     semana: Number(r["Semana"]),
@@ -2474,7 +2485,7 @@ function mapEstadisticasCsv(rows){
     q1: Number(r["1º"] || 0), q2: Number(r["2º"] || 0),
     q3: Number(r["3º"] || 0), q4: Number(r["4º"] || 0),
     total: Number(r["Total"] || 0),
-    triples: Number(r["Triples"] || 0)
+    triples: triplesPosibles(r["Triples"], r["Total"])
   })));
 }
 
