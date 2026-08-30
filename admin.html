@@ -1014,7 +1014,7 @@
     <h2>🔒 Acceso de administrador</h2>
     <p>Esta sección es solo para quien organiza la liga.</p>
     <input type="text" id="lockInput" placeholder="Código de acceso" autocomplete="off">
-    <button onclick="intentarAcceso()">Entrar</button>
+    <button id="lockBoton" onclick="intentarAcceso()">Entrar</button>
     <div class="lock-error" id="lockError">Código incorrecto, intenta de nuevo.</div>
   </div>
 </div>
@@ -1036,6 +1036,8 @@
     <button data-view="inscripciones">Inscripciones</button>
     <button data-view="correos">Correos</button>
     <button data-view="pruebas">Pruebas</button>
+    <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
+    <button data-view="staffpagos" style="display:none;">Pagos</button>
   </nav>
 </header>
 
@@ -1316,6 +1318,7 @@
       <div class="sub-tabs">
         <button class="sub-tab active" onclick="pagosSubTab('equipos')" id="stPagosEquipos">Por equipo</button>
         <button class="sub-tab" onclick="pagosSubTab('general')" id="stPagosGeneral">General</button>
+        <button class="sub-tab" onclick="pagosSubTab('jp')" id="stPagosJP">Pagos JP</button>
       </div>
     </div>
 
@@ -1355,6 +1358,21 @@
         </div>
       </div>
     </div>
+
+    <!-- Lo que capturó el staff en la cancha. Nada de esto cuenta para los
+         totales del equipo hasta que se apruebe aquí. -->
+    <div id="pagosSubJP" style="display:none;">
+      <div class="card">
+        <h2>Pagos capturados por el staff</h2>
+        <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+          Juan Pablo los registra en la cancha y aterrizan aquí. <strong>No cuentan
+          para el equipo</strong> hasta que les des el visto bueno. Rechazar no borra
+          nada: el renglón se queda marcado para que siempre haya rastro.
+        </p>
+        <button class="mini-btn" onclick="cargarPagosJP()">🔄 Actualizar</button>
+        <div id="pagosJPLista" style="margin-top:14px;"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ============ TAB: CÉDULAS ============ -->
@@ -1362,6 +1380,45 @@
        Los partidos que ya se jugaron y todavía no salen: aquí se pega el
        link del video y se le pone dueño a los puntos que quedaron sueltos.
        En cuanto un partido tiene las dos cosas, la cédula se manda sola. -->
+  <!-- ============ PAGOS DEL STAFF (solo en el portal de staff) ============
+       Cuatro preguntas y ya. Lo que se captura aquí NO entra a los números
+       del equipo: queda esperando a que Mauricio lo apruebe en
+       Admin > Pagos > Pagos JP. -->
+  <section class="view" id="view-staff-pagos">
+    <div class="card">
+      <h2>Registrar un pago</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Llena los cuatro datos y dale a Registrar. El pago le llega a Mauricio
+        para que lo revise.
+      </p>
+      <div class="grid-2">
+        <div>
+          <label for="spMonto">Cantidad que pagaron</label>
+          <input type="text" inputmode="numeric" id="spMonto" placeholder="1500" autocomplete="off">
+        </div>
+        <div>
+          <label for="spCategoria">Categoría</label>
+          <select id="spCategoria" onchange="spLlenarEquipos()"></select>
+        </div>
+        <div>
+          <label for="spEquipo">Equipo que pagó</label>
+          <select id="spEquipo"></select>
+        </div>
+        <div>
+          <label for="spFecha">Fecha</label>
+          <input type="date" id="spFecha">
+        </div>
+      </div>
+      <button class="save-btn" onclick="spRegistrar()" id="spBoton">Registrar pago</button>
+      <div class="msg" id="spMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Lo que has registrado hoy</h2>
+      <div id="spHistorial"><div class="empty-state">Todavía nada en esta sesión.</div></div>
+    </div>
+  </section>
+
   <section class="view" id="view-links">
     <div class="card">
       <h2>Link y pendientes</h2>
@@ -1385,7 +1442,7 @@
           <div id="hdAvisoDia" style="font-size:10px;color:#777;margin-top:4px;"></div>
         </div>
         <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
-        <button class="mini-btn" onclick="hdAbrirPrueba()">🧪 Partido de prueba</button>
+        <button class="mini-btn" data-solo-admin onclick="hdAbrirPrueba()">🧪 Partido de prueba</button>
       </div>
       <!-- Modo prueba: para practicar o entrenar a la mesa de control sin
            tocar el rol ni los resultados reales. -->
@@ -1739,7 +1796,32 @@ const CONFIG = {
   correoReportes: "oliverrmz15@gmail.com",
 };
 
+/* ============================================================
+   DOS PUERTAS PARA EL MISMO PROGRAMA
+
+   Esta página es la de Mauricio. Pero el staff entra por staff.html, que
+   trae aquí con ?portal=staff, y entonces la puerta cambia: en vez de la
+   clave de Admin se pide la clave personal de cada quien.
+
+   ¿Por qué la misma página y no una aparte? Porque la hoja digital son mil
+   quinientas líneas que llevamos meses puliendo. Si hubiera dos copias,
+   cada arreglo habría que hacerlo dos veces y tarde o temprano una se
+   quedaría atrás.
+
+   La diferencia importante: la clave de Admin está escrita aquí abajo (y
+   por eso esta URL no se comparte), pero las claves del staff NO están en
+   ningún lado de esta página. Viven en Apps Script. Aquí solo se manda lo
+   que la persona escribió y Google contesta quién es y qué le toca. Y cada
+   entrada queda anotada en la hoja "Accesos".
+   ============================================================ */
+const PORTAL_STAFF = new URLSearchParams(location.search).get("portal") === "staff";
+
+/* Quién entró, si es del staff. En modo Admin se queda en null. */
+let STAFF = null;
+function permisoStaff(cual){ return !!STAFF && STAFF.permisos.indexOf(cual) !== -1; }
+
 function intentarAcceso(){
+  if(PORTAL_STAFF){ entrarComoStaff(); return; }
   const val = document.getElementById("lockInput").value;
   if(val === CONFIG.adminPassword){
     document.getElementById("lockOverlay").style.display = "none";
@@ -1747,11 +1829,93 @@ function intentarAcceso(){
     document.getElementById("lockError").style.display = "block";
   }
 }
+
+async function entrarComoStaff(){
+  const caja = document.getElementById("lockInput");
+  const err = document.getElementById("lockError");
+  const clave = String(caja.value || "").trim();
+  if(!clave) return;
+
+  err.style.display = "none";
+  const boton = document.getElementById("lockBoton");
+  if(boton){ boton.disabled = true; boton.textContent = "Entrando…"; }
+
+  try{
+    /* La clave se manda a Google, que es quien la conoce. Si es de alguien,
+       contesta su nombre y sus pestañas. */
+    const r = await postAppsScript({ action: "entrarStaff", claveStaff: clave });
+    STAFF = { clave: clave, nombre: r.staff.nombre, permisos: r.staff.permisos || [] };
+    document.getElementById("lockOverlay").style.display = "none";
+    aplicarModoStaff();
+  }catch(e){
+    err.textContent = /no es de nadie/i.test(e.message)
+      ? "Esa clave no es de nadie. Revísala."
+      : "No se pudo entrar: " + e.message;
+    err.style.display = "block";
+  }finally{
+    if(boton){ boton.disabled = false; boton.textContent = "Entrar"; }
+  }
+}
+
+/* Ya sabemos quién es: se le deja en pantalla solo lo suyo. */
+function aplicarModoStaff(){
+  document.body.classList.add("modo-staff");
+
+  const titulo = document.querySelector(".topbar-inner h1");
+  if(titulo) titulo.innerHTML = 'STAFF<span class="accent-dot">.</span>LIGA';
+  const sub = document.querySelector(".topbar-inner span:not(.accent-dot)");
+  if(sub) sub.textContent = STAFF.nombre;
+
+  /* Cada permiso prende sus pestañas. Lo que no esté aquí no se enseña. */
+  const PESTANAS_POR_PERMISO = {
+    pagos:   ["staffpagos"],
+    cedulas: ["cedulas"],
+    links:   ["links"]
+  };
+  const suyas = [];
+  STAFF.permisos.forEach(p=>{ (PESTANAS_POR_PERMISO[p] || []).forEach(t=>suyas.push(t)); });
+
+  const botones = [...document.querySelectorAll("nav.tabs button")];
+  botones.forEach(b=>{
+    b.style.display = suyas.indexOf(b.dataset.view) !== -1 ? "" : "none";
+    b.classList.remove("active");
+  });
+  document.querySelectorAll("section.view").forEach(s=>s.classList.remove("active"));
+
+  /* El partido de prueba es solo de Mauricio. */
+  document.querySelectorAll("[data-solo-admin]").forEach(e=>{ e.style.display = "none"; });
+
+  if(!suyas.length){
+    const main = document.querySelector("main");
+    if(main){
+      main.innerHTML = '<div class="card"><h2>Hola, ' + STAFF.nombre + '</h2>' +
+        '<p style="color:var(--text-soft);">Todavía no tienes ninguna pestaña asignada. ' +
+        'En cuanto Mauricio te dé una, aparece aquí.</p></div>';
+    }
+    return;
+  }
+
+  const primera = botones.find(b=>b.dataset.view === suyas[0]);
+  if(primera) primera.click();
+}
+
 document.getElementById("lockInput").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") intentarAcceso();
 });
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas" };
+/* Si se entró por staff.html, la puerta lo dice desde el principio. */
+if(PORTAL_STAFF){
+  const caja = document.querySelector(".lock-box");
+  if(caja){
+    caja.querySelector("h2").textContent = "🔒 Portal de staff";
+    caja.querySelector("p").textContent = "Escribe tu clave personal.";
+    const input = document.getElementById("lockInput");
+    input.type = "password";
+    input.placeholder = "Tu clave";
+  }
+}
+
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -1769,6 +1933,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "pasado") renderEditarPartido();
     if(btn.dataset.view === "correos") renderCorreos();
     if(btn.dataset.view === "pruebas") renderPruebas();
+    if(btn.dataset.view === "staffpagos") spIniciar();
   });
 });
 
@@ -1897,6 +2062,19 @@ function leerDelSheet(hojas, timeoutMs){
 const ESPERAS_REINTENTO = [800, 2000, 4500, 8000];
 
 async function postAppsScript(payload){
+  /* Un solo lugar decide con qué credencial sale cada petición.
+
+     El código de las pestañas está escrito con `clave: CONFIG.adminPassword`
+     por todos lados. Si quien está usando la página es del staff, aquí se le
+     quita esa clave y se pone la suya: así ninguna pestaña puede colarse a
+     hacer algo que a esa persona no le toca, porque quien decide es Apps
+     Script y lo hace con la clave de ella, no con la de Mauricio. */
+  if(STAFF && payload && payload.action !== "entrarStaff"){
+    payload = Object.assign({}, payload);
+    delete payload.clave;
+    payload.claveStaff = STAFF.clave;
+  }
+
   let ultimoError = null;
   for(let i = 0; i <= ESPERAS_REINTENTO.length; i++){
     try{
@@ -5635,6 +5813,90 @@ function renderCedulas(){ hdLlenarSelector(); hdRender(); }
 
 
 /* ============================================================
+   PAGOS DEL STAFF — las cuatro preguntas de Juan Pablo
+
+   Nada de lo que se captura aquí toca los números del equipo. Cae en la hoja
+   "Pagos Pendientes" y ahí espera a que Mauricio lo apruebe. Eso es a
+   propósito: quien recibe el dinero en la cancha no es quien lleva la cuenta.
+   ============================================================ */
+let SP_HECHOS = [];   // lo registrado en esta sesión, para que se vea el rastro
+
+function spCategorias(){
+  const de = (EQUIPOS || []).map(e=>e.categoria).filter(Boolean);
+  const unicas = CONFIG.categorias.filter(c=>de.indexOf(c) !== -1);
+  return unicas.length ? unicas : CONFIG.categorias;
+}
+
+function spIniciar(){
+  const cat = document.getElementById("spCategoria");
+  if(!cat) return;
+  cat.innerHTML = spCategorias().map(c=>`<option value="${c}">${c}</option>`).join("");
+  const fecha = document.getElementById("spFecha");
+  if(fecha && !fecha.value) fecha.value = hdHoyISO();
+  spLlenarEquipos();
+}
+
+function spLlenarEquipos(){
+  const cat = document.getElementById("spCategoria").value;
+  const sel = document.getElementById("spEquipo");
+  const equipos = (EQUIPOS || [])
+    .filter(e=>e.categoria === cat)
+    .map(e=>e.nombre)
+    .sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML = equipos.length
+    ? equipos.map(n=>`<option value="${n}">${n}</option>`).join("")
+    : '<option value="">— no hay equipos en esta categoría —</option>';
+}
+
+function spAviso(texto, bien){
+  const m = document.getElementById("spMsg");
+  if(!m) return;
+  m.className = "msg" + (bien === true ? " ok" : bien === false ? " err" : "");
+  m.textContent = texto;
+}
+
+async function spRegistrar(){
+  const monto = Number(String(document.getElementById("spMonto").value).replace(/[^0-9.]/g, "")) || 0;
+  const categoria = document.getElementById("spCategoria").value;
+  const equipo = document.getElementById("spEquipo").value;
+  const fecha = document.getElementById("spFecha").value;
+
+  if(monto <= 0) return spAviso("Escribe cuánto pagaron.", false);
+  if(!equipo)    return spAviso("Elige el equipo que pagó.", false);
+  if(!fecha)     return spAviso("Elige la fecha del pago.", false);
+
+  const boton = document.getElementById("spBoton");
+  boton.disabled = true;
+  spAviso("Registrando…");
+  try{
+    await postAppsScript({ action: "staffRegistrarPago", monto, categoria, equipo, fecha });
+    SP_HECHOS.unshift({ monto, categoria, equipo, fecha });
+    spAviso("Listo: " + equipo + ", $" + monto.toLocaleString("es-MX") +
+            ". Le llega a Mauricio para que lo apruebe.", true);
+    document.getElementById("spMonto").value = "";
+    spRenderHistorial();
+  }catch(e){
+    spAviso("No se pudo registrar: " + e.message, false);
+  }finally{
+    boton.disabled = false;
+  }
+}
+
+function spRenderHistorial(){
+  const caja = document.getElementById("spHistorial");
+  if(!caja) return;
+  if(!SP_HECHOS.length){
+    caja.innerHTML = '<div class="empty-state">Todavía nada en esta sesión.</div>';
+    return;
+  }
+  caja.innerHTML = SP_HECHOS.map(p=>`
+    <div class="pago-linea">
+      <span><strong>${p.equipo}</strong> · ${p.categoria}</span>
+      <span>$${p.monto.toLocaleString("es-MX")} · ${p.fecha} · <em style="color:var(--text-soft);">esperando visto bueno</em></span>
+    </div>`).join("");
+}
+
+/* ============================================================
    LINK Y PENDIENTES
 
    Los partidos que ya se jugaron pero todavía no salen. Dos cosas los
@@ -5646,6 +5908,9 @@ function renderCedulas(){ hdLlenarSelector(); hdRender(); }
 let CEDULAS = [];
 let CEDULAS_CARGANDO = false;
 
+/* Desde qué semana le tocan los links al staff. Mauricio las ve todas. */
+const LINKS_DESDE_SEMANA = 3;
+
 async function cargarCedulas(){
   const caja = document.getElementById("linksLista");
   if(!caja) return;
@@ -5654,6 +5919,10 @@ async function cargarCedulas(){
   try{
     const data = await postAppsScript({ action: "leerCedulas", clave: CONFIG.adminPassword });
     CEDULAS = data.cedulas || [];
+    /* A quien viene del portal de staff a poner links le tocan los partidos
+       de la semana 3 en adelante. Lo de antes ya está resuelto y solo
+       estorbaría en su lista. */
+    if(STAFF) CEDULAS = CEDULAS.filter(c => Number(c.semana) >= LINKS_DESDE_SEMANA);
     renderLinks();
   }catch(err){
     caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudieron cargar los partidos: ' +
@@ -6307,12 +6576,103 @@ function finNumeros(){
 }
 
 function pagosSubTab(cual){
-  const esGeneral = cual === "general";
-  document.getElementById("pagosSubEquipos").style.display = esGeneral ? "none" : "block";
-  document.getElementById("pagosSubGeneral").style.display = esGeneral ? "block" : "none";
-  document.getElementById("stPagosEquipos").classList.toggle("active", !esGeneral);
-  document.getElementById("stPagosGeneral").classList.toggle("active", esGeneral);
-  if(esGeneral) renderFinanzas(); else renderPagos();
+  const paneles = { equipos: "pagosSubEquipos", general: "pagosSubGeneral", jp: "pagosSubJP" };
+  const botones = { equipos: "stPagosEquipos", general: "stPagosGeneral", jp: "stPagosJP" };
+  Object.keys(paneles).forEach(k=>{
+    document.getElementById(paneles[k]).style.display = (k === cual) ? "block" : "none";
+    document.getElementById(botones[k]).classList.toggle("active", k === cual);
+  });
+  if(cual === "general") renderFinanzas();
+  else if(cual === "jp") cargarPagosJP();
+  else renderPagos();
+}
+
+/* ============================================================
+   PAGOS JP — aprobar o rechazar lo que capturó el staff
+   ============================================================ */
+let PAGOS_JP = [];
+
+async function cargarPagosJP(){
+  const caja = document.getElementById("pagosJPLista");
+  if(!caja) return;
+  caja.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerPagosPendientes", clave: CONFIG.adminPassword });
+    PAGOS_JP = d.pendientes || [];
+    renderPagosJP();
+  }catch(e){
+    caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudieron cargar: ' + e.message + '</div>';
+  }
+}
+
+function renderPagosJP(){
+  const caja = document.getElementById("pagosJPLista");
+  if(!caja) return;
+  if(!PAGOS_JP.length){
+    caja.innerHTML = '<div class="empty-state">El staff todavía no ha capturado ningún pago.</div>';
+    return;
+  }
+
+  // Los que esperan respuesta van arriba; los ya resueltos, abajo.
+  const orden = [...PAGOS_JP].sort((a,b)=>{
+    const pa = String(a["Estado"]).trim() === "Pendiente" ? 0 : 1;
+    const pb = String(b["Estado"]).trim() === "Pendiente" ? 0 : 1;
+    return pa - pb;
+  });
+
+  const cuantosPendientes = PAGOS_JP.filter(p=>String(p["Estado"]).trim() === "Pendiente").length;
+  let html = cuantosPendientes
+    ? `<div class="empty-state" style="text-align:left;padding:0 0 12px;">
+         <strong>${cuantosPendientes}</strong> ${cuantosPendientes === 1 ? "pago espera" : "pagos esperan"} tu visto bueno.
+       </div>`
+    : "";
+
+  html += orden.map(p=>{
+    const estado = String(p["Estado"] || "").trim();
+    const pendiente = estado === "Pendiente";
+    const monto = Number(p["Monto"]) || 0;
+    const color = pendiente ? "#e0a63c" : (estado === "Aprobado" ? "#8fe0a6" : "#ff8080");
+    return `<div class="pago-linea" style="align-items:flex-start;">
+      <span>
+        <strong>${p["Equipo"]}</strong> · ${p["Categoría"]}<br>
+        <span style="color:var(--text-soft);font-size:12px;">
+          $${monto.toLocaleString("es-MX")} · pagado el ${p["Fecha"]} ·
+          capturó ${p["Capturó"]} el ${p["Timestamp"]}
+        </span>
+      </span>
+      <span style="text-align:right;">
+        <span style="color:${color};font-weight:800;font-size:12px;">${estado}</span>
+        ${pendiente ? `<br>
+          <button class="mini-btn" style="margin-top:6px;" onclick="resolverPagoJP(${p.__fila},'aprobar')">Aprobar</button>
+          <button class="mini-btn" onclick="resolverPagoJP(${p.__fila},'rechazar')">Rechazar</button>`
+        : `<br><span style="color:var(--text-soft);font-size:11px;">${p["Resuelto"] || ""}</span>`}
+      </span>
+    </div>`;
+  }).join("");
+
+  caja.innerHTML = html;
+}
+
+async function resolverPagoJP(fila, decision){
+  const p = PAGOS_JP.find(x=>x.__fila === fila);
+  if(!p) return;
+  const texto = decision === "aprobar"
+    ? `Aprobar el pago de ${p["Equipo"]} por $${Number(p["Monto"]).toLocaleString("es-MX")}.\n\nVa a contar para los números del equipo.\n\n¿Todo bien?`
+    : `Rechazar el pago de ${p["Equipo"]} por $${Number(p["Monto"]).toLocaleString("es-MX")}.\n\nNo va a contar. El renglón se queda marcado como rechazado.\n\n¿Seguro?`;
+  if(!confirm(texto)) return;
+
+  const caja = document.getElementById("pagosJPLista");
+  caja.style.opacity = "0.5";
+  try{
+    await postAppsScript({ action: "resolverPagoPendiente", clave: CONFIG.adminPassword, fila, decision });
+    await cargarPagosJP();
+    // Si se aprobó, los totales del equipo cambiaron: hay que releerlos.
+    if(decision === "aprobar") await recargarPagos();
+  }catch(e){
+    alert("No se pudo: " + e.message);
+  }finally{
+    caja.style.opacity = "1";
+  }
 }
 
 function renderFinanzas(){
