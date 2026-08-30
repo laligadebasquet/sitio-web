@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Portal de Staff | Liga de Basquetbol</title>
+<!--
+  ============================================================
+  LA PUERTA DEL STAFF
+
+  Esta es la dirección que se le da al staff: laligadebasquet.com/staff.html
+
+  No tiene programa propio: lleva al mismo de siempre con ?portal=staff, y
+  ahí la puerta cambia — en vez de la clave de Mauricio se pide la clave
+  personal de cada quien, y solo se enseñan sus pestañas.
+
+  ¿Por qué no una página aparte de verdad? Porque la hoja digital son mil
+  quinientas líneas que llevamos meses puliendo. Con dos copias, cada arreglo
+  habría que hacerlo dos veces y una se quedaría atrás.
+
+  Aquí NO hay ninguna clave escrita. Las tres viven en Apps Script, del lado
+  de Google. Esta página no sabe quién es quién ni qué le toca a nadie: eso
+  lo contesta el servidor cuando la persona escribe su clave.
+  ============================================================
+-->
+<style>
+  html,body{height:100%;margin:0;background:#0b0b0b;color:#eee;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .caja{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;}
+  h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.5px;}
+  .punto{color:#F37228;}
+  p{margin:0;color:#888;font-size:13px;line-height:1.6;max-width:22rem;}
+  a{color:#F37228;font-weight:700;text-decoration:none;}
+</style>
+</head>
+<body>
+  <div class="caja">
+    <h1>STAFF<span class="punto">.</span>LIGA</h1>
+    <p id="aviso">Abriendo el portal…</p>
+    <p><a id="manual" href="admin.html?portal=staff">Si no abre solo, entra por aquí</a></p>
+  </div>
+<script>
+  /* replace y no href: así el botón de "atrás" del navegador no regresa a
+     esta pantalla intermedia una y otra vez. */
+  location.replace("admin.html?portal=staff");
+  setTimeout(function(){
+    document.getElementById("aviso").textContent =
+      "Si no se abrió solo, dale al enlace de abajo.";
+  }, 2500);
+</script>
+</body>
+</html>
