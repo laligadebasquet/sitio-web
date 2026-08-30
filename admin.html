@@ -5821,28 +5821,23 @@ function renderCedulas(){ hdLlenarSelector(); hdRender(); }
    ============================================================ */
 let SP_HECHOS = [];   // lo registrado en esta sesión, para que se vea el rastro
 
-function spCategorias(){
-  const de = (EQUIPOS || []).map(e=>e.categoria).filter(Boolean);
-  const unicas = CONFIG.categorias.filter(c=>de.indexOf(c) !== -1);
-  return unicas.length ? unicas : CONFIG.categorias;
-}
-
 function spIniciar(){
   const cat = document.getElementById("spCategoria");
   if(!cat) return;
-  cat.innerHTML = spCategorias().map(c=>`<option value="${c}">${c}</option>`).join("");
+  // Las cuatro categorías, siempre las mismas.
+  cat.innerHTML = CONFIG.categorias.map(c=>`<option value="${c}">${c}</option>`).join("");
   const fecha = document.getElementById("spFecha");
   if(fecha && !fecha.value) fecha.value = hdHoyISO();
   spLlenarEquipos();
 }
 
+/* Los equipos de la categoría elegida. Se usa equiposDeCategoria(), la misma
+   función con la que el rol y la hoja digital llenan sus desplegables: así
+   los tres lugares enseñan exactamente la misma lista. */
 function spLlenarEquipos(){
   const cat = document.getElementById("spCategoria").value;
   const sel = document.getElementById("spEquipo");
-  const equipos = (EQUIPOS || [])
-    .filter(e=>e.categoria === cat)
-    .map(e=>e.nombre)
-    .sort((a,b)=>a.localeCompare(b));
+  const equipos = equiposDeCategoria(cat).slice().sort((a,b)=>String(a).localeCompare(String(b)));
   sel.innerHTML = equipos.length
     ? equipos.map(n=>`<option value="${n}">${n}</option>`).join("")
     : '<option value="">— no hay equipos en esta categoría —</option>';
