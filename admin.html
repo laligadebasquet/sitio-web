@@ -612,8 +612,6 @@
   .hd-jug-datos{font-size:9px;color:#888;font-weight:600;margin-top:1px;}
   .hd-jug-datos b{color:#ddd;}
   .hd-jug-datos .falta-alta{color:#ff8080;}
-  /* Trae número pero todavía no pisa la cancha: hoy por hoy va como ausente. */
-  .hd-jug-datos .hd-sin-entrar{color:#e0a63c;}
   /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
      FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
      acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
@@ -5415,7 +5413,6 @@ function hdColumnaEquipo(lado){
         <div class="hd-jug-datos">
           <b>${hdPuntosJugador(j)}</b> pts · ${j.triples} triples ·
           <span class="${faltas >= 4 ? "falta-alta" : ""}">FP ${j.fp} · FTF ${j.ftf}</span>
-          ${hdAsistio(j) ? "" : `<span class="hd-sin-entrar" title="Trae número pero nunca entró a la cancha: va a quedar como que NO asistió">· no ha entrado</span>`}
         </div>
       </div>
       <div class="hd-btns">
