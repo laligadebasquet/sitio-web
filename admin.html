@@ -612,6 +612,72 @@
   .hd-jug-datos{font-size:9px;color:#888;font-weight:600;margin-top:1px;}
   .hd-jug-datos b{color:#ddd;}
   .hd-jug-datos .falta-alta{color:#ff8080;}
+
+  /* ---------- MINUTA: la hoja de dos caras ----------
+     Se voltea con la misma idea que la credencial de la página: dos caras
+     pegadas espalda con espalda y un giro de medio círculo. La altura NO se
+     fija: la pone la cara que esté al frente, porque un partido con muchas
+     canastas es más alto que uno con pocas. */
+  .mn-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .mn-filtros select{max-width:220px;}
+  .mn-tiempos{font-size:12px;color:var(--text-soft);line-height:1.7;}
+  .mn-tiempos b{color:#eee;}
+
+  .mn-hoja{perspective:2000px;margin-bottom:18px;}
+  .mn-cara-frente, .mn-cara-reverso{
+    background:#131313;border:1px solid #2c2c2c;border-radius:12px;padding:16px 18px;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  }
+  .mn-cara-reverso{display:none;}
+  .mn-hoja.volteada .mn-cara-frente{display:none;}
+  .mn-hoja.volteada .mn-cara-reverso{display:block;}
+
+  .mn-encabezado{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+    cursor:pointer;border-bottom:1px solid #2a2a2a;padding-bottom:12px;margin-bottom:12px;
+  }
+  .mn-vs{font-size:15px;font-weight:900;color:#fff;line-height:1.35;}
+  .mn-marcador{font-size:22px;font-weight:900;color:#F37228;white-space:nowrap;}
+  .mn-sub{font-size:11px;color:#888;font-weight:600;margin-top:3px;}
+  .mn-voltear{
+    font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    color:#e0a63c;background:#2a2113;border:1px solid #6b5320;border-radius:20px;
+    padding:3px 10px;white-space:nowrap;
+  }
+
+  /* Las jugadas, una por renglón, en el orden en que cayeron. */
+  .mn-jugada{
+    display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:baseline;
+    font-size:12px;padding:3px 0;border-bottom:1px solid #1c1c1c;
+  }
+  .mn-per{font-size:10px;font-weight:800;color:#666;}
+  .mn-quien{color:#ddd;font-weight:700;}
+  .mn-quien small{color:#777;font-weight:600;}
+  .mn-como-iba{font-variant-numeric:tabular-nums;color:#888;font-weight:700;font-size:11px;}
+  .mn-pts{color:#8fe0a6;font-weight:900;}
+  .mn-pts.triple{color:#e0a63c;}
+
+  /* El reverso: la estadística */
+  .mn-equipos{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:760px){ .mn-equipos{grid-template-columns:1fr;} }
+  .mn-eq-nombre{font-size:13px;font-weight:900;color:#fff;margin-bottom:8px;}
+  .mn-fila{
+    display:flex;justify-content:space-between;gap:10px;font-size:12px;
+    padding:3px 0;border-bottom:1px solid #1c1c1c;
+  }
+  .mn-fila.falto{color:#666;}
+  .mn-fila.falto em{font-style:normal;font-size:10px;}
+  .mn-parciales{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+  .mn-parciales th, .mn-parciales td{
+    padding:5px 8px;text-align:center;border-bottom:1px solid #222;
+  }
+  .mn-parciales th{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px;}
+  .mn-parciales td:first-child, .mn-parciales th:first-child{text-align:left;font-weight:800;}
+  .mn-parciales .total{color:#F37228;font-weight:900;}
+  .mn-nota{font-size:11px;color:#777;line-height:1.6;margin-top:10px;}
+  .mn-vacio{
+    text-align:center;color:#777;font-size:12px;line-height:1.7;padding:26px 10px;
+  }
   /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
      FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
      acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
@@ -1034,6 +1100,7 @@
     <button data-view="cedulas">Cédulas</button>
     <button data-view="links">Link y Pendientes</button>
     <button data-view="inscripciones">Inscripciones</button>
+    <button data-view="minuta">Minuta</button>
     <button data-view="correos">Correos</button>
     <button data-view="pruebas">Pruebas</button>
     <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
@@ -1380,6 +1447,27 @@
        Los partidos que ya se jugaron y todavía no salen: aquí se pega el
        link del video y se le pone dueño a los puntos que quedaron sueltos.
        En cuanto un partido tiene las dos cosas, la cédula se manda sola. -->
+  <!-- ============ MINUTA ============
+       La hoja resumen de cada partido, de dos caras. Al frente lo que fue
+       pasando —qué canasta anotó quién— y al reverso la estadística. Se le
+       da clic para voltearla, igual que la credencial de la página. -->
+  <section class="view" id="view-minuta">
+    <div class="card">
+      <h2>Hoja resumen del partido</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Pícale a la hoja para voltearla: de un lado lo que fue pasando en el
+        partido, del otro la estadística completa.
+      </p>
+      <div class="mn-filtros">
+        <select id="mnCategoria" onchange="renderMinutas()"></select>
+        <select id="mnEquipo" onchange="renderMinutas()"></select>
+        <button class="mini-btn" onclick="cargarMinutas()">🔄 Actualizar</button>
+      </div>
+      <div id="mnResumenTiempos" class="mn-tiempos"></div>
+    </div>
+    <div id="mnLista"></div>
+  </section>
+
   <!-- ============ PAGOS DEL STAFF (solo en el portal de staff) ============
        Cuatro preguntas y ya. Lo que se captura aquí NO entra a los números
        del equipo: queda esperando a que Mauricio lo apruebe en
@@ -1870,7 +1958,8 @@ function aplicarModoStaff(){
   const PESTANAS_POR_PERMISO = {
     pagos:   ["staffpagos"],
     cedulas: ["cedulas"],
-    links:   ["links"]
+    links:   ["links"],
+    minuta:  ["minuta"]
   };
   const suyas = [];
   STAFF.permisos.forEach(p=>{ (PESTANAS_POR_PERMISO[p] || []).forEach(t=>suyas.push(t)); });
@@ -1915,7 +2004,7 @@ if(PORTAL_STAFF){
   }
 }
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -1934,6 +2023,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "correos") renderCorreos();
     if(btn.dataset.view === "pruebas") renderPruebas();
     if(btn.dataset.view === "staffpagos") spIniciar();
+    if(btn.dataset.view === "minuta") cargarMinutas();
   });
 });
 
@@ -4506,9 +4596,32 @@ function hdNuevoPartido(m){
        hoja de cálculo, y darse cuenta al momento si una canasta se le puso
        al jugador equivocado. */
     jugadas: [],
+    /* Cuánto duró el partido de verdad. "arranco" se pone en el momento en
+       que la mesa pica el primer periodo, y "termino" cuando sube el partido.
+       Con esos dos se puede ver cuánto se está tardando cada juego y dónde
+       se va el tiempo entre uno y otro. */
+    arranco: "", termino: "",
     cerrado: false,
     prorroga: false
   };
+}
+
+/* La hora de ahorita, en formato de 24 horas. */
+function hdAhoraHM(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+/* Minutos entre dos horas "HH:MM". Si el partido cruzó la medianoche, se le
+   suman las 24 horas para que no salga en negativo. */
+function hdDuracionMin(desde, hasta){
+  if(!desde || !hasta) return null;
+  const a = String(desde).split(":"), b = String(hasta).split(":");
+  if(a.length < 2 || b.length < 2) return null;
+  let min = (Number(b[0]) * 60 + Number(b[1])) - (Number(a[0]) * 60 + Number(a[1]));
+  if(isNaN(min)) return null;
+  if(min < 0) min += 24 * 60;
+  return min;
 }
 
 /* Un partido de prueba se respalda APARTE, para que practicar no borre el
@@ -4807,6 +4920,8 @@ function hdSeleccionarCuarto(c){
   }
   HD.cuarto = c;
   if(c > HD.cuartoMax) HD.cuartoMax = c;
+  // La primera vez que se pica un periodo es la hora de inicio del partido.
+  if(!HD.arranco) HD.arranco = hdAhoraHM();
   hdArrancarReloj();
   hdGuardarRespaldo();
   hdRender();
@@ -5732,6 +5847,23 @@ async function hdFinalizar(){
     });
   });
 
+  /* La minuta del partido: lo que hasta hoy solo vivía en la tablet mientras
+     el partido estaba abierto y se perdía al cerrarlo. Ahora se guarda, y con
+     ella los árbitros, la mesa, los tiempos fuera que usó cada equipo y las
+     horas de inicio y fin — para poder ver cuánto dura de verdad cada juego. */
+  HD.termino = hdAhoraHM();
+  const minutaPayload = {
+    arbitro1: HD.arbitro1 || "", arbitro2: HD.arbitro2 || "", mesa: HD.mesa || "",
+    tfLocal: (HD.tiemposFuera.local.primera || 0) + (HD.tiemposFuera.local.segunda || 0),
+    tfVisit: (HD.tiemposFuera.visit.primera || 0) + (HD.tiemposFuera.visit.segunda || 0),
+    arranco: HD.arranco || "", termino: HD.termino,
+    duracion: hdDuracionMin(HD.arranco, HD.termino),
+    jugadas: (HD.jugadas || []).map(x=>({
+      c: x.c, lado: x.lado, nombre: x.nombre, jersey: x.jersey,
+      pts: x.pts, ml: x.ml, mv: x.mv
+    }))
+  };
+
   /* Asistencia: se manda TODO el roster de ambos equipos, con su Sí o su No
      según hdAsistio() — entró a la cancha, o hizo algo en el partido. Se
      mandan también los "No" para poder distinguir después una falta de verdad
@@ -5760,6 +5892,7 @@ async function hdFinalizar(){
       periodos: hdPeriodosJugados(HD).map(c=>hdNombreCorto(c)),
       jugadores: jugadoresPayload,
       asistencia: asistenciaPayload,
+      minuta: minutaPayload,
       /* Los puntos que quedaron sin dueño, con su cuarto. Con esto el backend
          retiene el partido: no lo publica ni manda la cédula hasta que se
          asignen desde la pestaña LINK Y PENDIENTES. */
@@ -5811,6 +5944,280 @@ async function hdFinalizar(){
 
 function renderCedulas(){ hdLlenarSelector(); hdRender(); }
 
+
+/* ============================================================
+   MINUTA — la hoja resumen de cada partido
+
+   Dos caras. Al frente, lo que fue pasando: cada canasta con quién la anotó,
+   en qué periodo y cómo iba el marcador en ese momento. Al reverso, la
+   estadística: marcador final, jugadores con sus puntos y triples, los que no
+   vinieron, las faltas de cada equipo y los puntos por parcial.
+
+   De dónde sale cada cosa:
+     · el FRENTE, de la hoja "Minuta" — que se empezó a guardar el 30 de
+       agosto. Los partidos de antes no la tienen y nunca la van a tener: esa
+       información solo vivía en la tablet y se perdía al cerrar el partido.
+     · el REVERSO, de "Estadísticas" + "Asistencia" + "Resultados", que sí
+       existen desde el primer partido. Por eso el reverso está completo
+       incluso en los partidos viejos.
+   ============================================================ */
+let MINUTAS = [];
+
+async function cargarMinutas(){
+  const caja = document.getElementById("mnLista");
+  if(!caja) return;
+  caja.innerHTML = '<div class="empty-state">Cargando partidos…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerMinutas", clave: CONFIG.adminPassword });
+    MINUTAS = d.minutas || [];
+    mnLlenarFiltros();
+    renderMinutas();
+  }catch(e){
+    caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudieron cargar: ' + e.message + '</div>';
+  }
+}
+
+/* Los partidos que se enseñan salen de RESULTADOS —que los tiene todos— y a
+   cada uno se le pega su minuta si existe. Así los viejos también aparecen,
+   con el frente vacío y su explicación. */
+function mnPartidos(){
+  const conMinuta = {};
+  MINUTAS.forEach(m=>{ conMinuta[mnClave(m.fecha, m.local, m.visit)] = m; });
+
+  return (RESULTADOS || [])
+    .filter(r=>r.local && r.visit)
+    .map(r=>{
+      const clave = mnClave(r.fecha, r.local, r.visit);
+      return {
+        semana: r.jornada, fecha: String(r.fecha).slice(0,10),
+        local: r.local, visit: r.visit,
+        ptsLocal: r.ptsLocal, ptsVisit: r.ptsVisit,
+        categoria: mnCategoriaDe(r.local, r.visit),
+        minuta: conMinuta[clave] || null
+      };
+    })
+    .sort((a,b)=> String(b.fecha).localeCompare(String(a.fecha)));
+}
+
+function mnClave(fecha, local, visit){
+  return [String(fecha).slice(0,10), nombreEquipo(local), nombreEquipo(visit)].join("|");
+}
+
+function mnCategoriaDe(local, visit){
+  const fila = (ESTADISTICAS_ADMIN || []).find(r=>
+    nombreEquipo(r["Equipo"]) === nombreEquipo(local) || nombreEquipo(r["Equipo"]) === nombreEquipo(visit));
+  return fila ? String(fila["Categoría"] || "") : "";
+}
+
+function mnLlenarFiltros(){
+  const partidos = mnPartidos();
+  const cats = [...new Set(partidos.map(p=>p.categoria).filter(Boolean))].sort();
+  const equipos = [...new Set(partidos.flatMap(p=>[p.local, p.visit]))].sort((a,b)=>a.localeCompare(b));
+  const cat = document.getElementById("mnCategoria");
+  const eq = document.getElementById("mnEquipo");
+  if(cat && !cat.dataset.listo){
+    cat.innerHTML = '<option value="">Todas las categorías</option>' +
+      cats.map(c=>`<option value="${c}">${c}</option>`).join("");
+    cat.dataset.listo = "1";
+  }
+  if(eq && !eq.dataset.listo){
+    eq.innerHTML = '<option value="">Todos los equipos</option>' +
+      equipos.map(n=>`<option value="${n}">${n}</option>`).join("");
+    eq.dataset.listo = "1";
+  }
+}
+
+function mnFiltrados(){
+  const cat = (document.getElementById("mnCategoria")||{}).value || "";
+  const eq = (document.getElementById("mnEquipo")||{}).value || "";
+  return mnPartidos().filter(p=>
+    (!cat || p.categoria === cat) &&
+    (!eq || p.local === eq || p.visit === eq));
+}
+
+/* Cuánto están durando los partidos. Solo cuenta los que ya traen minuta:
+   de los viejos no se sabe a qué hora empezaron. */
+function mnRenderTiempos(){
+  const caja = document.getElementById("mnResumenTiempos");
+  if(!caja) return;
+  const duraciones = mnFiltrados()
+    .map(p=>p.minuta && p.minuta.duracion)
+    .filter(d=>typeof d === "number" && d > 0);
+  if(!duraciones.length){
+    caja.innerHTML = "Todavía no hay partidos con hora de inicio y fin. " +
+      "Se empiezan a medir a partir de los que se capturen de ahora en adelante.";
+    return;
+  }
+  const suma = duraciones.reduce((a,b)=>a+b, 0);
+  const prom = Math.round(suma / duraciones.length);
+  caja.innerHTML =
+    `Medidos <b>${duraciones.length}</b> ${duraciones.length === 1 ? "partido" : "partidos"}: ` +
+    `duran <b>${prom} min</b> en promedio ` +
+    `(el más corto <b>${Math.min(...duraciones)}</b>, el más largo <b>${Math.max(...duraciones)}</b>).`;
+}
+
+function renderMinutas(){
+  const caja = document.getElementById("mnLista");
+  if(!caja) return;
+  mnRenderTiempos();
+
+  const partidos = mnFiltrados();
+  if(!partidos.length){
+    caja.innerHTML = '<div class="card"><div class="empty-state">No hay partidos con ese filtro.</div></div>';
+    return;
+  }
+  caja.innerHTML = partidos.map((p, i)=>mnHoja(p, i)).join("");
+}
+
+function mnVoltear(i){
+  const hoja = document.getElementById("mnHoja" + i);
+  if(hoja) hoja.classList.toggle("volteada");
+}
+
+function mnHoja(p, i){
+  const fecha = mnFechaLarga(p.fecha);
+  const cabeza = (lado)=>`
+    <div class="mn-encabezado" onclick="mnVoltear(${i})">
+      <div>
+        <div class="mn-vs">${p.local} <span style="color:#666;">vs</span> ${p.visit}</div>
+        <div class="mn-sub">Semana ${p.semana} · ${fecha}${p.categoria ? " · " + p.categoria : ""}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="mn-marcador">${p.ptsLocal} — ${p.ptsVisit}</div>
+        <div class="mn-voltear" style="margin-top:6px;">${lado === "frente" ? "Ver estadística ↻" : "Ver la minuta ↻"}</div>
+      </div>
+    </div>`;
+
+  return `<div class="mn-hoja" id="mnHoja${i}">
+    <div class="mn-cara-frente">
+      ${cabeza("frente")}
+      ${mnFrente(p)}
+    </div>
+    <div class="mn-cara-reverso">
+      ${cabeza("reverso")}
+      ${mnReverso(p)}
+    </div>
+  </div>`;
+}
+
+function mnFechaLarga(iso){
+  const p = String(iso).slice(0,10).split("-");
+  if(p.length !== 3) return iso;
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                 "agosto","septiembre","octubre","noviembre","diciembre"];
+  return Number(p[2]) + " de " + (meses[Number(p[1])-1] || "") + " de " + p[0];
+}
+
+/* El frente: la minuta jugada por jugada. */
+function mnFrente(p){
+  const m = p.minuta;
+  if(!m || !m.jugadas || !m.jugadas.length){
+    return `<div class="mn-vacio">
+      De este partido no se guardó la minuta.<br>
+      Hasta el 30 de agosto lo que fue pasando en el partido solo vivía en la
+      tablet y se perdía al cerrarlo.<br><br>
+      <strong style="color:#e0a63c;">La estadística sí está completa: dale vuelta a la hoja.</strong>
+    </div>`;
+  }
+
+  const ficha = [];
+  if(m.arbitro1 || m.arbitro2) ficha.push("Árbitros: <b>" + [m.arbitro1, m.arbitro2].filter(Boolean).join(" y ") + "</b>");
+  if(m.mesa) ficha.push("Mesa: <b>" + m.mesa + "</b>");
+  ficha.push("Tiempos fuera: <b>" + m.tfLocal + "</b> " + p.local + " · <b>" + m.tfVisit + "</b> " + p.visit);
+  if(m.arranco && m.termino){
+    ficha.push("De <b>" + m.arranco + "</b> a <b>" + m.termino + "</b>" +
+               (m.duracion ? " · duró <b>" + m.duracion + " min</b>" : ""));
+  }
+
+  let periodoPrevio = null;
+  const filas = m.jugadas.map(j=>{
+    const nuevo = j.c !== periodoPrevio;
+    periodoPrevio = j.c;
+    const suyo = j.lado === "local" ? p.local : p.visit;
+    return (nuevo ? `<div class="mn-per" style="margin:10px 0 4px;">${hdNombrePeriodo(j.c)}</div>` : "") +
+      `<div class="mn-jugada">
+        <span class="mn-pts${j.pts === 3 ? " triple" : ""}">+${j.pts}</span>
+        <span class="mn-quien">${j.jersey ? "#" + j.jersey + " " : ""}${j.nombre} <small>· ${suyo}</small></span>
+        <span class="mn-como-iba">${j.ml}–${j.mv}</span>
+      </div>`;
+  }).join("");
+
+  return `<div class="mn-nota" style="margin:0 0 10px;">${ficha.join(" · ")}</div>${filas}`;
+}
+
+/* El reverso: la estadística del partido, sacada de las hojas de siempre. */
+function mnReverso(p){
+  const columna = (equipo, lado)=>{
+    const stats = (ESTADISTICAS_ADMIN || []).filter(r=>
+      nombreEquipo(r["Equipo"]) === nombreEquipo(equipo) &&
+      String(r["Fecha"]).slice(0,10) === p.fecha);
+
+    const anotadores = stats
+      .map(r=>({ nombre: String(r["Jugador"]), jersey: String(r["Jersey"] || ""),
+                 pts: Number(r["Total"]) || 0, tri: Number(r["Triples"]) || 0,
+                 fp: Number(r["FP"]) || 0, ftf: Number(r["FTF"]) || 0 }))
+      .sort((a,b)=> b.pts - a.pts || a.nombre.localeCompare(b.nombre));
+
+    // Los que no vinieron: están en el roster pero no en las estadísticas.
+    const jugaron = {};
+    anotadores.forEach(a=>{ jugaron[normalizarNombre(a.nombre)] = true; });
+    const faltaron = (ROSTERS[equipo] || [])
+      .map(n=> typeof n === "string" ? n : n.nombre)
+      .filter(n=> !jugaron[normalizarNombre(n)])
+      .sort((a,b)=>a.localeCompare(b));
+
+    const faltas = anotadores.reduce((s,a)=> s + a.fp + a.ftf, 0);
+
+    return `<div>
+      <div class="mn-eq-nombre">${equipo} <span style="color:#F37228;">${lado === "local" ? p.ptsLocal : p.ptsVisit}</span></div>
+      ${anotadores.map(a=>`
+        <div class="mn-fila">
+          <span>${a.jersey ? "#" + a.jersey + " " : ""}${a.nombre}</span>
+          <span><b>${a.pts}</b> pts${a.tri ? " · " + a.tri + (a.tri === 1 ? " triple" : " triples") : ""}</span>
+        </div>`).join("")}
+      ${faltaron.map(n=>`
+        <div class="mn-fila falto">
+          <span>${n}</span>
+          <em>no asistió a este partido</em>
+        </div>`).join("")}
+      <div class="mn-nota">Faltas del equipo: <b style="color:#eee;">${faltas}</b></div>
+    </div>`;
+  };
+
+  return `<div class="mn-equipos">
+      ${columna(p.local, "local")}
+      ${columna(p.visit, "visit")}
+    </div>
+    ${mnParciales(p)}
+    <div class="mn-nota">
+      Las sanciones y el reporte del partido todavía no se capturan en la hoja
+      digital; en cuanto se haga, salen aquí.
+    </div>`;
+}
+
+/* Puntos por parcial, sumando lo de cada jugador en cada periodo. */
+function mnParciales(p){
+  const de = (equipo, campo)=> (ESTADISTICAS_ADMIN || [])
+    .filter(r=> nombreEquipo(r["Equipo"]) === nombreEquipo(equipo) &&
+                String(r["Fecha"]).slice(0,10) === p.fecha)
+    .reduce((s,r)=> s + (Number(r[campo]) || 0), 0);
+
+  const periodos = ["1º","2º","3º","4º"];
+  const fila = (equipo, total)=>`
+    <tr>
+      <td>${equipo}</td>
+      ${periodos.map(q=>`<td>${de(equipo, q)}</td>`).join("")}
+      <td class="total">${total}</td>
+    </tr>`;
+
+  return `<table class="mn-parciales">
+    <thead><tr><th>Parciales</th>${periodos.map(q=>`<th>${q}</th>`).join("")}<th>Final</th></tr></thead>
+    <tbody>
+      ${fila(p.local, p.ptsLocal)}
+      ${fila(p.visit, p.ptsVisit)}
+    </tbody>
+  </table>`;
+}
 
 /* ============================================================
    PAGOS DEL STAFF — las cuatro preguntas de Juan Pablo
