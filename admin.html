@@ -612,6 +612,8 @@
   .hd-jug-datos{font-size:9px;color:#888;font-weight:600;margin-top:1px;}
   .hd-jug-datos b{color:#ddd;}
   .hd-jug-datos .falta-alta{color:#ff8080;}
+  /* Trae número pero todavía no pisa la cancha: hoy por hoy va como ausente. */
+  .hd-jug-datos .hd-sin-entrar{color:#e0a63c;}
   /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
      FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
      acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
@@ -4295,9 +4297,14 @@ function hdClaveDe(m){
 
 /* Estructura de un jugador dentro del partido.
    "encancha" es el círculo del quinteto: los que lo traen prendido suben al
-   principio de su columna. */
+   principio de su columna. Es un estado de AHORITA — se apaga en cuanto sale
+   a la banca.
+   "jugo" es distinto: se prende la primera vez que pisa la cancha y ya no se
+   apaga. Es la memoria de que ese jugador sí entró al partido, aunque después
+   haya salido. De ahí sale la asistencia. */
 function hdNuevoJugador(nombre){
-  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0, encancha: false };
+  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0,
+           encancha: false, jugo: false };
 }
 
 const HD_EN_CANCHA = 5;
@@ -4534,6 +4541,37 @@ function hdPuntosJugador(j){ return HD_PERIODOS.reduce((s,c)=>s + (j.q[c] || 0),
 
    Ahora, cada vez que se toca la anotación, se le quitan los triples que ya
    no le caben. */
+/* ---------- ¿Este jugador asistió al partido? ----------
+
+   La regla, tal como la puso Mauricio:
+
+     Asistió si cumple CUALQUIERA de estas:
+       · lo pusieron de titular,
+       · entró de cambio,
+       · tiene puntos, triples o faltas.
+
+     PERO si SOLO le pusieron el número y nunca entró a la cancha, entonces
+     NO asistió. El número por sí solo no cuenta.
+
+   Antes la señal era el número de jersey, y por eso se contaban como
+   presentes jugadores que llegaron, se anotaron y nunca jugaron; y al revés,
+   se perdían los que entraron de cambio sin anotar nada.
+
+   "jugo" es la memoria de haber pisado la cancha. En partidos respaldados
+   antes de que existiera ese campo no viene, así que se usa "encancha" como
+   respaldo para no perder al que está jugando en ese momento. */
+function hdAsistio(j){
+  if(!j) return false;
+  if(j.jugo || j.encancha) return true;                 // titular o entró de cambio
+  if(hdPuntosJugador(j) > 0) return true;               // anotó
+  if(j.triples > 0 || j.fp > 0 || j.ftf > 0) return true; // triples o faltas
+  return false;                                          // solo el número: no cuenta
+}
+
+function hdPresentes(lado){
+  return HD ? HD.jugadores[lado].filter(hdAsistio).length : 0;
+}
+
 function hdCuadrarTriples(j){
   const puntos = hdPuntosJugador(j);
   const caben = Math.floor(Math.max(0, puntos) / 3);
@@ -4779,9 +4817,9 @@ function hdJersey(lado, indice, valor){
   if(!HD) return;
   const j = HD.jugadores[lado][indice];
   j.jersey = String(valor).trim().slice(0,3);
-  // Si le borran el número a alguien que estaba en cancha, sale: sin número
-  // no hay constancia de que haya asistido, y no queremos un jugador dentro
-  // que al final no cuente como presente.
+  // Si le borran el número a alguien que estaba en cancha, sale de la cancha:
+  // sin número la mesa no lo puede seguir. Pero si ya había entrado, "jugo"
+  // se queda prendido — borrarle el número no borra que jugó.
   if(!j.jersey && j.encancha) j.encancha = false;
   hdGuardarRespaldo();
   hdRender();   // el círculo se habilita (o se apaga) al momento
@@ -4805,14 +4843,14 @@ function hdCambiarCancha(lado, indice){
   if(!j) return;
 
   if(j.encancha){
-    j.encancha = false;                  // sale a la banca
+    j.encancha = false;                  // sale a la banca, pero "jugo" se queda
   }else{
-    // El número de jersey ES el registro de asistencia: si la mesa se lo puso,
-    // el jugador estuvo. Por eso no se puede meter a cancha a alguien sin
-    // número — quedaría jugando un fantasma que después aparece como faltista.
+    // El número hace falta para poder meterlo (es como se le identifica en la
+    // cancha), pero el número NO es la asistencia: la asistencia es haber
+    // entrado. Por eso aquí abajo se prende "jugo".
     if(!String(j.jersey || "").trim()){
       alert("Antes de meter a " + j.nombre + " ponle su número de jersey.\n\n" +
-            "El número es lo que registra que sí vino al partido.");
+            "Con el número puesto ya lo puedes mandar a la cancha.");
       return;
     }
     if(hdEnCancha(lado) >= HD_EN_CANCHA){
@@ -4821,6 +4859,7 @@ function hdCambiarCancha(lado, indice){
       return;
     }
     j.encancha = true;                   // entra a la cancha
+    j.jugo = true;                       // y ya nadie le quita que jugó
   }
   hdGuardarRespaldo();
   hdRender();
@@ -4863,6 +4902,7 @@ function hdHacerCambio(indiceEntra){
   if(!sale || !entra) return;
   sale.encancha = false;
   entra.encancha = true;
+  entra.jugo = true;      // entró de cambio: ya cuenta como que asistió
   HD_CAMBIO = null;
   hdGuardarRespaldo();
   hdRender();
@@ -5333,10 +5373,12 @@ function hdColumnaEquipo(lado){
   }
 
   const dentro = hdEnCancha(lado);
+  const presentes = hdPresentes(lado);
   html += `<div class="hd-cancha-head">
     <span class="hd-cancha-tit">En cancha</span>
     <span class="hd-cancha-cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA}</span>
-    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los cinco que están jugando. El número es lo que registra la asistencia. Para un cambio, pica la <strong style="color:#39FF14;">C</strong> del que sale y elige el número del que entra.</span>
+    <span class="hd-cancha-cont" title="Los que van a quedar como presentes: los que entraron a la cancha más los que tienen puntos o faltas">${presentes} presentes</span>
+    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los cinco que están jugando. Asiste el que entra a la cancha, no el que solo trae número. Para un cambio, pica la <strong style="color:#39FF14;">C</strong> del que sale y elige el número del que entra.</span>
   </div>`;
 
   let grupoPrevio = null;
@@ -5373,6 +5415,7 @@ function hdColumnaEquipo(lado){
         <div class="hd-jug-datos">
           <b>${hdPuntosJugador(j)}</b> pts · ${j.triples} triples ·
           <span class="${faltas >= 4 ? "falta-alta" : ""}">FP ${j.fp} · FTF ${j.ftf}</span>
+          ${hdAsistio(j) ? "" : `<span class="hd-sin-entrar" title="Trae número pero nunca entró a la cancha: va a quedar como que NO asistió">· no ha entrado</span>`}
         </div>
       </div>
       <div class="hd-btns">
@@ -5450,7 +5493,7 @@ async function hdFinalizar(){
     periodos: hdPeriodosJugados(HD).map(c=>hdNombreCorto(c)),
     jugadores: ["local","visit"].flatMap(lado=>
       HD.jugadores[lado]
-        .filter(j=>hdPuntosJugador(j) > 0 || j.fp || j.ftf)
+        .filter(j=>hdAsistio(j))
         .map(j=>({ equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
                    total: hdPuntosJugador(j), triples: hdCuadrarTriples(j), fp: j.fp, ftf: j.ftf })))
   });
@@ -5502,7 +5545,10 @@ async function hdFinalizar(){
   ["local","visit"].forEach(lado=>{
     HD.jugadores[lado].forEach(j=>{
       const total = hdPuntosJugador(j);
-      if(total === 0 && j.fp === 0 && j.ftf === 0 && !j.jersey) return; // no jugó
+      // Entra a Estadísticas todo el que asistió, aunque haya salido en ceros:
+      // el que entró de cambio y no anotó también jugó ese partido, y si no se
+      // escribe aquí desaparece de sus partidos jugados.
+      if(!hdAsistio(j)) return;
       jugadoresPayload.push({
         equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
         q1: j.q[1], q2: j.q[2], q3: j.q[3], q4: j.q[4],
@@ -5511,16 +5557,16 @@ async function hdFinalizar(){
     });
   });
 
-  /* Asistencia: se manda TODO el roster de ambos equipos. Traer número de
-     jersey es lo que significa "sí vino"; sin número es "no vino". Se manda
-     también a los que no vinieron para poder distinguir después una falta
-     real de un partido que nadie capturó. */
+  /* Asistencia: se manda TODO el roster de ambos equipos, con su Sí o su No
+     según hdAsistio() — entró a la cancha, o hizo algo en el partido. Se
+     mandan también los "No" para poder distinguir después una falta de verdad
+     de un partido que nadie capturó. */
   const asistenciaPayload = [];
   ["local","visit"].forEach(lado=>{
     HD.jugadores[lado].forEach(j=>{
       asistenciaPayload.push({
         equipo: HD[lado], jugador: j.nombre,
-        asistio: String(j.jersey || "").trim() ? "Sí" : "No"
+        asistio: hdAsistio(j) ? "Sí" : "No"
       });
     });
   });
