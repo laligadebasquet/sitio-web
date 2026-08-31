@@ -678,6 +678,20 @@
   .mn-vacio{
     text-align:center;color:#777;font-size:12px;line-height:1.7;padding:26px 10px;
   }
+
+  /* ---------- SANCIONES ---------- */
+  .sc-caso{border-left:3px solid #E24B4A;border-radius:0 12px 12px 0;}
+  .sc-caso.listo{border-left-color:#2E7D46;}
+  .sc-cabeza{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;
+  }
+  .sc-jugador{font-size:15px;font-weight:900;color:#fff;}
+  .sc-ftf{
+    font-size:11px;font-weight:900;color:#ffb3b3;background:#2a1313;
+    border:1px solid #7a2a2a;border-radius:20px;padding:3px 10px;white-space:nowrap;
+  }
+  .sc-caso textarea{width:100%;box-sizing:border-box;resize:vertical;}
+  .sc-pie{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;}
   /* Rejilla de cuatro, no flex: así siempre caen +1 +2 +3 −1 arriba y
      FP FTF −FP abajo. Con flex, al angostarse la columna los botones se
      acomodaban de otra forma cada vez y la mesa ya no sabía dónde picar. */
@@ -1101,6 +1115,7 @@
     <button data-view="links">Link y Pendientes</button>
     <button data-view="inscripciones">Inscripciones</button>
     <button data-view="minuta">Minuta</button>
+    <button data-view="sanciones">Sanciones</button>
     <button data-view="correos">Correos</button>
     <button data-view="pruebas">Pruebas</button>
     <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
@@ -1447,6 +1462,24 @@
        Los partidos que ya se jugaron y todavía no salen: aquí se pega el
        link del video y se le pone dueño a los puntos que quedaron sueltos.
        En cuanto un partido tiene las dos cosas, la cédula se manda sola. -->
+  <!-- ============ SANCIONES ============
+       Quien acumuló dos faltas técnicas o flagrantes en un partido aparece
+       aquí esperando a que se escriba qué sucedió. La mesa solo marca las
+       faltas; el reporte se escribe después y con calma. -->
+  <section class="view" id="view-sanciones">
+    <div class="card">
+      <h2>Sanciones por describir</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Cuando un jugador junta <strong>dos faltas técnicas o flagrantes</strong> en
+        un partido, aparece aquí. Escribe qué sucedió y guárdalo. Lo que
+        escribas queda en el reporte del partido.
+      </p>
+      <button class="mini-btn" onclick="cargarSanciones()">🔄 Actualizar</button>
+      <div id="scResumen" class="mn-tiempos" style="margin-top:12px;"></div>
+    </div>
+    <div id="scLista"></div>
+  </section>
+
   <!-- ============ MINUTA ============
        La hoja resumen de cada partido, de dos caras. Al frente lo que fue
        pasando —qué canasta anotó quién— y al reverso la estadística. Se le
@@ -1959,7 +1992,8 @@ function aplicarModoStaff(){
     pagos:   ["staffpagos"],
     cedulas: ["cedulas"],
     links:   ["links"],
-    minuta:  ["minuta"]
+    minuta:  ["minuta"],
+    sanciones: ["sanciones"]
   };
   const suyas = [];
   STAFF.permisos.forEach(p=>{ (PESTANAS_POR_PERMISO[p] || []).forEach(t=>suyas.push(t)); });
@@ -2004,7 +2038,7 @@ if(PORTAL_STAFF){
   }
 }
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta" };
+const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -2024,6 +2058,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "pruebas") renderPruebas();
     if(btn.dataset.view === "staffpagos") spIniciar();
     if(btn.dataset.view === "minuta") cargarMinutas();
+    if(btn.dataset.view === "sanciones") cargarSanciones();
   });
 });
 
@@ -4575,6 +4610,26 @@ function hdNuevoJugador(nombre){
 
 const HD_EN_CANCHA = 5;
 
+/* Cuántas faltas técnicas o flagrantes hacen una sanción. Con dos, el
+   jugador queda anotado en la hoja de Sanciones y Francisco tiene que
+   escribir qué sucedió. */
+const HD_FTF_SANCION = 2;
+
+/* Quiénes salieron sancionados de este partido. */
+function hdSancionados(){
+  if(!HD) return [];
+  const salida = [];
+  ["local","visit"].forEach(lado=>{
+    HD.jugadores[lado].forEach(j=>{
+      if((j.ftf || 0) >= HD_FTF_SANCION){
+        salida.push({ equipo: HD[lado], jugador: j.nombre, jersey: j.jersey || "",
+                      ftf: j.ftf, fp: j.fp });
+      }
+    });
+  });
+  return salida;
+}
+
 function hdNuevoPartido(m){
   const roster = (equipo)=> (ROSTERS[equipo] || []).map(n=> hdNuevoJugador(typeof n === "string" ? n : n.nombre));
   return {
@@ -5033,6 +5088,14 @@ function hdFalta(lado, indice, tipo){
   hdGuardarRespaldo();
   hdRender();
 
+  /* Dos técnicas o flagrantes son sanción. La mesa no decide nada aquí —
+     solo se le avisa— pero el partido queda marcado y a Francisco le
+     aparece en su pestaña para que escriba qué pasó. */
+  if(tipo === "ftf" && j.ftf === HD_FTF_SANCION){
+    alert("🟥 " + j.nombre + " llegó a " + HD_FTF_SANCION + " faltas técnicas o flagrantes.\n\n" +
+          "Eso es SANCIÓN. Al cerrar el partido le va a llegar a Francisco para que " +
+          "escriba qué sucedió.");
+  }
   if(totalFaltas === 5){
     alert("🚨 " + j.nombre + " llegó a 5 faltas.\n\nQueda FUERA del partido.");
   }
@@ -5714,8 +5777,9 @@ function hdColumnaEquipo(lado){
         <button class="hd-b mas" ${fuera ? "disabled" : ""} onclick="hdAnotar('${lado}',${i},3)">+3</button>
         <button class="hd-b menos" onclick="hdAnotar('${lado}',${i},-1)">−1</button>
         <button class="hd-b falta" ${fuera ? "disabled" : ""} onclick="hdFalta('${lado}',${i},'fp')" title="Falta personal">FP</button>
-        <button class="hd-b falta" ${fuera ? "disabled" : ""} onclick="hdFalta('${lado}',${i},'ftf')" title="Falta técnica o flagrante">FTF</button>
         <button class="hd-b" onclick="hdQuitarFalta('${lado}',${i},'fp')" title="Quitar una falta personal">−FP</button>
+        <button class="hd-b falta" ${fuera ? "disabled" : ""} onclick="hdFalta('${lado}',${i},'ftf')" title="Falta técnica o flagrante">FTF</button>
+        <button class="hd-b" onclick="hdQuitarFalta('${lado}',${i},'ftf')" title="Quitar una falta técnica o flagrante">−FTF</button>
       </div>
     </div>`;
   });
@@ -5893,6 +5957,9 @@ async function hdFinalizar(){
       jugadores: jugadoresPayload,
       asistencia: asistenciaPayload,
       minuta: minutaPayload,
+      /* Los que salieron sancionados. Cada uno se anota en la hoja de
+         Sanciones esperando a que Francisco escriba qué sucedió. */
+      sanciones: hdSancionados(),
       /* Los puntos que quedaron sin dueño, con su cuarto. Con esto el backend
          retiene el partido: no lo publica ni manda la cédula hasta que se
          asignen desde la pestaña LINK Y PENDIENTES. */
@@ -5946,6 +6013,103 @@ function renderCedulas(){ hdLlenarSelector(); hdRender(); }
 
 
 /* ============================================================
+   SANCIONES — el reporte de lo que sucedió
+
+   Dos técnicas o flagrantes en el mismo partido son sanción. La mesa solo
+   marca las faltas: el renglón se crea solo al cerrar el partido y aquí se
+   escribe qué pasó, después y con calma.
+
+   Lo escrito se guarda con el nombre de quien lo escribió y la hora, y sale
+   en el reverso de la hoja del partido en la pestaña Minuta.
+   ============================================================ */
+let SANCIONES = [];
+
+async function cargarSanciones(){
+  const caja = document.getElementById("scLista");
+  if(!caja) return;
+  caja.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerSanciones", clave: CONFIG.adminPassword });
+    SANCIONES = d.sanciones || [];
+    renderSanciones();
+  }catch(e){
+    caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudieron cargar: ' + e.message + '</div>';
+  }
+}
+
+function renderSanciones(){
+  const caja = document.getElementById("scLista");
+  const resumen = document.getElementById("scResumen");
+  if(!caja) return;
+
+  const faltan = SANCIONES.filter(s=>!String(s.descripcion || "").trim());
+  if(resumen){
+    resumen.innerHTML = !SANCIONES.length
+      ? "No ha habido ninguna sanción en la temporada."
+      : (faltan.length
+          ? `<b>${faltan.length}</b> ${faltan.length === 1 ? "sanción espera" : "sanciones esperan"} tu reporte. ` +
+            `<span style="color:var(--text-soft);">${SANCIONES.length - faltan.length} ya ${SANCIONES.length - faltan.length === 1 ? "está descrita" : "están descritas"}.</span>`
+          : `Las <b>${SANCIONES.length}</b> sanciones de la temporada ya están descritas.`);
+  }
+
+  if(!SANCIONES.length){
+    caja.innerHTML = '<div class="card"><div class="empty-state">' +
+      'Todavía no hay ninguna sanción. Aparecen solas cuando un jugador junta dos ' +
+      'faltas técnicas o flagrantes en un partido.</div></div>';
+    return;
+  }
+
+  caja.innerHTML = SANCIONES.map((s, i)=>{
+    const listo = !!String(s.descripcion || "").trim();
+    return `<div class="card sc-caso${listo ? " listo" : ""}">
+      <div class="sc-cabeza">
+        <div>
+          <div class="sc-jugador">${s.jersey ? "#" + s.jersey + " " : ""}${s.jugador}</div>
+          <div class="mn-sub">${s.equipo} · ${s.local} vs ${s.visit} · Semana ${s.semana} · ${mnFechaLarga(s.fecha)}</div>
+        </div>
+        <div class="sc-ftf">${s.ftf} FTF</div>
+      </div>
+      <label for="scTexto${i}">¿Qué sucedió?</label>
+      <textarea id="scTexto${i}" rows="4" placeholder="Describe lo que pasó: quién, cuándo, qué se dijo o hizo, y qué decidieron los árbitros.">${s.descripcion || ""}</textarea>
+      <div class="sc-pie">
+        <button class="save-btn" style="margin:0;" onclick="guardarSancion(${i})">${listo ? "Actualizar reporte" : "Guardar reporte"}</button>
+        <span class="mn-nota" style="margin:0;">${listo
+          ? "Escrito por " + s.escribio + (s.cuando ? " el " + s.cuando : "")
+          : "Todavía sin describir"}</span>
+      </div>
+      <div class="msg" id="scMsg${i}"></div>
+    </div>`;
+  }).join("");
+}
+
+async function guardarSancion(i){
+  const s = SANCIONES[i];
+  if(!s) return;
+  const texto = String(document.getElementById("scTexto" + i).value || "").trim();
+  const msg = document.getElementById("scMsg" + i);
+  const aviso = (t, bien)=>{
+    if(!msg) return;
+    msg.className = "msg" + (bien === true ? " ok" : bien === false ? " err" : "");
+    msg.textContent = t;
+  };
+  if(!texto) return aviso("Escribe qué sucedió antes de guardar.", false);
+
+  aviso("Guardando…");
+  try{
+    const r = await postAppsScript({
+      action: "guardarDescripcionSancion", clave: CONFIG.adminPassword,
+      fila: s.fila, jugadorEsperado: s.jugador, descripcion: texto
+    });
+    s.descripcion = texto;
+    s.escribio = r.sancion.escribio;
+    s.cuando = r.sancion.cuando;
+    aviso("Guardado. Ya sale en el reporte del partido.", true);
+  }catch(e){
+    aviso("No se pudo guardar: " + e.message, false);
+  }
+}
+
+/* ============================================================
    MINUTA — la hoja resumen de cada partido
 
    Dos caras. Al frente, lo que fue pasando: cada canasta con quién la anotó,
@@ -5970,6 +6134,13 @@ async function cargarMinutas(){
   try{
     const d = await postAppsScript({ action: "leerMinutas", clave: CONFIG.adminPassword });
     MINUTAS = d.minutas || [];
+    /* Las sanciones salen en el reverso, pero no todo el mundo las puede
+       leer: a Marcelo no le tocan. Si no se pueden, la hoja se enseña igual
+       y nada más se queda sin esa parte. */
+    try{
+      const s = await postAppsScript({ action: "leerSanciones", clave: CONFIG.adminPassword });
+      SANCIONES = s.sanciones || [];
+    }catch(e){ SANCIONES = []; }
     mnLlenarFiltros();
     renderMinutas();
   }catch(e){
@@ -6189,10 +6360,37 @@ function mnReverso(p){
       ${columna(p.visit, "visit")}
     </div>
     ${mnParciales(p)}
-    <div class="mn-nota">
-      Las sanciones y el reporte del partido todavía no se capturan en la hoja
-      digital; en cuanto se haga, salen aquí.
-    </div>`;
+    ${mnSanciones(p)}`;
+}
+
+/* Las sanciones de este partido, con lo que se haya escrito de cada una.
+   Si nadie salió sancionado, no se enseña nada: no hay por qué anunciar que
+   un partido salió limpio. */
+function mnSanciones(p){
+  const suyas = (SANCIONES || []).filter(s=>
+    String(s.fecha).slice(0,10) === p.fecha &&
+    nombreEquipo(s.local) === nombreEquipo(p.local) &&
+    nombreEquipo(s.visit) === nombreEquipo(p.visit));
+
+  if(!suyas.length) return "";
+
+  return `<div class="mn-nota" style="border-top:1px solid #2a2a2a;margin-top:14px;padding-top:12px;">
+    <div style="color:#ffb3b3;font-weight:900;font-size:12px;margin-bottom:8px;">
+      ${suyas.length === 1 ? "Sanción" : "Sanciones"} de este partido
+    </div>
+    ${suyas.map(s=>`
+      <div style="margin-bottom:10px;">
+        <div style="color:#eee;font-weight:800;">
+          ${s.jersey ? "#" + s.jersey + " " : ""}${s.jugador}
+          <span style="color:var(--text-soft);font-weight:600;">· ${s.equipo} · ${s.ftf} FTF</span>
+        </div>
+        <div style="margin-top:3px;">${
+          String(s.descripcion || "").trim()
+            ? s.descripcion + (s.escribio ? ` <span style="color:#666;">— ${s.escribio}</span>` : "")
+            : '<em style="color:#e0a63c;">Falta el reporte de lo que sucedió.</em>'
+        }</div>
+      </div>`).join("")}
+  </div>`;
 }
 
 /* Puntos por parcial, sumando lo de cada jugador en cada periodo. */
