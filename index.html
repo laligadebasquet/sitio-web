@@ -560,6 +560,12 @@
   }
   .patro-btn:hover{border-color:#F37228;}
   .patro-btn img{height:32px;width:auto;display:block;}
+  /* Un patrocinador nuevo, agregado desde Admin, todavía no tiene logo aquí:
+     sale con el nombre en letras hasta que se le ponga la imagen. */
+  .patro-solo-nombre{
+    font-size:15px;font-weight:900;color:#2b2b2b;text-transform:uppercase;
+    letter-spacing:.5px;line-height:1.2;text-align:center;
+  }
 
   /* Zurit todavía no manda su logo en archivo: se dibuja con tipografía,
      respetando la "u" azul y el subtítulo en azul de su marca. */
@@ -2652,6 +2658,7 @@ function aplicarDatos(datos){
   if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
   if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
   if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
+  if(datos["Patrocinadores"]) aplicarPatrosDelSheet(datos["Patrocinadores"]);
   return true;
 }
 
@@ -2674,7 +2681,7 @@ function pintarTodoDelSheet(){
 }
 
 const HOJAS_DE_INICIO = ["Resultados","Rol de Juego","Equipos","Integrantes",
-                         "Asistencia","Cédulas","Estadísticas"];
+                         "Asistencia","Cédulas","Estadísticas","Patrocinadores"];
 
 async function init(){
   /* Las vistas que NO dependen del Sheet (Reglamento, Inscripción, Dónde
@@ -4666,7 +4673,67 @@ const PATROS = {
   }
 };
 
-const PATRO_ORDEN = ["zurit", "mangioz", "techno"];
+/* El orden de arranque. Lo manda la hoja "Patrocinadores" en cuanto carga;
+   esto es lo que se ve el primer segundo, antes de que llegue. */
+let PATRO_ORDEN = ["zurit", "mangioz", "techno"];
+
+/* ------------------------------------------------------------
+   La hoja "Patrocinadores" manda sobre el texto
+
+   Es la MISMA hoja que arma los cupones de la cédula por correo. Se hizo
+   así porque el descuento estaba escrito en dos lugares y era cuestión de
+   tiempo que se despegaran: se cambia en Admin › Correos y cambia en los
+   dos.
+
+   Lo que manda la hoja: quiénes salen, en qué orden, el nombre, el
+   descuento y en qué aplica.
+
+   Lo que NO manda y se queda aquí: los logos (son imágenes en base64, no
+   caben en una celda), el subtítulo, los premios de la temporada y las
+   sucursales de Techno, que tienen su propio acordeón.
+
+   Si la hoja no carga —sin internet, o el Apps Script caído— no pasa nada:
+   se quedan los textos de aquí abajo. Es una mejora, no una dependencia.
+   ------------------------------------------------------------ */
+function aplicarPatrosDelSheet(rows){
+  if(!Array.isArray(rows)) return;
+
+  const activos = rows
+    .filter(r => String(r["Activo"] || "").trim().toUpperCase().indexOf("S") === 0)
+    .filter(r => String(r["Nombre"] || "").trim())
+    .sort((a, b) => (Number(a["Orden"]) || 99) - (Number(b["Orden"]) || 99));
+
+  if(!activos.length) return;   // hoja vacía: se respeta lo de aquí
+
+  const orden = [];
+  activos.forEach(r=>{
+    const clave = String(r["Clave"] || "").trim().toLowerCase()
+      || String(r["Nombre"] || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+    if(!clave) return;
+
+    if(!PATROS[clave]){
+      /* Uno nuevo, que todavía no tiene logo ni ficha aquí. Sale con el
+         nombre en letras y con los enlaces tal cual vienen de la hoja. */
+      PATROS[clave] = { nombre: "", sub: "", logoHTML: "", beneficio: "", que: "" };
+      const e1 = String(r["Enlace 1"] || "").trim(), u1 = String(r["URL 1"] || "").trim();
+      if(e1 && /^https?:\/\//i.test(u1)){ PATROS[clave].mapa = u1; PATROS[clave].mapaTexto = e1; }
+    }
+
+    const p = PATROS[clave];
+    p.nombre    = String(r["Nombre"] || "").trim() || p.nombre;
+    p.beneficio = String(r["Beneficio"] || "").trim() || p.beneficio;
+    const que   = String(r["Qué incluye"] || "").trim();
+    if(que) p.que = que;
+    if(!p.logo && !p.logoHTML) p.logoHTML = `<span class="patro-solo-nombre">${p.nombre}</span>`;
+
+    orden.push(clave);
+  });
+
+  if(orden.length){
+    PATRO_ORDEN = orden;
+    renderPatrocinadores();
+  }
+}
 
 /* El logo, ya sea imagen o el dibujado con letras. */
 function patroLogoHTML(p, alto){
