@@ -513,6 +513,25 @@
   .correo-msg.ok{color:#8de0a0;}
   .correo-msg.err{color:#ff9b9b;}
   .correo-img-previa{max-width:230px;border-radius:8px;border:1px solid #333;margin-top:9px;display:block;}
+  /* ---------- Patrocinadores (dentro de Correos) ----------
+     Cada patrocinador es una tarjeta con sus campos. Se ven los tres a la
+     vez, uno junto a otro, igual que van a salir en el correo: así se nota
+     de inmediato si uno quedó con el descuento en blanco. */
+  .patro-rejilla{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;}
+  @media(max-width:1000px){ .patro-rejilla{grid-template-columns:1fr;} }
+  .patro-tarjeta{background:#101010;border:1px solid #262626;border-radius:12px;padding:14px;}
+  .patro-tarjeta.apagado{opacity:.5;}
+  .patro-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .patro-num{font-size:10px;font-weight:900;color:#666;text-transform:uppercase;letter-spacing:.6px;}
+  .patro-quitar{background:none;border:1px solid #4a2020;color:#ff9b9b;border-radius:7px;
+    cursor:pointer;font-size:11px;font-weight:800;padding:3px 9px;}
+  .patro-quitar:hover{background:#2a0d0d;}
+  .patro-previa{background:#0a0a0a;border:1px dashed #333;border-radius:10px;padding:14px 10px;
+    text-align:center;margin-top:12px;}
+  .patro-previa .pnom{font-size:12px;font-weight:900;color:#eee;text-transform:uppercase;line-height:1.3;}
+  .patro-previa .pben{font-size:15px;font-weight:900;color:#E8912E;margin-top:5px;}
+  .patro-previa .pque{font-size:11px;color:#8a8a8a;margin-top:5px;line-height:1.5;}
+  .patro-previa .plink{font-size:11px;color:#E8912E;font-weight:700;margin-top:6px;line-height:1.6;}
   /* Jugadores */
   /* Flex con wrap, no rejilla fija: si el ancho no alcanza, el bloque de
      botones baja COMPLETO a un segundo renglón en vez de cortarse. Antes,
@@ -1684,6 +1703,29 @@
         <div class="correos-lista" id="correosLista"></div>
         <div class="correos-detalle" id="correosDetalle"></div>
       </div>
+    </div>
+
+    <!-- Patrocinadores: una sola lista, la misma para el correo y la página -->
+    <div class="card">
+      <h2>Patrocinadores</h2>
+      <div class="empty-state" style="text-align:left;padding:0 0 14px 0;">
+        Esta es la <strong>única</strong> lista. Lo que se escriba aquí sale en los
+        cupones de la cédula por correo <em>y</em> en la sección de patrocinadores
+        de laligadebasquet.com. Un beneficio se escribe una vez y queda igual en
+        los dos lados.
+        <br><br>
+        Los <strong>logos no se editan aquí</strong>: son imágenes que viven en la
+        página. Lo que se cambia aquí es el texto.
+        El título del bloque y la letra chica están arriba, en el correo
+        <strong>Cédula digital del partido</strong>.
+      </div>
+      <div id="patrosLista"><div class="empty-state">Cargando…</div></div>
+      <div class="correo-acciones">
+        <button class="save-btn" onclick="guardarPatrosAdmin()">Guardar patrocinadores</button>
+        <button class="save-btn" style="background:#222;color:#ddd;" onclick="agregarPatro()">+ Agregar otro</button>
+        <button class="save-btn" style="background:#222;color:#ddd;" onclick="cargarPatrosAdmin(true)">🔄 Recargar</button>
+      </div>
+      <div class="correo-msg" id="patrosMsg"></div>
     </div>
   </section>
 
@@ -8158,6 +8200,8 @@ const CORREO_CAMPOS = {
   aviso3:            { etiqueta: "Aviso 3 · pagos", filas: 4 },
   titulo:            { etiqueta: "Título", filas: 0 },
   tituloParcial:     { etiqueta: "Título del parcial", filas: 0 },
+  tituloPatros:      { etiqueta: "Título del bloque de patrocinadores", filas: 0 },
+  letraChicaPatros:  { etiqueta: "Letra chica de los cupones (vigencia, condiciones)", filas: 3 },
   cierre:            { etiqueta: "Frase de cierre", filas: 2 }
 };
 
@@ -8209,11 +8253,185 @@ async function renderCorreos(){
   }).join("");
 
   detalle.innerHTML = correoDetalleHTML(CORREO_ABIERTO);
+
+  /* Los patrocinadores van en la misma pestaña pero son otra cosa. Si algo
+     se atora ahí, que no se lleve al editor de correos, que es lo que la
+     gente vino a usar. */
+  try{ cargarPatrosAdmin(); }catch(e){ console.warn("patrocinadores:", e); }
 }
 
 function abrirCorreo(id){
   CORREO_ABIERTO = id;
   renderCorreos();
+}
+
+/* ------------------------------------------------------------
+   PATROCINADORES
+   ------------------------------------------------------------
+   Una sola lista, guardada en la hoja "Patrocinadores", que alimenta dos
+   cosas: los cupones al final de la cédula por correo y la sección de
+   patrocinadores de la página. Se decidió así para no tener que acordarse
+   de cambiar el descuento en dos lugares; ya pasó con el horario y ahí
+   quedó desfasado tres semanas.
+
+   Se guarda la lista COMPLETA de un jalón, no renglón por renglón. Son
+   tres o cuatro; el ahorro de guardar solo lo que cambió no vale la
+   complicación de tener que cuadrar filas.
+
+   Los logos no están aquí a propósito: son imágenes en base64 dentro de
+   index.html y pesan más que todo este texto junto. Cambiar un logo es
+   raro; cambiar un descuento no.
+   ------------------------------------------------------------ */
+
+let PATROS_ADMIN = null;       // lo que devolvió el servidor, ya editado en pantalla
+let PATROS_CARGANDO = false;
+
+function patrosEsc(t){
+  return String(t == null ? "" : t)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function cargarPatrosAdmin(forzar){
+  if(PATROS_CARGANDO) return;
+  if(PATROS_ADMIN && !forzar){ renderPatrosAdmin(); return; }
+
+  const caja = document.getElementById("patrosLista");
+  if(!caja) return;
+  PATROS_CARGANDO = true;
+  caja.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const r = await postAppsScript({ action: "leerPatrocinadores", clave: CONFIG.adminPassword });
+    PATROS_ADMIN = (r.patrocinadores || []).map(p => Object.assign({}, p));
+  }catch(e){
+    caja.innerHTML = '<div class="empty-state">No se pudieron leer los patrocinadores: ' + e.message + '</div>';
+    PATROS_CARGANDO = false;
+    return;
+  }
+  PATROS_CARGANDO = false;
+  renderPatrosAdmin();
+}
+
+function renderPatrosAdmin(){
+  const caja = document.getElementById("patrosLista");
+  if(!caja || !PATROS_ADMIN) return;
+
+  if(!PATROS_ADMIN.length){
+    caja.innerHTML = '<div class="empty-state">No hay ninguno. Dale a “+ Agregar otro”.</div>';
+    return;
+  }
+
+  caja.innerHTML = '<div class="patro-rejilla">' + PATROS_ADMIN.map((p, i) => {
+    const campo = (llave, etiqueta, tipo) => `
+      <div class="correo-bloque">
+        <label>${etiqueta}</label>
+        ${tipo === "area"
+          ? `<textarea rows="3" oninput="patroCambio(${i},'${llave}',this.value)">${patrosEsc(p[llave])}</textarea>`
+          : `<input type="text" value="${patrosEsc(p[llave])}" oninput="patroCambio(${i},'${llave}',this.value)">`}
+      </div>`;
+
+    const enlacePrevia = [[p.enlace1, p.url1], [p.enlace2, p.url2]]
+      .filter(par => String(par[0] || "").trim() && /^https?:\/\//i.test(String(par[1] || "").trim()))
+      .map(par => patrosEsc(par[0])).join("<br>");
+
+    return `<div class="patro-tarjeta${p.activo === false ? " apagado" : ""}">
+      <div class="patro-cab">
+        <span class="patro-num">Cuadro ${i + 1}</span>
+        <button class="patro-quitar" onclick="quitarPatro(${i})">Quitar</button>
+      </div>
+
+      <label class="correo-switch${p.activo === false ? "" : " on"}" style="margin:6px 0 4px;"
+             onclick="patroCambio(${i},'activo',${p.activo === false})">
+        <span class="bolita"></span>
+        <span class="txt">${p.activo === false ? "no sale" : "sale"}</span>
+      </label>
+
+      ${campo("nombre",    "Nombre del negocio")}
+      ${campo("beneficio", "El descuento (lo grande)")}
+      ${campo("que",       "En qué aplica", "area")}
+      ${campo("enlace1",   "Texto del enlace 1")}
+      ${campo("url1",      "Dirección del enlace 1")}
+      ${campo("enlace2",   "Texto del enlace 2")}
+      ${campo("url2",      "Dirección del enlace 2")}
+
+      <div class="patro-previa">
+        <div class="pnom">${patrosEsc(p.nombre) || "—"}</div>
+        <div class="pben">${patrosEsc(p.beneficio)}</div>
+        ${p.que ? `<div class="pque">${patrosEsc(p.que)}</div>` : ""}
+        ${enlacePrevia ? `<div class="plink">${enlacePrevia}</div>` : ""}
+      </div>
+    </div>`;
+  }).join("") + '</div>';
+}
+
+/* Se guarda en memoria mientras escribe y solo se vuelve a dibujar cuando
+   cambia el interruptor. Si redibujáramos en cada tecla, el cursor se
+   brincaría al final de la caja a media palabra. */
+function patroCambio(i, llave, valor){
+  if(!PATROS_ADMIN || !PATROS_ADMIN[i]) return;
+  PATROS_ADMIN[i][llave] = valor;
+  if(llave === "activo") renderPatrosAdmin();
+}
+
+function agregarPatro(){
+  if(!PATROS_ADMIN) PATROS_ADMIN = [];
+  PATROS_ADMIN.push({
+    orden: PATROS_ADMIN.length + 1, clave: "", nombre: "", beneficio: "", que: "",
+    enlace1: "", url1: "", enlace2: "", url2: "", activo: true
+  });
+  renderPatrosAdmin();
+}
+
+function quitarPatro(i){
+  if(!PATROS_ADMIN || !PATROS_ADMIN[i]) return;
+  const nom = PATROS_ADMIN[i].nombre || "este patrocinador";
+  if(!confirm("¿Quitar a " + nom + " de la lista?\n\nDeja de salir en el correo y en la página. Todavía tienes que darle a Guardar."))
+    return;
+  PATROS_ADMIN.splice(i, 1);
+  renderPatrosAdmin();
+}
+
+async function guardarPatrosAdmin(){
+  const msg = document.getElementById("patrosMsg");
+  if(!PATROS_ADMIN || !PATROS_ADMIN.length){
+    msg.className = "correo-msg err";
+    msg.textContent = "No hay nada que guardar.";
+    return;
+  }
+
+  /* Se revisa aquí también, aunque el servidor vuelva a revisar: así el
+     aviso sale al instante y no después de un viaje de ida y vuelta. */
+  for(let i = 0; i < PATROS_ADMIN.length; i++){
+    const p = PATROS_ADMIN[i];
+    if(!String(p.nombre || "").trim()){
+      msg.className = "correo-msg err";
+      msg.textContent = "El cuadro " + (i + 1) + " no tiene nombre.";
+      return;
+    }
+    for(const par of [["url1","1"],["url2","2"]]){
+      const u = String(p[par[0]] || "").trim();
+      if(u && !/^https?:\/\//i.test(u)){
+        msg.className = "correo-msg err";
+        msg.textContent = "La dirección del enlace " + par[1] + " de " + p.nombre +
+                          " tiene que empezar con http:// o https://";
+        return;
+      }
+    }
+  }
+
+  msg.className = "correo-msg";
+  msg.style.color = "#999";
+  msg.textContent = "Guardando…";
+  try{
+    const lista = PATROS_ADMIN.map((p, i) => Object.assign({}, p, { orden: i + 1 }));
+    await postAppsScript({ action: "guardarPatrocinadores", clave: CONFIG.adminPassword, patrocinadores: lista });
+    msg.className = "correo-msg ok";
+    msg.style.color = "";
+    msg.textContent = "Guardado. Ya salen así en el correo y en la página.";
+  }catch(e){
+    msg.className = "correo-msg err";
+    msg.style.color = "";
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
 }
 
 function correoDetalleHTML(id){
