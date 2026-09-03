@@ -4843,11 +4843,51 @@ function hdCambiarPartido(){
 }
 
 /* Vuelve a leer los rosters del Sheet sin perder lo ya anotado. */
+/* Trae la lista de jugadores otra vez, y NADA más.
+
+   Antes esto llamaba a initData(), que además de los integrantes vuelve a
+   leer equipos, rol, resultados, asistencia, estadísticas, pagos e
+   inscripciones. Y los integrantes venían CON las fotos: 12 MB, más de 45
+   segundos. El resultado era que le picabas a "Refrescar rosters" en media
+   captura y el jugador recién dado de alta no aparecía — no porque no
+   estuviera, sino porque la lectura seguía en camino.
+
+   Ahora es una sola lectura, sin fotos, de unos 200 KB. Las fotos que ya se
+   habían cargado se conservan. */
+async function hdTraerIntegrantes(){
+  const priv = await postAppsScript({
+    action: "leerHojasAdmin",
+    clave: CONFIG.adminPassword,
+    hojas: ["Integrantes"],
+    sinFotos: "1"
+  });
+  const filas = (priv && priv.hojas && priv.hojas["Integrantes"]) || [];
+  if(!filas.length) return false;
+
+  ROSTERS = mapIntegrantesCsv(filas);
+
+  /* La foto no viene en esta lectura, así que se rescata la que ya estaba
+     en memoria. Si no, abrir la credencial de alguien después de refrescar
+     enseñaría un hueco. */
+  const fotos = {};
+  (ALTAS_JUGADORES || []).forEach(a => { if(a.foto) fotos[a.equipo + "|" + a.nombre] = a.foto; });
+  ALTAS_JUGADORES = mapAltasJugadores(filas).map(a =>
+    a.foto ? a : Object.assign({}, a, { foto: fotos[a.equipo + "|" + a.nombre] || "" }));
+  return true;
+}
+
 async function hdRefrescarRosters(){
   if(!HD){ alert("Primero elige un partido."); return; }
   const aviso = document.getElementById("hdAviso");
   if(aviso) aviso.textContent = "Actualizando rosters…";
-  await initData();
+
+  try{
+    await hdTraerIntegrantes();
+  }catch(err){
+    if(aviso) aviso.textContent = "No se pudo actualizar la lista: " + err.message + ". Vuelve a intentarlo.";
+    return;   // sin lista nueva no hay nada que comparar; mejor decirlo que fingir que ya
+  }
+
   /* Solo se AGREGAN los que faltaban. Lo que ya se capturó (puntos, faltas,
      jerseys) no se toca: por eso se comparan por nombre en vez de rearmar
      la lista desde cero. */
