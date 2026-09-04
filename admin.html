@@ -145,6 +145,30 @@
   }
   .hd-cuarto-btn.activo{background:#E8365D;border-color:#E8365D;color:#fff;}
   .hd-cuarto-btn.cerrado{background:#243; border-color:#2f5; color:#8f8; cursor:not-allowed;}
+  /* ---- Partido ya cerrado ----
+     Grande y verde y hasta arriba, porque el problema del 3 de septiembre
+     fue justamente que cerrar un partido no se notaba: la pantalla se
+     quedaba igual y la mesa siguió picando media hora. */
+  .hd-cerrado-tit{
+    font-size:15px;font-weight:900;color:#33E08A;text-transform:uppercase;letter-spacing:.5px;
+  }
+  .hd-cerrado-marcador{
+    display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+    margin:14px 0 6px;font-size:26px;font-weight:900;color:#8a8a8a;line-height:1.2;text-align:center;
+  }
+  .hd-cerrado-marcador .gana{color:#fff;}
+  .hd-cerrado-marcador .sep{color:#555;font-size:20px;}
+  .hd-cerrado-pie{
+    text-align:center;font-size:12px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.5px;
+  }
+  .hd-cerrado-btns{
+    display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:18px 0 0;
+  }
+  .hd-cerrado-btns .save-btn{margin:0;font-size:15px;padding:12px 22px;}
+  .hd-cerrado-nota{
+    font-size:12px;color:#9a9a9a;line-height:1.6;margin-top:14px;
+    border-top:1px solid #222;padding-top:12px;
+  }
   /* Los tiempos extra se ven distintos: no son un cuarto más, son la señal
      de que el partido se empató y de que cambian los tiempos fuera. */
   .hd-cuarto-btn.extra{border-style:dashed;border-color:#6b5320;color:#e0a63c;}
@@ -5398,10 +5422,110 @@ function hdFotoDe(lado, indice){
   verFotoJugador(pos);
 }
 /* ---------- Pintado ---------- */
+/* Lleva a la mesa al selector de partidos y lo abre.
+
+   Existe por lo que pasó el 3 de septiembre: la mesa cerró el partido de las
+   8:10 y siguió picando botones creyendo que capturaba el de las 9:10. Cada
+   toque le contestaba "este partido ya se cerró" y se pasaron media hora
+   recargando la página. Nadie les dijo que había que elegir el siguiente
+   partido aquí arriba. */
+function hdIrAlSelector(){
+  const sel = document.getElementById("hdPartidoSelect");
+  if(!sel) return;
+  sel.scrollIntoView({ behavior: "smooth", block: "center" });
+  sel.focus();
+  /* En tablet, focus() no despliega la lista. showPicker sí, y donde no
+     exista simplemente no pasa nada: el selector ya quedó a la vista. */
+  try{ sel.showPicker(); }catch(e){}
+}
+
+/* Vuelve a abrir un partido que ya se cerró, para corregirlo.
+
+   Antes no había manera: si le daban a Finalizar antes de tiempo, la mesa se
+   quedaba trabada y la única salida era la pestaña Editar, que no guarda la
+   estadística jugador por jugador.
+
+   Volver a guardar no duplica nada —Estadísticas, Asistencia, Minuta y
+   Sanciones se reescriben, no se suman— y la cédula NO se remanda si ya
+   había salido. Eso último hay que decírselo a la mesa, porque es la
+   diferencia entre corregir a tiempo y corregir tarde. */
+function hdReabrir(){
+  if(!HD || !HD.cerrado) return;
+  if(!confirm("¿Reabrir este partido para corregirlo?\n\n" +
+              HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit +
+              "\n\nOJO: si la cédula ya le salió por correo a las jugadoras, la corrección " +
+              "NO se les vuelve a mandar. Sí se corrige en la página y en la estadística.\n\n" +
+              "Cuando termines, dale otra vez a Finalizar y guardar partido.")) return;
+  HD.cerrado = false;
+  hdArrancarReloj();
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* La pantalla de un partido ya cerrado.
+
+   Es una pantalla APARTE, no la de captura con los botones apagados. Esa era
+   justamente la trampa: se veía idéntica a la de capturar, así que la mesa
+   seguía picando. Aquí no hay un solo botón de +1, +2 o falta. */
+function hdCerradoHTML(){
+  const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
+  const gana = ptsL > ptsV ? HD.local : (ptsV > ptsL ? HD.visit : "");
+
+  let html = `<div class="card" style="border-left-color:#33E08A;">
+    <div class="hd-cerrado-tit">✅ Este partido ya terminó y se guardó</div>
+    <div class="hd-cerrado-marcador">
+      <span${ptsL >= ptsV ? ' class="gana"' : ''}>${HD.local} ${ptsL}</span>
+      <span class="sep">—</span>
+      <span${ptsV >= ptsL ? ' class="gana"' : ''}>${ptsV} ${HD.visit}</span>
+    </div>
+    <div class="hd-cerrado-pie">
+      Semana ${HD.semana} · ${HD.categoria || ""}${gana ? " · ganó " + gana : " · empate"}
+      ${HD.arranco && HD.termino ? " · duró " + hdDuracionMin(HD.arranco, HD.termino) + " min" : ""}
+    </div>
+    <div class="hd-cerrado-btns">
+      <button class="save-btn" onclick="hdIrAlSelector()">▶ Capturar el siguiente partido</button>
+      <button class="mini-btn" onclick="hdReabrir()">Reabrir para corregir</button>
+    </div>
+    <div class="hd-cerrado-nota">
+      Si aquí abajo ves algo mal, dale a <strong>Reabrir para corregir</strong>.
+      Si ya vas a capturar otro juego, usa el botón de arriba o elige el partido
+      en la lista de hasta arriba de la página.
+    </div>
+  </div>`;
+
+  // El parcial y la estadística, para revisar. Solo de lectura.
+  html += `<div class="card">
+    <h3 style="margin:0 0 10px 0;">Parcial del partido</h3>
+    <table class="hd-porcuarto"><tr><th>Equipo</th>` +
+    hdPeriodosJugados(HD).map(c=>`<th>${hdNombreCorto(c)}</th>`).join("") +
+    `<th>Total</th></tr>`;
+  ["local","visit"].forEach(lado=>{
+    html += `<tr><td class="eq">${HD[lado]}</td>` +
+      hdPeriodosJugados(HD).map(c=>`<td>${hdPuntosCuarto(HD, lado, c)}</td>`).join("") +
+      `<td><strong>${hdTotal(HD, lado)}</strong></td></tr>`;
+  });
+  html += `</table></div>`;
+
+  ["local","visit"].forEach(lado=>{
+    const jugaron = HD.jugadores[lado].filter(j => hdAsistio(j));
+    if(!jugaron.length) return;
+    html += `<div class="card"><h3 style="margin:0 0 10px 0;">${HD[lado]}</h3>
+      <table class="hd-porcuarto"><tr><th>#</th><th>Jugador</th><th>Pts</th><th>3P</th><th>FP</th></tr>` +
+      jugaron.map(j=>`<tr><td>${j.jersey || ""}</td><td class="eq">${j.nombre}</td>` +
+        `<td>${hdPuntosJugador(j)}</td><td>${j.triples || 0}</td><td>${j.fp || 0}</td></tr>`).join("") +
+      `</table></div>`;
+  });
+
+  return html;
+}
+
 function hdRender(){
   const cont = document.getElementById("hdTablero");
   if(!cont) return;
   if(!HD){ cont.innerHTML = '<div class="card"><div class="empty-state">Elige un partido arriba.</div></div>'; return; }
+
+  /* Cerrado = otra pantalla. Ver hdCerradoHTML. */
+  if(HD.cerrado){ cont.innerHTML = hdCerradoHTML(); return; }
 
   const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
 
@@ -5486,12 +5610,10 @@ function hdRender(){
   });
   html += `</table></div>`;
 
-  // Cierre
+  /* Cierre. Aquí ya no se pregunta por HD.cerrado: un partido cerrado se
+     va por hdCerradoHTML y nunca llega hasta acá. */
   html += `<div class="card">`;
-  if(HD.cerrado){
-    html += `<div class="hd-prorroga" style="background:#0f3d1c;border-color:#2f5;color:#8f8;">
-      Partido cerrado y guardado. ${HD.local} ${ptsL} — ${ptsV} ${HD.visit}</div>`;
-  }else{
+  {
     if(HD.cedulaPendiente){
       html += `<div class="hd-prorroga">📋 PARTIDO INCOMPLETO — el marcador ya se guardó, pero faltan puntos por asignar a un jugador.
         La cédula no se ha mandado a nadie: sale en cuanto los asignes y le des Finalizar otra vez.</div>`;
