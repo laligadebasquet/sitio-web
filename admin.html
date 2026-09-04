@@ -2775,16 +2775,37 @@ function cerrarEditarPartido(){
    renglón del rol no se deshace, y la segunda solo aparece si el partido ya
    se jugó — ahí el backend se planta y hay que insistir a propósito. */
 async function borrarPartido(p){
+  /* La semana se llama de dos maneras según de dónde venga el partido:
+     `semana` en el objeto que arma la tabla del rol (que es el que le llega
+     a este botón), y `jornada` en los renglones de MATCHES. Aquí se aceptan
+     las dos.
+
+     Esto empezó como un bug: el botón pedía `p.jornada` y le llegaba un
+     objeto con `semana`, así que mandaba la semana en blanco y el servidor
+     contestaba "Falta decir de qué semana es el partido que se va a borrar".
+     El servidor hizo bien en plantarse — sin semana, un borrado se lleva el
+     primer partido que encuentre entre esos dos equipos, y los mismos
+     equipos se enfrentan varias veces en la temporada. */
+  const semana = (p.semana !== undefined && p.semana !== null && String(p.semana).trim() !== "")
+    ? p.semana : p.jornada;
+
   const cual = `${p.local} vs ${p.visit}` +
                (p.fecha ? ` — ${fechaBonita(p.fecha)}` : "") +
                (p.hora ? ` ${p.hora}` : "");
-  if(!confirm(`¿Borrar del rol este partido?\n\n${cual}\n\nEsto no se puede deshacer.`)) return;
+
+  if(semana === undefined || semana === null || String(semana).trim() === ""){
+    alert("Ese renglón del rol no tiene semana, así que no se puede borrar sin riesgo:\n\n" + cual +
+          "\n\nPonle la semana con el lápiz ✏️ y vuelve a intentarlo.");
+    return;
+  }
+
+  if(!confirm(`¿Borrar del rol este partido?\n\nSemana ${semana} · ${cual}\n\nEsto no se puede deshacer.`)) return;
 
   async function pedirBorrado(forzar){
     return postAppsScript({
       action: "eliminarPartido",
       clave: CONFIG.adminPassword,
-      semana: p.jornada,
+      semana: semana,
       equipoLocal: p.local,
       equipoVisit: p.visit,
       forzar: !!forzar
@@ -2803,7 +2824,7 @@ async function borrarPartido(p){
       }
     }
 
-    const i = MATCHES.findIndex(x => String(x.jornada) === String(p.jornada) &&
+    const i = MATCHES.findIndex(x => String(x.jornada) === String(semana) &&
                                      x.local === p.local && x.visit === p.visit);
     if(i >= 0) MATCHES.splice(i, 1);
     renderRolSemanal();
