@@ -145,6 +145,49 @@
   }
   .hd-cuarto-btn.activo{background:#E8365D;border-color:#E8365D;color:#fff;}
   .hd-cuarto-btn.cerrado{background:#243; border-color:#2f5; color:#8f8; cursor:not-allowed;}
+  /* ---- Antes de que arranque el partido ----
+     Sin marcador y sin botones de anotar: solo números y titulares. Es a
+     propósito — Mauricio no quiere que los jugadores vean la hoja completa
+     mientras esperan. */
+  .hd-previo-tit{
+    font-size:12px;font-weight:900;color:#E8912E;text-transform:uppercase;letter-spacing:.7px;
+  }
+  .hd-previo-partido{
+    font-size:22px;font-weight:900;color:#fff;line-height:1.25;margin:8px 0 4px;
+  }
+  .hd-previo-partido span{color:#666;font-size:15px;margin:0 6px;}
+  .hd-previo-pie{
+    font-size:12px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.5px;
+  }
+  .hd-previo-ayuda{
+    font-size:12px;color:#9a9a9a;line-height:1.6;margin-top:12px;
+    border-top:1px solid #222;padding-top:12px;
+  }
+  .hd-previo-oficiales{display:flex;gap:12px;flex-wrap:wrap;}
+  .hd-previo-oficiales label{
+    display:flex;flex-direction:column;gap:5px;flex:1 1 160px;
+    font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;
+  }
+  .hd-previo-oficiales input{
+    background:#0a0a0a;border:1px solid #333;border-radius:8px;color:#eee;
+    padding:9px 11px;font-size:14px;font-family:inherit;
+  }
+  .hd-previo-oficiales input:focus{outline:none;border-color:#E8912E;}
+  .hd-previo-eq{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid #222;
+  }
+  .hd-previo-eq .nom{font-size:16px;font-weight:900;color:#fff;text-transform:uppercase;}
+  .hd-previo-eq .cont{
+    font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+    border-radius:20px;padding:3px 9px;color:#9a9a9a;background:#151515;border:1px solid #2e2e2e;
+  }
+  .hd-previo-eq .cont.pocos{color:#ff9b9b;background:#2a0d0d;border-color:#7a2a2a;}
+  .hd-previo-eq .cont.completo{color:#8de0a0;background:#12301c;border-color:#2f6d3f;}
+  .hd-previo-btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .hd-previo-iniciar{margin:0;font-size:17px;padding:14px 28px;}
+  .hd-previo-nota{font-size:12px;color:#8a8a8a;line-height:1.6;margin-top:12px;}
+
   /* ---- Partido ya cerrado ----
      Grande y verde y hasta arriba, porque el problema del 3 de septiembre
      fue justamente que cerrar un partido no se notaba: la pantalla se
@@ -4743,10 +4786,38 @@ function hdNuevoPartido(m){
        Con esos dos se puede ver cuánto se está tardando cada juego y dónde
        se va el tiempo entre uno y otro. */
     arranco: "", termino: "",
+    /* Mientras esto sea false, la hoja enseña la pantalla previa: nada más
+       los números, los titulares, los árbitros y la mesa. Ver hdPrevioHTML. */
+    iniciado: false,
     cerrado: false,
     prorroga: false
   };
 }
+
+/* ¿Este partido ya arrancó?
+
+   El campo `iniciado` es nuevo. Un partido que quedó a medias en la tablet
+   ANTES de que existiera no lo trae, así que se cae a `cuarto`: si ya iban
+   en algún periodo, evidentemente ya había arrancado. Sin esto, un partido
+   a medias se iría a la pantalla previa y parecería que se perdió. */
+function hdYaInicio(){
+  return !!HD && (HD.iniciado === true || Number(HD.cuarto || 0) > 0 || !!HD.cerrado);
+}
+
+/* Cuántos de un equipo están listos para jugar: los que traen número.
+   El número es cómo la mesa los identifica en la cancha; sin él no se les
+   puede anotar nada. */
+function hdListos(lado){
+  return HD ? HD.jugadores[lado].filter(j => String(j.jersey || "").trim()).length : 0;
+}
+
+/* El mínimo para ARRANCAR un partido son 4 jugadores listos por equipo.
+
+   Ojo con la otra mitad de la regla, que es la que se presta a confusión:
+   una vez arrancado, si por expulsiones un equipo se queda con 3, el partido
+   SIGUE. Por eso esto solo se pregunta en hdIniciarPartido y en ningún otro
+   lado — nada de aquí en adelante vuelve a contar jugadores. */
+const HD_MINIMO_PARA_INICIAR = 4;
 
 /* La hora de ahorita, en formato de 24 horas. */
 function hdAhoraHM(){
@@ -5325,6 +5396,10 @@ function hdCambiarCancha(lado, indice){
 
   if(j.encancha){
     j.encancha = false;                  // sale a la banca, pero "jugo" se queda
+    /* Salvo antes de que el partido arranque: ahí nadie ha jugado todavía,
+       así que desmarcar a alguien en la pantalla previa —un dedazo al armar
+       el quinteto— no lo puede dejar como presente. */
+    if(!hdYaInicio()) j.jugo = false;
   }else{
     // El número hace falta para poder meterlo (es como se le identifica en la
     // cancha), pero el número NO es la asistencia: la asistencia es haber
@@ -5422,6 +5497,143 @@ function hdFotoDe(lado, indice){
   verFotoJugador(pos);
 }
 /* ---------- Pintado ---------- */
+/* ============================================================
+   ANTES DE QUE ARRANQUE EL PARTIDO
+
+   Mauricio: "no me gusta que a veces los jugadores están viendo... quiero
+   que sea todavía exclusivo".
+
+   Mientras el partido no arranca, la hoja NO enseña el marcador ni los
+   botones de anotar. Solo lo que la mesa necesita para prepararse: la lista
+   de cada equipo con su número, el círculo de los titulares, quién arbitra y
+   quién está en la mesa.
+
+   Aparte de lo de que no se vea, ordena el trabajo: primero se capturan los
+   números con calma, y hasta que el partido de verdad empieza aparecen los
+   botones. Antes todo salía junto desde el primer segundo.
+   ============================================================ */
+function hdPrevioHTML(){
+  let html = `<div class="card" style="border-left-color:#E8912E;">
+    <div class="hd-previo-tit">Antes de empezar</div>
+    <div class="hd-previo-partido">${HD.local} <span>vs</span> ${HD.visit}</div>
+    <div class="hd-previo-pie">
+      Semana ${HD.semana} · ${HD.categoria || ""}${HD.hora ? " · " + HD.hora : ""}
+    </div>
+    <div class="hd-previo-ayuda">
+      Ponle su número a cada quien y prende el círculo de los que arrancan.
+      Cuando le des a <strong>Iniciar partido</strong> aparecen los botones para
+      anotar y empieza a correr el 1<sup>er</sup> cuarto.
+    </div>
+  </div>`;
+
+  // Árbitros y mesa: vienen del rol, pero casi nunca llega quien estaba puesto.
+  html += `<div class="card">
+    <h3 style="margin:0 0 10px 0;">Árbitros y mesa</h3>
+    <div class="hd-previo-oficiales">
+      <label>Árbitro 1<input type="text" value="${(HD.arbitro1 || "").replace(/"/g,"&quot;")}"
+        onchange="hdOficial('arbitro1', this.value)" placeholder="Nombre"></label>
+      <label>Árbitro 2<input type="text" value="${(HD.arbitro2 || "").replace(/"/g,"&quot;")}"
+        onchange="hdOficial('arbitro2', this.value)" placeholder="Nombre"></label>
+      <label>Mesa<input type="text" value="${(HD.mesa || "").replace(/"/g,"&quot;")}"
+        onchange="hdOficial('mesa', this.value)" placeholder="Nombre"></label>
+    </div>
+  </div>`;
+
+  ["local","visit"].forEach(lado=>{
+    const jugadores = HD.jugadores[lado];
+    const listos = hdListos(lado);
+    const dentro = hdEnCancha(lado);
+    const pocos = listos < HD_MINIMO_PARA_INICIAR;
+
+    html += `<div class="card">
+      <div class="hd-previo-eq">
+        <span class="nom">${HD[lado]}</span>
+        <span class="cont${pocos ? " pocos" : ""}">${listos} con número</span>
+        <span class="cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA} titulares</span>
+      </div>`;
+
+    if(!jugadores.length){
+      html += `<div class="empty-state">Este equipo todavía no tiene jugadores dados de alta.
+        Diles que se registren y dale a Refrescar rosters.</div></div>`;
+      return;
+    }
+
+    hdOrdenados(lado).forEach(({j, i})=>{
+      const sinNumero = !String(j.jersey || "").trim();
+      html += `<div class="hd-jug${j.encancha ? " en-cancha" : ""}${sinNumero ? " sin-numero" : ""}">
+        <button class="hd-circulo${j.encancha ? " on" : ""}${sinNumero ? " sin-numero" : ""}"
+                onclick="hdCambiarCancha('${lado}',${i})"
+                title="${sinNumero ? "Ponle su número para poder marcarlo de titular" : (j.encancha ? "Quitar de titular a " + j.nombre : "Marcar de titular a " + j.nombre)}"
+                aria-label="${j.encancha ? "Titular" : "En banca"}"></button>
+        <div class="hd-jcol">
+          <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
+                 onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
+        </div>
+        <div class="hd-jug-info">
+          <div class="hd-jug-nombre">
+            <span class="hd-nombre-link" onclick="hdFotoDe('${lado}',${i})" title="Ver la foto de ${j.nombre}">${j.nombre}</span>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `<div class="card">
+    <div class="hd-previo-btns">
+      <button class="save-btn hd-previo-iniciar" onclick="hdIniciarPartido()">▶ Iniciar partido</button>
+      <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
+    </div>
+    <div class="hd-previo-nota" id="hdAviso">
+      Se necesitan al menos ${HD_MINIMO_PARA_INICIAR} jugadores con número por equipo para arrancar.
+    </div>
+  </div>`;
+
+  return html;
+}
+
+/* Arranca el partido: de aquí en adelante ya sale la pantalla de captura. */
+function hdIniciarPartido(){
+  if(!HD || hdYaInicio()) return;
+
+  /* La única puerta donde se cuentan jugadores. Después de arrancar, un
+     equipo se puede quedar en 3 por expulsiones y el partido sigue. */
+  const faltantes = ["local","visit"]
+    .filter(lado => hdListos(lado) < HD_MINIMO_PARA_INICIAR)
+    .map(lado => HD[lado] + " tiene " + hdListos(lado));
+  if(faltantes.length){
+    alert("Para arrancar hacen falta al menos " + HD_MINIMO_PARA_INICIAR +
+          " jugadores con número por equipo.\n\n" + faltantes.join("\n") +
+          "\n\nPonles su número y vuelve a intentarlo.");
+    return;
+  }
+
+  /* Los titulares se avisan pero no se exigen: un equipo puede arrancar con
+     cuatro. Lo que no puede es arrancar sin que nadie esté marcado, porque
+     entonces la asistencia del partido saldría vacía. */
+  const sinTitulares = ["local","visit"].filter(lado => hdEnCancha(lado) === 0);
+  if(sinTitulares.length){
+    alert("No has marcado a los titulares de " + sinTitulares.map(l=>HD[l]).join(" ni de ") + ".\n\n" +
+          "Prende el círculo de los que arrancan en la cancha. De ahí sale la asistencia.");
+    return;
+  }
+  const incompletos = ["local","visit"]
+    .filter(lado => hdEnCancha(lado) !== HD_EN_CANCHA)
+    .map(lado => HD[lado] + ": " + hdEnCancha(lado));
+  if(incompletos.length){
+    if(!confirm("OJO, hay equipos que no arrancan con " + HD_EN_CANCHA + " en cancha:\n\n" +
+                incompletos.join("\n") + "\n\n¿Aun así inicio el partido?")) return;
+  }
+
+  HD.iniciado = true;
+  HD.cuarto = 1;
+  HD.cuartoMax = 1;
+  if(!HD.arranco) HD.arranco = hdAhoraHM();
+  hdArrancarReloj();
+  hdGuardarRespaldo();
+  hdRender();
+}
+
 /* Lleva a la mesa al selector de partidos y lo abre.
 
    Existe por lo que pasó el 3 de septiembre: la mesa cerró el partido de las
@@ -5526,6 +5738,10 @@ function hdRender(){
 
   /* Cerrado = otra pantalla. Ver hdCerradoHTML. */
   if(HD.cerrado){ cont.innerHTML = hdCerradoHTML(); return; }
+
+  /* Todavía sin arrancar = la pantalla previa, sin marcador ni botones de
+     anotar. Ver hdPrevioHTML. */
+  if(!hdYaInicio()){ cont.innerHTML = hdPrevioHTML(); return; }
 
   const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
 
