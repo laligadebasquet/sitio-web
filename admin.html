@@ -168,11 +168,15 @@
     display:flex;flex-direction:column;gap:5px;flex:1 1 160px;
     font-size:10px;font-weight:900;color:#777;text-transform:uppercase;letter-spacing:.6px;
   }
-  .hd-previo-oficiales input{
+  .hd-previo-oficiales select{
     background:#0a0a0a;border:1px solid #333;border-radius:8px;color:#eee;
     padding:9px 11px;font-size:14px;font-family:inherit;
   }
-  .hd-previo-oficiales input:focus{outline:none;border-color:#E8912E;}
+  .hd-previo-oficiales select:focus{outline:none;border-color:#E8912E;}
+  /* Los dos equipos lado a lado. Cada renglón es solo el círculo, el número
+     y el nombre, así que sobra ancho y cabe todo sin bajar. */
+  .hd-previo-equipos{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  @media(max-width:820px){ .hd-previo-equipos{grid-template-columns:1fr;} }
   .hd-previo-eq{
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
     padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid #222;
@@ -2019,8 +2023,8 @@ const CONFIG = {
   // --- Listas fijas del formulario "Agregar partido" ---
   categorias: ["Varonil A", "Varonil B", "Femenil A", "Femenil B"],
   sedes: ["Club Central Gante"],
-  arbitros1: ["Francisco", "Jairo", "Esteban"],
-  arbitros2: ["Francisco", "Jairo", "Esteban", "Braulio"],
+  arbitros1: ["Francisco", "Jairo", "Esteban", "Mejía"],
+  arbitros2: ["Francisco", "Jairo", "Esteban", "Braulio", "Mejía"],
   mesa: ["Michelle", "Eduardo", "Juan", "Miguel", "Mesa de control"],
   // A dónde se manda el reporte del partido al cerrar la hoja digital.
   correoReportes: "oliverrmz15@gmail.com",
@@ -5526,19 +5530,28 @@ function hdPrevioHTML(){
     </div>
   </div>`;
 
-  // Árbitros y mesa: vienen del rol, pero casi nunca llega quien estaba puesto.
+  /* Árbitros y mesa: de una lista, no escritos a mano. Son siempre las mismas
+     personas y a mano cada quien los escribe distinto —"Fco", "Francisco",
+     "francisco"— y después no se pueden contar. La lista vive en CONFIG. */
+  const opts = (lista, sel)=> '<option value="">—</option>' +
+    lista.map(v=>`<option value="${v}"${v === sel ? " selected" : ""}>${v}</option>`).join("");
   html += `<div class="card">
     <h3 style="margin:0 0 10px 0;">Árbitros y mesa</h3>
     <div class="hd-previo-oficiales">
-      <label>Árbitro 1<input type="text" value="${(HD.arbitro1 || "").replace(/"/g,"&quot;")}"
-        onchange="hdOficial('arbitro1', this.value)" placeholder="Nombre"></label>
-      <label>Árbitro 2<input type="text" value="${(HD.arbitro2 || "").replace(/"/g,"&quot;")}"
-        onchange="hdOficial('arbitro2', this.value)" placeholder="Nombre"></label>
-      <label>Mesa<input type="text" value="${(HD.mesa || "").replace(/"/g,"&quot;")}"
-        onchange="hdOficial('mesa', this.value)" placeholder="Nombre"></label>
+      <label>Árbitro 1
+        <select onchange="hdOficial('arbitro1', this.value)">${opts(CONFIG.arbitros1, HD.arbitro1)}</select></label>
+      <label>Árbitro 2
+        <select onchange="hdOficial('arbitro2', this.value)">${opts(CONFIG.arbitros2, HD.arbitro2)}</select></label>
+      <label>Mesa
+        <select onchange="hdOficial('mesa', this.value)">${opts(CONFIG.mesa, HD.mesa)}</select></label>
     </div>
   </div>`;
 
+  /* Los dos equipos lado a lado. Antes iban uno debajo del otro y la mesa
+     tenía que bajar y volver a subir para comparar; con dos columnas cabe
+     todo de un vistazo y sobra ancho, porque cada renglón es nada más el
+     círculo, el número y el nombre. En pantalla angosta se apilan solos. */
+  html += `<div class="hd-previo-equipos">`;
   ["local","visit"].forEach(lado=>{
     const jugadores = HD.jugadores[lado];
     const listos = hdListos(lado);
@@ -5578,6 +5591,7 @@ function hdPrevioHTML(){
     });
     html += `</div>`;
   });
+  html += `</div>`;
 
   html += `<div class="card">
     <div class="hd-previo-btns">
