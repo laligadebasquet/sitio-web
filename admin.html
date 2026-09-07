@@ -4135,11 +4135,24 @@ function edClave(m){ return [m.jornada, m.local, m.visit].join("|"); }
    "Ya se jugó" es TENER RESULTADO, no que el rol diga "Jugado". Los partidos
    de la semana 1 se capturaron antes de que existiera ese marcado y en el rol
    siguen como "Programado": con el filtro anterior salían 7 de 19 y los de la
-   primera semana no se podían corregir. */
+   primera semana no se podían corregir.
+
+   Y entra un tercer caso, que es el que faltaba: **un partido cuya fecha ya
+   pasó y que no tiene nada capturado**. Se jugó, pero por lo que sea nunca se
+   subió — como UNOS vs PINK PANTHERS del 3 de septiembre, que se perdió
+   porque la mesa se quedó trabada en la hoja digital. Antes ese partido no
+   salía en ningún lado: la hoja digital solo enseña los de HOY y Editar solo
+   los que ya tienen resultado. O sea que al día siguiente no había manera de
+   meterlo. Ahora sí. */
+function edYaPaso(m){
+  const f = String(m.fecha || "").slice(0,10);
+  return !!f && f < hdHoyISO();
+}
+
 function edPartidosJugados(){
   return MATCHES
     .map((m, i)=>({ m, i }))
-    .filter(x => x.m.estatus === "Jugado" || !!buscarResultado(x.m))
+    .filter(x => x.m.estatus === "Jugado" || !!buscarResultado(x.m) || edYaPaso(x.m))
     .sort((a,b)=>{
       const fa = String(a.m.fecha || ""), fb = String(b.m.fecha || "");
       if(fa !== fb) return fb.localeCompare(fa);
@@ -4163,10 +4176,18 @@ function renderEditarPartido(){
   }
 
   const elegido = sel.value;
+  /* Los que se quedaron sin capturar se marcan: no es lo mismo entrar a
+     corregir un dedazo que entrar a meter un partido entero desde cero, y la
+     lista es lo único que lo puede advertir antes de picarle. */
+  const sinCapturar = lista.filter(x => !buscarResultado(x.m)).length;
   sel.innerHTML = lista.map(x=>
-    `<option value="${x.i}"${String(x.i) === elegido ? " selected" : ""}>Semana ${x.m.jornada} · ${x.m.fecha} — ${x.m.local} vs ${x.m.visit}</option>`
+    `<option value="${x.i}"${String(x.i) === elegido ? " selected" : ""}>Semana ${x.m.jornada} · ${x.m.fecha} — ${x.m.local} vs ${x.m.visit}${buscarResultado(x.m) ? "" : "  ⚠️ SIN CAPTURAR"}</option>`
   ).join("");
-  if(aviso) aviso.textContent = lista.length + " partido" + (lista.length === 1 ? "" : "s") + " jugado" + (lista.length === 1 ? "" : "s") + ".";
+  if(aviso){
+    aviso.textContent = lista.length + " partido" + (lista.length === 1 ? "" : "s") + " jugado" +
+      (lista.length === 1 ? "" : "s") + "." +
+      (sinCapturar ? "  " + sinCapturar + " sin capturar todavía." : "");
+  }
   if(!elegido) sel.value = String(lista[0].i);
   edCargarPartido();
 }
