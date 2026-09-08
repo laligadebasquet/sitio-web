@@ -1983,10 +1983,11 @@
         <button data-view="sanciones">Sanciones</button>
       </div>
     </div>
-    <!-- Por dentro la vista se sigue llamando "tendencias"; en pantalla
-         ahora dice Ranking, que es lo que la gente busca. Va ANTES de
-         Jugadores porque es lo que más se consulta. -->
-    <button data-view="tendencias">Ranking</button>
+    <!-- Ranking y Tendencias eran una sola pestaña con dos botones adentro.
+         Se separaron: cada una es suya. El orden que pidió Mauricio es
+         Ranking, Tendencias y luego Jugadores. -->
+    <button data-view="ranking">Ranking</button>
+    <button data-view="tendencias">Tendencias</button>
     <!-- Por dentro la vista se sigue llamando "credencial" (así estaba desde
          el principio); en pantalla ahora dice Jugadores. -->
     <button data-view="credencial">Jugadores</button>
@@ -2111,6 +2112,7 @@
   <section class="view" id="view-playoffs"></section>
   <section class="view" id="view-concentrado"></section>
   <section class="view" id="view-sanciones"></section>
+  <section class="view" id="view-ranking"></section>
   <section class="view" id="view-tendencias"></section>
   <section class="view" id="view-credencial"></section>
   <section class="view" id="view-reglamento"></section>
@@ -2683,6 +2685,7 @@ function pintarTodoDelSheet(){
   renderRol();
   renderRolInicio();
   renderTabla();
+  renderRanking();
   renderRachas();
   renderPlayoffs();
   renderConcentrado();
@@ -2958,7 +2961,8 @@ function vistaActual(){
 const NOMBRE_DE_VISTA = {
   inicio:"Inicio", rol:"Rol de juego", resultados:"Resultados",
   tabla:"Tabla de posiciones", playoffs:"Playoffs", concentrado:"Concentrado",
-  sanciones:"Sanciones", credencial:"Jugadores", tendencias:"Ranking",
+  sanciones:"Sanciones", credencial:"Jugadores",
+  ranking:"Ranking", tendencias:"Tendencias",
   inscripcion:"Inscripción", equipos:"Equipos", reglamento:"Reglamento",
   pagos:"Formas de pago", contacto:"Contacto"
 };
@@ -3609,7 +3613,7 @@ function horaBonita(hora){
 
 let CAT_VISTA = {
   rol: "general", resultados: "general", tabla: "general",
-  playoffs: "general", ranking: "general",
+  playoffs: "general", ranking: "general", tendencias: "general",
   /* JUGADORES abre en Femenil A: esa pestana no lleva boton "General"
      porque ver todos los equipos revueltos no le sirve a nadie. */
   jugadores: "Femenil A"
@@ -3665,7 +3669,8 @@ function filtrarCategoria(vista, cat){
   else if(vista === "tabla")      renderTabla();
   else if(vista === "playoffs")   renderPlayoffs();
   else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; JUGADOR_SEL = null; renderJugadores(); }
-  else if(vista === "ranking")    renderRachas();
+  else if(vista === "ranking")    renderRanking();
+  else if(vista === "tendencias") renderRachas();
 }
 
 /* Texto para cuando el filtro deja la pantalla vacía. */
@@ -4293,23 +4298,205 @@ function computeRachas(categoria){
 }
 
 /* ============================================================
+   RACHA DE JUGADORES — el otro lado de las Tendencias.
+
+   Sale todo de la hoja "Estadísticas", donde cada renglón es UN jugador en UN
+   partido. Se agrupa por jugador DENTRO de su equipo, igual que el Ranking:
+   si alguien jugó en dos equipos son dos historias distintas, no una con los
+   números revueltos.
+
+   Cuatro familias de tarjetas, que son las que pidió Mauricio:
+     · el partidazo   — lo más que alguien anotó (y metió de triples) en un juego
+     · las rachas     — quién viene enrachado hoy
+     · los promedios  — quién sostiene el nivel, no quién tuvo una buena noche
+     · los cuartos    — quién aparece cuando el partido se decide
+   ============================================================ */
+
+/* Cuántos partidos hay que tener para entrar a los promedios. Con uno solo,
+   el que anotó 30 en su único juego le gana a quien lleva 25 de promedio en
+   cuatro, y eso no es una tendencia: es una noche. */
+const TEND_MIN_PARTIDOS = 2;
+
+/* Cuántos nombres caben en una tarjeta de las que juntan a varios. Con los
+   datos reales salió una de 16 nombres seguidos y no se leía: se enseñan los
+   primeros y del resto se dice cuántos son. */
+const TEND_MAX_EN_LISTA = 6;
+
+function computeRachasJugadores(categoria){
+  const cat = categoria || "general";
+
+  const filas = ESTADISTICAS.filter(e=>{
+    if(cat === "general") return true;
+    const c = String(e.categoria || "").trim() || categoriaDeEquipo(e.equipo);
+    return c === cat;
+  });
+  if(!filas.length) return [];
+
+  /* Contra quién fue ese partido. La hoja de Estadísticas no guarda al rival,
+     pero con la fecha y el equipo se encuentra en Resultados. Si no aparece
+     (un partido sin capturar, por ejemplo), se queda sin rival y ya. */
+  const rivalDe = (e) => {
+    const p = RESULTADOS.find(r => String(r.fecha).slice(0,10) === String(e.fecha).slice(0,10) &&
+                                   (r.local === e.equipo || r.visitante === e.equipo));
+    if(!p) return "";
+    return p.local === e.equipo ? p.visitante : p.local;
+  };
+  const contra = (e) => { const r = rivalDe(e); return r ? " vs " + r : ""; };
+
+  const porJugador = {};
+  filas.forEach(e=>{
+    const clave = e.equipo + "|" + e.jugador;
+    if(!porJugador[clave]) porJugador[clave] = { jugador:e.jugador, equipo:e.equipo, juegos:[] };
+    porJugador[clave].juegos.push(e);
+  });
+
+  const jugadores = Object.values(porJugador).map(j=>{
+    const juegos = j.juegos.slice().sort((a,b)=>
+      (a.semana - b.semana) || String(a.fecha).localeCompare(String(b.fecha)));
+    const pj = juegos.length;
+    const puntos  = juegos.reduce((s,g)=> s + (Number(g.total)   || 0), 0);
+    const triples = juegos.reduce((s,g)=> s + (Number(g.triples) || 0), 0);
+
+    /* El 4º cuarto solo se cuenta donde sí quedó el desglose por periodo: hay
+       partidos capturados nada más con el total, y ahí los cuartos están en
+       cero. Sumarlos como si fueran ceros de verdad castigaría a quien jugó
+       esos partidos. */
+    const conCuartos = juegos.filter(g => (g.q1 + g.q2 + g.q3 + g.q4) > 0);
+    const q4 = conCuartos.reduce((s,g)=> s + (Number(g.q4) || 0), 0);
+
+    /* Rachas ACTIVAS: se cuentan desde el último partido hacia atrás, porque
+       lo que interesa es cómo llega hoy, no lo que hizo en agosto. */
+    const rachaDesdeElFinal = (cumple) => {
+      let n = 0;
+      for(let i = juegos.length - 1; i >= 0; i--){ if(cumple(juegos[i])) n++; else break; }
+      return n;
+    };
+
+    const ultimos3 = juegos.slice(-3);
+    const vieneSubiendo = ultimos3.length === 3 &&
+      ultimos3[0].total < ultimos3[1].total && ultimos3[1].total < ultimos3[2].total &&
+      ultimos3[2].total >= 10;
+
+    return { jugador:j.jugador, equipo:j.equipo, juegos, pj, puntos, triples, q4,
+             juegosConCuartos: conCuartos.length,
+             prom: puntos / pj, promT: triples / pj,
+             rachaDobleDigito: rachaDesdeElFinal(g => g.total >= 10),
+             rachaTriples: rachaDesdeElFinal(g => g.triples >= 1),
+             vieneSubiendo, ultimos3 };
+  });
+
+  const insights = [];
+  const quien = j => `${j.jugador} (${j.equipo})`;
+
+  /* Para que dos jugadores empatados no cambien de lugar cada vez que se
+     repinta la pantalla, todos los ordenamientos desempatan por nombre. */
+  const porNombre = (a,b)=> String(a.jugador).localeCompare(String(b.jugador)) ||
+                            String(a.equipo).localeCompare(String(b.equipo));
+
+  /* ---------- El partidazo ---------- */
+  const mejorJuego = filas.slice().sort((a,b)=> b.total - a.total || porNombre(a,b))[0];
+  if(mejorJuego && mejorJuego.total > 0){
+    insights.push({icono:"🏀",
+      titulo:`${mejorJuego.jugador} tiene el partidazo de la temporada`,
+      texto:`Anotó ${mejorJuego.total} puntos en un solo partido — ${mejorJuego.equipo}${contra(mejorJuego)}, Semana ${mejorJuego.semana}.`,
+      prioridad:1});
+  }
+
+  const mejorTriples = filas.slice().sort((a,b)=> b.triples - a.triples || porNombre(a,b))[0];
+  if(mejorTriples && mejorTriples.triples >= 3){
+    insights.push({icono:"🎯",
+      titulo:`${mejorTriples.jugador} y su noche de triples`,
+      texto:`Metió ${mejorTriples.triples} triples en un solo partido — ${mejorTriples.equipo}${contra(mejorTriples)}, Semana ${mejorTriples.semana}.`,
+      prioridad:1});
+  }
+
+  /* ---------- Las rachas ----------
+     Igual que del lado de Equipo: de una en una mientras sean pocas, y en
+     cuanto pasan de tres se juntan para no llenar la pantalla de lo mismo. */
+  const juntarOSoltar = (lista, icono, unaSola, tituloJunto, comoSeVe, prioridad) => {
+    if(!lista.length) return;
+    if(lista.length > 3){
+      const visibles = lista.slice(0, TEND_MAX_EN_LISTA);
+      const resto = lista.length - visibles.length;
+      insights.push({icono, titulo: tituloJunto(lista.length),
+        texto: visibles.map(comoSeVe).join(" · ") +
+               (resto ? ` · y ${resto} más` : "") + ".", prioridad});
+    } else {
+      lista.forEach(j => insights.push(Object.assign({icono, prioridad}, unaSola(j))));
+    }
+  };
+
+  const enrachados = jugadores.filter(j=> j.rachaDobleDigito >= 3)
+    .sort((a,b)=> b.rachaDobleDigito - a.rachaDobleDigito || b.prom - a.prom || porNombre(a,b));
+  juntarOSoltar(enrachados, "🔥",
+    j => ({ titulo:`${j.jugador} no baja de doble dígito`,
+            texto:`Lleva ${j.rachaDobleDigito} partidos seguidos anotando 10 o más, con ${j.equipo}.` }),
+    n => `${n} jugadores encadenan dobles dígitos`,
+    j => `${quien(j)}: ${j.rachaDobleDigito} partidos`, 2);
+
+  const triplerosSeguidos = jugadores.filter(j=> j.rachaTriples >= 3)
+    .sort((a,b)=> b.rachaTriples - a.rachaTriples || b.triples - a.triples || porNombre(a,b));
+  juntarOSoltar(triplerosSeguidos, "🏹",
+    j => ({ titulo:`${j.jugador} no falla el triple`,
+            texto:`Ha metido al menos uno en sus últimos ${j.rachaTriples} partidos, con ${j.equipo}.` }),
+    n => `${n} jugadores hilan partidos con triple`,
+    j => `${quien(j)}: ${j.rachaTriples} partidos`, 2);
+
+  const subiendo = jugadores.filter(j=> j.vieneSubiendo)
+    .sort((a,b)=> b.ultimos3[2].total - a.ultimos3[2].total || porNombre(a,b));
+  juntarOSoltar(subiendo, "📈",
+    j => ({ titulo:`${j.jugador} viene subiendo`,
+            texto:`Sus últimos tres partidos: ${j.ultimos3.map(g=>g.total).join(", ")} puntos. Va de menos a más con ${j.equipo}.` }),
+    n => `${n} jugadores vienen de menos a más`,
+    j => `${quien(j)}: ${j.ultimos3.map(g=>g.total).join("-")}`, 2);
+
+  /* ---------- Los promedios ---------- */
+  const constantes = jugadores.filter(j=> j.pj >= TEND_MIN_PARTIDOS);
+  if(constantes.length){
+    const masAnota = constantes.slice().sort((a,b)=> b.prom - a.prom || b.pj - a.pj || porNombre(a,b))[0];
+    if(masAnota.prom > 0){
+      /* El título va sin "el/la" a propósito: la liga tiene fuerzas femeniles
+         y varoniles, y "es el más constante" se lee mal en la mitad de los
+         casos. Los demás títulos de aquí también son neutros. */
+      insights.push({icono:"⭐",
+        titulo:`${masAnota.jugador} lleva el mejor promedio`,
+        texto:`Promedia ${masAnota.prom.toFixed(1)} puntos por partido en ${masAnota.pj} juegos con ${masAnota.equipo}.`,
+        prioridad:3});
+    }
+
+    const masTriples = constantes.slice().sort((a,b)=> b.promT - a.promT || b.triples - a.triples || porNombre(a,b))[0];
+    if(masTriples.promT > 0){
+      insights.push({icono:"🎪",
+        titulo:`${masTriples.jugador} vive del triple`,
+        texto:`Promedia ${masTriples.promT.toFixed(1)} triples por partido — ${masTriples.triples} en ${masTriples.pj} juegos con ${masTriples.equipo}.`,
+        prioridad:3});
+    }
+  }
+
+  /* ---------- El 4º cuarto ---------- */
+  const deCuartos = jugadores.filter(j=> j.juegosConCuartos >= TEND_MIN_PARTIDOS && j.q4 > 0)
+    .sort((a,b)=> b.q4 - a.q4 || porNombre(a,b))[0];
+  if(deCuartos){
+    insights.push({icono:"⏱️",
+      titulo:`${deCuartos.jugador} aparece en el último cuarto`,
+      texto:`Lleva ${deCuartos.q4} puntos anotados en cuartos cuartos, más que nadie${cat === "general" ? " en la liga" : ""}.`,
+      prioridad:4});
+  }
+
+  insights.sort((a,b)=> a.prioridad - b.prioridad);
+  return insights;
+}
+
+/* ============================================================
    RANKING DE ANOTADORES
 
-   La pestaña se llama Ranking y trae dos botones: Ranking y Tendencias.
-   Abre en Ranking, que es lo primero que la gente busca; las Tendencias están
-   a un toque y las dos respetan el filtro de categoría.
+   Ranking y Tendencias eran una sola pestaña con dos botones adentro. Se
+   separaron en dos pestañas del menú, así que aquí ya solo vive el ranking.
 
    El top se saca de la hoja "Estadísticas", sumando los puntos de cada
    jugador EN SU EQUIPO: si alguien aparece en dos equipos, son dos
    renglones distintos, no uno con los puntos revueltos.
    ============================================================ */
-
-let RANK_MODO = "ranking";   // "ranking" o "tendencias"
-
-function elegirModoRanking(modo){
-  RANK_MODO = modo;
-  renderRachas();
-}
 
 /* Suma los puntos de todos y devuelve la lista ordenada de mayor a menor.
    Si se pide una fuerza, solo entra quien jugó en ella. */
@@ -4402,9 +4589,9 @@ function cerrarFichaRanking(){
   document.getElementById("rankModal").classList.remove("open");
 }
 
-function renderRanking(el){
+function renderRanking(){
+  const el = document.getElementById("view-ranking");
   let html = '<div class="section-heading">Ranking<span class="line"></span></div>';
-  html += rankBotonesModo();
   html += botonesCategoria("ranking");
 
   const cat = CAT_VISTA["ranking"];
@@ -4440,28 +4627,50 @@ function renderRanking(el){
   el.innerHTML = html;
 }
 
-function rankBotonesModo(){
-  const uno = (valor, texto) =>
-    `<button type="button" class="rol-cat-btn${RANK_MODO === valor ? " active" : ""}"
-       onclick="elegirModoRanking('${valor}')">${texto}</button>`;
-  return '<div class="rank-modo">' + uno("ranking", "Ranking") + uno("tendencias", "Tendencias") + '</div>';
+/* ============================================================
+   TENDENCIAS — su propia pestaña, con dos adentro
+
+   Adentro hay dos botones: EQUIPO (lo de computeRachas: invictos, rachas,
+   mejor ataque…) y JUGADORES (lo de computeRachasJugadores: el partidazo de
+   la temporada, promedios, rachas y el que aparece en el 4º cuarto).
+
+   Las dos respetan el mismo filtro de fuerza, CAT_VISTA["tendencias"], que es
+   aparte del del Ranking: son pestañas distintas y cada quien anda en la suya.
+   ============================================================ */
+
+let TEND_MODO = "equipo";    // "equipo" o "jugadores"
+
+function elegirModoTendencias(modo){
+  TEND_MODO = modo;
+  renderRachas();
 }
 
-/* Las Tendencias estuvieron esperando a que hubiera partidos suficientes para
-   que dijeran algo. Ya se jugaron las primeras semanas, así que se prendieron. */
+function tendBotonesModo(){
+  const uno = (valor, texto) =>
+    `<button type="button" class="rol-cat-btn${TEND_MODO === valor ? " active" : ""}"
+       onclick="elegirModoTendencias('${valor}')">${texto}</button>`;
+  return '<div class="rank-modo">' + uno("equipo", "Equipo") + uno("jugadores", "Jugadores") + '</div>';
+}
+
 function renderRachas(){
   const el = document.getElementById("view-tendencias");
-  if(RANK_MODO === "ranking"){ renderRanking(el); return; }
+  const cat = CAT_VISTA["tendencias"];
 
   let html = '<div class="section-heading">Tendencias<span class="line"></span></div>' +
-    rankBotonesModo() + botonesCategoria("ranking");
+    tendBotonesModo() + botonesCategoria("tendencias");
 
-  const insights = computeRachas(CAT_VISTA["ranking"]);
+  const insights = TEND_MODO === "jugadores"
+    ? computeRachasJugadores(cat)
+    : computeRachas(cat);
+
   if(insights.length === 0){
-    el.innerHTML = html +
-      `<div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias${enCategoria("ranking")}.</div>`;
+    const dice = TEND_MODO === "jugadores"
+      ? "Todavía no hay suficientes puntos capturados para detectar tendencias de jugadores"
+      : "Todavía no hay suficientes partidos jugados para detectar tendencias";
+    el.innerHTML = html + `<div class="empty-state">${dice}${enCategoria("tendencias")}.</div>`;
     return;
   }
+
   html += '<div class="cards-grid">';
   insights.forEach(ins=>{
     html += `
