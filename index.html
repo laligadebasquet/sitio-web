@@ -4162,15 +4162,22 @@ function renderTabla(){
    conforme se vayan capturando más partidos reales, las tendencias
    se actualizan solas (no hay nada "hardcodeado" por equipo).
    ============================================================ */
-function computeRachas(){
+function computeRachas(categoria){
+  /* Las tendencias se leen dentro de la categoría que se está viendo, igual
+     que la tabla y los resultados. Sin este filtro, un partido de Femenil B
+     terminaba compitiendo contra uno de Varonil A. */
+  const cat = categoria || "general";
+  const esDeLaCat = m => cat === "general" ||
+    categoriaDeEquipo(m.local) === cat || categoriaDeEquipo(m.visitante) === cat;
+  const juegos = RESULTADOS.filter(esDeLaCat);
+
   const bitacora = {};
-  EQUIPOS.forEach(t=>{ bitacora[t.nombre] = []; });
-  RESULTADOS.forEach(m=>{
+  juegos.forEach(m=>{
     if(!bitacora[m.local]) bitacora[m.local] = [];
     if(!bitacora[m.visitante]) bitacora[m.visitante] = [];
   });
 
-  const ordenados = [...RESULTADOS].sort((a,b)=> a.jornada - b.jornada || String(a.fecha).localeCompare(String(b.fecha)));
+  const ordenados = [...juegos].sort((a,b)=> a.jornada - b.jornada || String(a.fecha).localeCompare(String(b.fecha)));
   ordenados.forEach(m=>{
     const margen = Math.abs(m.ptsLocal - m.ptsVisitante);
     const localGana = m.ptsLocal > m.ptsVisitante;
@@ -4192,20 +4199,36 @@ function computeRachas(){
     for(let i = entries.length - 1; i >= 0; i--){
       if(entries[i].resultado === streakType) streak++; else break;
     }
-    return {equipo, jj, jg, jp, avgFavor, avgContra, wins, streak, streakType};
+    return {equipo, cat: categoriaDeEquipo(equipo), jj, jg, jp, avgFavor, avgContra, wins, streak, streakType};
   }).filter(Boolean);
 
   const insights = [];
 
-  // Invictos con racha activa (mínimo 2 partidos para que sea significativo)
-  stats.filter(s=>s.jg === s.jj && s.jj >= 2).forEach(s=>{
-    insights.push({icono:"🔥", titulo:`${s.equipo} sigue invicto`, texto:`Ha ganado sus ${s.jj} partidos disputados — racha activa de ${s.streak} victorias seguidas.`, prioridad:1});
-  });
+  /* Invictos y equipos sin ganar (mínimo 2 partidos para que signifique algo).
+     Van de uno en uno mientras sean pocos; en cuanto pasan de tres se juntan
+     en una sola tarjeta, porque viendo "General" salían diez seguidas casi
+     idénticas y no se leía ninguna. */
+  const deMasAMenos = (a,b)=> b.jj - a.jj || String(a.equipo).localeCompare(String(b.equipo));
 
-  // Sin victorias / racha de derrotas activa
-  stats.filter(s=>s.jp === s.jj && s.jj >= 2).forEach(s=>{
-    insights.push({icono:"📉", titulo:`${s.equipo} busca su primera victoria`, texto:`Sigue sin ganar en ${s.jj} partidos — racha activa de ${s.streak} derrotas seguidas.`, prioridad:1});
-  });
+  const invictos = stats.filter(s=>s.jg === s.jj && s.jj >= 2).sort(deMasAMenos);
+  if(invictos.length > 3){
+    insights.push({icono:"🔥", titulo:`${invictos.length} equipos siguen invictos`,
+      texto: invictos.map(s=>`${s.equipo} (${s.jj}-0)`).join(" · ") + ".", prioridad:1});
+  } else {
+    invictos.forEach(s=>{
+      insights.push({icono:"🔥", titulo:`${s.equipo} sigue invicto`, texto:`Ha ganado sus ${s.jj} partidos disputados — racha activa de ${s.streak} victorias seguidas.`, prioridad:1});
+    });
+  }
+
+  const sinGanar = stats.filter(s=>s.jp === s.jj && s.jj >= 2).sort(deMasAMenos);
+  if(sinGanar.length > 3){
+    insights.push({icono:"📉", titulo:`${sinGanar.length} equipos buscan su primera victoria`,
+      texto: sinGanar.map(s=>`${s.equipo} (0-${s.jj})`).join(" · ") + ".", prioridad:1});
+  } else {
+    sinGanar.forEach(s=>{
+      insights.push({icono:"📉", titulo:`${s.equipo} busca su primera victoria`, texto:`Sigue sin ganar en ${s.jj} partidos — racha activa de ${s.streak} derrotas seguidas.`, prioridad:1});
+    });
+  }
 
   // Especialistas en finales cerrados: todas sus victorias decididas por 3 puntos o menos
   stats.filter(s=>s.wins.length >= 2 && s.wins.every(w=>w.margen <= 3)).forEach(s=>{
@@ -4226,22 +4249,38 @@ function computeRachas(){
     }
   });
 
+  /* Los promedios de puntos NO se pueden comparar entre categorías: en
+     Femenil B un partido se gana con 30 puntos y en Varonil A con 70, así que
+     el "mejor ataque" de toda la liga siempre iba a ser varonil y la "mejor
+     defensa" siempre femenil. Por eso el mejor ataque y la mejor defensa se
+     sacan DENTRO de cada categoría, y cuando se está viendo General se dice
+     de cuál categoría es cada uno. Los márgenes de más abajo sí se comparan
+     parejo: un partido de un punto es de un punto en cualquier fuerza. */
   const conSuficientes = stats.filter(s=>s.jj >= 2);
-  if(conSuficientes.length){
-    const mejorAtaque = [...conSuficientes].sort((a,b)=>b.avgFavor - a.avgFavor)[0];
-    insights.push({icono:"🧨", titulo:`${mejorAtaque.equipo} tiene el mejor ataque`, texto:`Promedia ${mejorAtaque.avgFavor.toFixed(1)} puntos por partido.`, prioridad:3});
+  const porCategoria = {};
+  conSuficientes.forEach(s=>{
+    const c = s.cat || "Sin categoría";
+    (porCategoria[c] = porCategoria[c] || []).push(s);
+  });
 
-    const mejorDefensa = [...conSuficientes].sort((a,b)=>a.avgContra - b.avgContra)[0];
-    insights.push({icono:"🛡️", titulo:`${mejorDefensa.equipo} tiene la mejor defensa`, texto:`Solo permite ${mejorDefensa.avgContra.toFixed(1)} puntos por partido en contra.`, prioridad:3});
+  Object.keys(porCategoria).sort().forEach(c=>{
+    const grupo = porCategoria[c];
+    const donde = cat === "general" && c !== "Sin categoría" ? " de " + c : "";
 
-    const masParejo = [...conSuficientes].sort((a,b)=>Math.abs(a.avgFavor - a.avgContra) - Math.abs(b.avgFavor - b.avgContra))[0];
+    const mejorAtaque = [...grupo].sort((a,b)=>b.avgFavor - a.avgFavor)[0];
+    insights.push({icono:"🧨", titulo:`${mejorAtaque.equipo} tiene el mejor ataque${donde}`, texto:`Promedia ${mejorAtaque.avgFavor.toFixed(1)} puntos por partido.`, prioridad:3});
+
+    const mejorDefensa = [...grupo].sort((a,b)=>a.avgContra - b.avgContra)[0];
+    insights.push({icono:"🛡️", titulo:`${mejorDefensa.equipo} tiene la mejor defensa${donde}`, texto:`Solo permite ${mejorDefensa.avgContra.toFixed(1)} puntos por partido en contra.`, prioridad:3});
+
+    const masParejo = [...grupo].sort((a,b)=>Math.abs(a.avgFavor - a.avgContra) - Math.abs(b.avgFavor - b.avgContra))[0];
     if(Math.abs(masParejo.avgFavor - masParejo.avgContra) <= 3){
       insights.push({icono:"⚖️", titulo:`${masParejo.equipo} juega muy parejo`, texto:`Su diferencial de puntos está casi equilibrado (${masParejo.avgFavor.toFixed(1)} a favor vs ${masParejo.avgContra.toFixed(1)} en contra).`, prioridad:4});
     }
-  }
+  });
 
-  if(RESULTADOS.length){
-    const conMargen = RESULTADOS.map(m=>({...m, margen: Math.abs(m.ptsLocal - m.ptsVisitante)}));
+  if(juegos.length){
+    const conMargen = juegos.map(m=>({...m, margen: Math.abs(m.ptsLocal - m.ptsVisitante)}));
     const masCerrado = [...conMargen].sort((a,b)=>a.margen - b.margen)[0];
     insights.push({icono:"🎢", titulo:"El partido más cerrado de la temporada", texto:`${masCerrado.local} ${masCerrado.ptsLocal} - ${masCerrado.ptsVisitante} ${masCerrado.visitante} (Semana ${masCerrado.jornada}), decidido por ${masCerrado.margen} punto${masCerrado.margen === 1 ? "" : "s"}.`, prioridad:3});
 
@@ -4257,8 +4296,8 @@ function computeRachas(){
    RANKING DE ANOTADORES
 
    La pestaña se llama Ranking y trae dos botones: Ranking y Tendencias.
-   Abre en Ranking, que es lo que hay para ver hoy; las Tendencias siguen
-   esperando a la semana 3.
+   Abre en Ranking, que es lo primero que la gente busca; las Tendencias están
+   a un toque y las dos respetan el filtro de categoría.
 
    El top se saca de la hoja "Estadísticas", sumando los puntos de cada
    jugador EN SU EQUIPO: si alguien aparece en dos equipos, son dos
@@ -4408,23 +4447,21 @@ function rankBotonesModo(){
   return '<div class="rank-modo">' + uno("ranking", "Ranking") + uno("tendencias", "Tendencias") + '</div>';
 }
 
-/* Las Tendencias siguen esperando a la semana 3 de juego. Cuando llegue
-   ese momento, se quita el "return" y vuelve a correr el cálculo de abajo. */
+/* Las Tendencias estuvieron esperando a que hubiera partidos suficientes para
+   que dijeran algo. Ya se jugaron las primeras semanas, así que se prendieron. */
 function renderRachas(){
   const el = document.getElementById("view-tendencias");
   if(RANK_MODO === "ranking"){ renderRanking(el); return; }
 
-  el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div>' +
-    rankBotonesModo() +
-    '<div class="empty-state">Esta información estará disponible a partir de la semana 3 de juego.</div>';
-  return;
+  let html = '<div class="section-heading">Tendencias<span class="line"></span></div>' +
+    rankBotonesModo() + botonesCategoria("ranking");
 
-  const insights = computeRachas();
+  const insights = computeRachas(CAT_VISTA["ranking"]);
   if(insights.length === 0){
-    el.innerHTML = '<div class="section-heading">Tendencias<span class="line"></span></div><div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias.</div>';
+    el.innerHTML = html +
+      `<div class="empty-state">Todavía no hay suficientes partidos jugados para detectar tendencias${enCategoria("ranking")}.</div>`;
     return;
   }
-  let html = '<div class="section-heading">Tendencias de la Temporada<span class="line"></span></div>';
   html += '<div class="cards-grid">';
   insights.forEach(ins=>{
     html += `
