@@ -1361,13 +1361,23 @@
     letter-spacing:.3px;
     text-align:center;
   }
-  table.standings thead th:nth-child(2){text-align:left;}
+  /* La 2ª columna es la flechita de movimiento y la 3ª el nombre del equipo. */
+  table.standings thead th:nth-child(3){text-align:left;}
   table.standings tbody td{
     padding:9px 8px;
     text-align:center;
     border-bottom:1px solid var(--gray-line);
   }
-  table.standings tbody td:nth-child(2){text-align:left;font-weight:600;}
+  table.standings tbody td:nth-child(3){text-align:left;font-weight:600;}
+  /* Subió, se quedó igual o bajó tras su último partido.
+     Ancho fijo para que la columna no baile cuando cambian los símbolos. */
+  table.standings td.mov{
+    width:26px;padding:9px 2px;font-size:12px;font-weight:900;line-height:1;
+    cursor:default;
+  }
+  table.standings td.mov.sube{color:#1E8E3E;}
+  table.standings td.mov.baja{color:#D93025;}
+  table.standings td.mov.igual{color:#111111;}
   table.standings tbody tr:last-child td{border-bottom:none;}
   table.standings tbody tr:nth-child(1) td:first-child{color:#B8860B;font-weight:800;}
   table.standings tbody tr:nth-child(2) td:first-child{color:#8C8C8C;font-weight:800;}
@@ -4029,13 +4039,17 @@ function renderRol(){
     : html;
 }
 
-function computeStandings(){
+/* La tabla, a partir de una lista de resultados. Por default todos los que
+   hay; se le puede pasar una lista recortada para ver cómo estaba la tabla
+   en otro momento — de ahí salen las flechas de subió/bajó. */
+function computeStandings(resultados){
+  const fuente = resultados || RESULTADOS;
   const teams = {};
   function ensure(name){
     if(!teams[name]) teams[name] = {equipo:name, jj:0, jg:0, jp:0, pf:0, pc:0};
     return teams[name];
   }
-  RESULTADOS.forEach(m=>{
+  fuente.forEach(m=>{
     if(!m.local || !m.visitante || isNaN(m.ptsLocal) || isNaN(m.ptsVisitante)) return;
     const L = ensure(m.local), V = ensure(m.visitante);
     L.jj++; V.jj++;
@@ -4054,11 +4068,53 @@ function computeStandings(){
   return list;
 }
 
+/* ---------- ¿Subió o bajó tras su último partido? ----------
+
+   Para cada equipo se arma la tabla **como estaba justo antes de su propio
+   último partido** y se compara su lugar de entonces con el de ahora.
+
+   Es por equipo a propósito, no una foto del último martes: cada quien juega
+   en días distintos, y lo que la gente quiere saber es "¿mi partido de anoche
+   me subió o me bajó?". La foto se toma con los partidos ANTERIORES a esa
+   fecha, de todos los equipos, para que la comparación sea contra una tabla
+   de verdad y no contra una a medias.
+
+   La comparación se hace DENTRO DE LA MISMA CATEGORÍA que se está viendo,
+   porque el número que sale en pantalla es el lugar dentro de esa lista. Si
+   se comparara contra la tabla de toda la liga, las flechas no cuadrarían
+   con los números de al lado.
+*/
+function fechaDeResultado(m){ return String(m.fecha || "").slice(0,10); }
+
+function tablaAntesDe(fecha, filtro){
+  return computeStandings(RESULTADOS.filter(m => fechaDeResultado(m) < fecha))
+    .filter(filtro)
+    .map(t => t.equipo);
+}
+
+function movimientoDeEquipo(equipo, posAhora, filtro){
+  /* La fecha de su último partido. Si sus resultados no traen fecha —los de
+     la semana 1 se capturaron antes de que se guardara— no hay contra qué
+     comparar y se deja el igual. */
+  const suyos = RESULTADOS.filter(m => m.local === equipo || m.visitante === equipo)
+                          .map(fechaDeResultado).filter(Boolean);
+  if(!suyos.length) return { signo: "=", clase: "igual", dice: "Sin partidos con fecha" };
+
+  const ultima = suyos.sort()[suyos.length - 1];
+  const antes = tablaAntesDe(ultima, filtro);
+  const posAntes = antes.indexOf(equipo) + 1;
+
+  if(!posAntes) return { signo: "=", clase: "igual", dice: "Su primer partido" };
+  if(posAntes > posAhora) return { signo: "▲", clase: "sube",  dice: "Subió del " + posAntes + "º al " + posAhora + "º" };
+  if(posAntes < posAhora) return { signo: "▼", clase: "baja",  dice: "Bajó del " + posAntes + "º al " + posAhora + "º" };
+  return { signo: "=", clase: "igual", dice: "Se quedó en el " + posAhora + "º" };
+}
+
 function renderTabla(){
   const el = document.getElementById("view-tabla");
   const botones = botonesCategoria("tabla");
-  const standings = computeStandings()
-    .filter(t=>matchesSearch(t.equipo, "") && pasaCategoria("tabla", t.equipo));
+  const filtro = t => matchesSearch(t.equipo, "") && pasaCategoria("tabla", t.equipo);
+  const standings = computeStandings().filter(filtro);
   if(standings.length === 0){
     el.innerHTML = botones +
       `<div class="empty-state">Todavía no hay resultados para calcular la tabla${enCategoria("tabla")}.</div>`;
@@ -4066,11 +4122,14 @@ function renderTabla(){
   }
   let html = botones + `<table class="standings">
     <thead><tr>
-      <th>Pos</th><th>Equipo</th><th>JJ</th><th>JG</th><th>JP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
+      <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>JJ</th><th>JG</th><th>JP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
     </tr></thead><tbody>`;
   standings.forEach((t,i)=>{
+    const mov = movimientoDeEquipo(t.equipo, i + 1, filtro);
     html += `<tr>
-      <td>${i+1}</td><td>${t.equipo}</td><td>${t.jj}</td><td>${t.jg}</td><td>${t.jp}</td>
+      <td>${i+1}</td>
+      <td class="mov ${mov.clase}" title="${mov.dice}">${mov.signo}</td>
+      <td>${t.equipo}</td><td>${t.jj}</td><td>${t.jg}</td><td>${t.jp}</td>
       <td>${t.pf}</td><td>${t.pc}</td><td>${t.dif > 0 ? "+" + t.dif : t.dif}</td>
       <td>${(t.pg*100).toFixed(1)}%</td>
     </tr>`;
