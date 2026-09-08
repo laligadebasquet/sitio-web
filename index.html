@@ -4092,7 +4092,7 @@ function tablaAntesDe(fecha, filtro){
     .map(t => t.equipo);
 }
 
-function movimientoDeEquipo(equipo, posAhora, filtro){
+function movimientoDeEquipo(equipo, ahoraTodos, filtro){
   /* La fecha de su último partido. Si sus resultados no traen fecha —los de
      la semana 1 se capturaron antes de que se guardara— no hay contra qué
      comparar y se deja el igual. */
@@ -4103,11 +4103,29 @@ function movimientoDeEquipo(equipo, posAhora, filtro){
   const ultima = suyos.sort()[suyos.length - 1];
   const antes = tablaAntesDe(ultima, filtro);
   const posAntes = antes.indexOf(equipo) + 1;
-
   if(!posAntes) return { signo: "=", clase: "igual", dice: "Su primer partido" };
-  if(posAntes > posAhora) return { signo: "▲", clase: "sube",  dice: "Subió del " + posAntes + "º al " + posAhora + "º" };
-  if(posAntes < posAhora) return { signo: "▼", clase: "baja",  dice: "Bajó del " + posAntes + "º al " + posAhora + "º" };
-  return { signo: "=", clase: "igual", dice: "Se quedó en el " + posAhora + "º" };
+
+  /* Los dos lugares se cuentan ENTRE LOS MISMOS EQUIPOS: los que ya habían
+     jugado antes de esa fecha.
+
+     Si no, a media temporada las flechas mienten. Ejemplo real del 7 de
+     septiembre: 2K ELITE salía "del 21º al 11º" — no porque hubiera pasado a
+     diez equipos, sino porque cuando jugó había 21 equipos en la tabla y
+     ahora hay 38. Crecer la tabla movía a todos hacia abajo y el número no
+     significaba nada.
+
+     Comparando solo contra los que ya estaban, la flecha quiere decir lo
+     único que debería querer decir: pasé a alguien, alguien me pasó, o nadie
+     se movió. */
+  const mismos = ahoraTodos.filter(t => antes.indexOf(t.equipo) !== -1).map(t => t.equipo);
+  const posAhora = mismos.indexOf(equipo) + 1;
+  if(!posAhora) return { signo: "=", clase: "igual", dice: "Su primer partido" };
+
+  const saltos = posAntes - posAhora;
+  const lugares = Math.abs(saltos) + (Math.abs(saltos) === 1 ? " lugar" : " lugares");
+  if(saltos > 0) return { signo: "▲", clase: "sube",  dice: "Subió " + lugares + " tras su último partido" };
+  if(saltos < 0) return { signo: "▼", clase: "baja",  dice: "Bajó " + lugares + " tras su último partido" };
+  return { signo: "=", clase: "igual", dice: "No se movió tras su último partido" };
 }
 
 function renderTabla(){
@@ -4125,7 +4143,7 @@ function renderTabla(){
       <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>JJ</th><th>JG</th><th>JP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
     </tr></thead><tbody>`;
   standings.forEach((t,i)=>{
-    const mov = movimientoDeEquipo(t.equipo, i + 1, filtro);
+    const mov = movimientoDeEquipo(t.equipo, standings, filtro);
     html += `<tr>
       <td>${i+1}</td>
       <td class="mov ${mov.clase}" title="${mov.dice}">${mov.signo}</td>
