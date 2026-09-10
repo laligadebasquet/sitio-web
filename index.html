@@ -1973,10 +1973,10 @@
     </button>
     <!-- Ya empezó la temporada: lo que la gente viene a ver es el rol, así
          que va primero. Inscripción sigue disponible, pero más atrás. -->
-    <div class="nav-dropdown" id="navDropJuego">
-      <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropJuego')">Rol de Juego y Estadística <span class="nav-caret">&#9662;</span></button>
+    <div class="nav-dropdown" id="navDropPartidos">
+      <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropPartidos')">Rol de Partidos y Estadística <span class="nav-caret">&#9662;</span></button>
       <div class="nav-dropdown-menu">
-        <button data-view="rol">Rol de Juego</button>
+        <button data-view="rol">Rol de Partidos</button>
         <button data-view="tabla">Tabla de Posiciones</button>
         <button data-view="playoffs">Playoffs</button>
         <button data-view="concentrado">Concentrado</button>
@@ -2014,7 +2014,7 @@
     <!-- El inicio ya no es la inscripción: ahora lo primero que ve la gente
          es CUÁNDO juega. La inscripción sigue viva en su propia pestaña. -->
     <div class="rol-inicio">
-      <h1 class="rol-inicio-titulo" id="rolSemanaTitulo">Rol de juego</h1>
+      <h1 class="rol-inicio-titulo" id="rolSemanaTitulo">Rol de partidos</h1>
 
       <div class="rol-cats" id="rolInicioCats"></div>
 
@@ -2186,7 +2186,7 @@
     <div class="modal-header">
       <div>
         <h3>Horarios</h3>
-        <span>Días y horas de juego por categoría</span>
+        <span>Días y horas de partidos por categoría</span>
       </div>
       <button class="modal-close" onclick="cerrarHorarios()">✕</button>
     </div>
@@ -2261,11 +2261,11 @@
    CONFIGURACIÓN
    Para conectar esta página a tus datos reales de Google Sheets:
    1. En Google Sheets: Archivo > Compartir > Publicar en la web
-   2. Elige la hoja "Resultados" (o "Rol de Juego"), formato CSV, y copia el link.
+   2. Elige la hoja "Resultados" (o "Rol de Partidos"), formato CSV, y copia el link.
    3. Pega esos links abajo. Si los dejas vacíos, se usan los datos de ejemplo.
    Columnas esperadas (mismo orden que el Excel del dashboard):
    Resultados:  Jornada, Fecha, Equipo Local, Puntos Local, Equipo Visitante, Puntos Visitante, Ganador, Diferencia, Observaciones
-   Rol de Juego: Jornada, Fecha, Hora, Sede/Cancha, Categoría, Equipo Local, Equipo Visitante, Árbitro, Estatus
+   Rol de Partidos: Jornada, Fecha, Hora, Sede/Cancha, Categoría, Equipo Local, Equipo Visitante, Árbitro, Estatus
    Equipos:      ID Equipo, Nombre Equipo, Categoría, Capitán / Sub-capitán, Fecha Inscripción, Estatus, # Integrantes, Cuota Total ($), Total Pagado ($), Saldo Pendiente ($), Estatus de Pago
    (Por privacidad, esta página NO muestra el capitán/teléfono ni los montos de pago — solo nombre, categoría, # de integrantes y estatus.)
    ============================================================ */
@@ -2664,7 +2664,7 @@ function guardarEnMemoria(hojas){
 function aplicarDatos(datos){
   if(!datos) return false;
   if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
-  if(datos["Rol de Juego"]) ROL = mapRolCsv(datos["Rol de Juego"]);
+  if(datos["Rol de Partidos"]) ROL = mapRolCsv(datos["Rol de Partidos"]);
   if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
   if(datos["Integrantes"])  ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
   if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
@@ -2693,7 +2693,7 @@ function pintarTodoDelSheet(){
   renderJugadores();
 }
 
-const HOJAS_DE_INICIO = ["Resultados","Rol de Juego","Equipos","Integrantes",
+const HOJAS_DE_INICIO = ["Resultados","Rol de Partidos","Equipos","Integrantes",
                          "Asistencia","Cédulas","Estadísticas","Patrocinadores"];
 
 async function init(){
@@ -2959,7 +2959,7 @@ function vistaActual(){
 }
 
 const NOMBRE_DE_VISTA = {
-  inicio:"Inicio", rol:"Rol de juego", resultados:"Resultados",
+  inicio:"Inicio", rol:"Rol de partidos", resultados:"Resultados",
   tabla:"Tabla de posiciones", playoffs:"Playoffs", concentrado:"Concentrado",
   sanciones:"Sanciones", credencial:"Jugadores",
   ranking:"Ranking", tendencias:"Tendencias",
@@ -3605,7 +3605,7 @@ function horaBonita(hora){
 /* ============================================================
    FILTRO POR CATEGORÍA — los mismos botones en varias pestañas
 
-   Rol de Juego, Resultados, Tabla de Posiciones, Playoffs y Jugadores
+   Rol de Partidos, Resultados, Tabla de Posiciones, Playoffs y Jugadores
    comparten esta botonera. Cada pestaña recuerda su propia selección, así
    que filtrar el rol por Femenil A no te cambia lo que estabas viendo en la
    tabla.
@@ -3909,7 +3909,7 @@ function cambiarJornadaProximos(delta){
 function renderProximos(){
   if(proximaJornadaActual === null) proximaJornadaActual = jornadaProximaPorDefecto();
   const el = document.getElementById("proximosPartidosBox");
-  const juegos = ROL.filter(m=>m.jornada === proximaJornadaActual).filter(m=>matchesSearch(m.local, m.visitante));
+  const partidos = ROL.filter(m=>m.jornada === proximaJornadaActual).filter(m=>matchesSearch(m.local, m.visitante));
 
   let html = `<div class="section-heading">Próximos Partidos<span class="line"></span></div>`;
   html += `<div class="jornada-nav">
@@ -3918,11 +3918,11 @@ function renderProximos(){
     <button onclick="cambiarJornadaProximos(1)" aria-label="Semana siguiente">›</button>
   </div>`;
 
-  if(juegos.length === 0){
+  if(partidos.length === 0){
     html += '<div class="empty-state">No hay partidos programados para esta semana.</div>';
   } else {
     html += '<div class="cards-grid">';
-    juegos.forEach(m=>{
+    partidos.forEach(m=>{
       const badgeClass = m.estatus === "Jugado" ? "jugado" : m.estatus === "Pospuesto" || m.estatus === "Cancelado" ? "pospuesto" : "programado";
       html += `
         <div class="match-card">
@@ -3959,7 +3959,7 @@ function equiposDeCategoria(cat){
   return Object.keys(vistos).sort();
 }
 
-/* El equipo elegido dentro del Rol de Juego. */
+/* El equipo elegido dentro del Rol de Partidos. */
 let ROL_EQUIPO = null;
 
 function elegirEquipoRol(equipo){
@@ -4051,25 +4051,27 @@ function computeStandings(resultados){
   const fuente = resultados || RESULTADOS;
   const teams = {};
   function ensure(name){
-    if(!teams[name]) teams[name] = {equipo:name, jj:0, jg:0, jp:0, pf:0, pc:0};
+    if(!teams[name]) teams[name] = {equipo:name, pj:0, pg:0, pp:0, pf:0, pc:0};
     return teams[name];
   }
   fuente.forEach(m=>{
     if(!m.local || !m.visitante || isNaN(m.ptsLocal) || isNaN(m.ptsVisitante)) return;
     const L = ensure(m.local), V = ensure(m.visitante);
-    L.jj++; V.jj++;
+    L.pj++; V.pj++;
     L.pf += m.ptsLocal; L.pc += m.ptsVisitante;
     V.pf += m.ptsVisitante; V.pc += m.ptsLocal;
-    if(m.ptsLocal > m.ptsVisitante){ L.jg++; V.jp++; }
-    else if(m.ptsVisitante > m.ptsLocal){ V.jg++; L.jp++; }
+    if(m.ptsLocal > m.ptsVisitante){ L.pg++; V.pp++; }
+    else if(m.ptsVisitante > m.ptsLocal){ V.pg++; L.pp++; }
   });
   const list = Object.values(teams).map(t=>({
     ...t,
     dif: t.pf - t.pc,
-    pg: t.jj > 0 ? t.jg / t.jj : 0
+    /* pct = porcentaje de partidos ganados. Se llama así y no "pg" porque
+       pg ahora son los partidos ganados. */
+    pct: t.pj > 0 ? t.pg / t.pj : 0
   }));
-  // Desempate: 1) % de juegos ganados  2) Diferencia de puntos
-  list.sort((a,b)=> b.pg - a.pg || b.dif - a.dif);
+  // Desempate: 1) % de partidos ganados  2) Diferencia de puntos
+  list.sort((a,b)=> b.pct - a.pct || b.dif - a.dif);
   return list;
 }
 
@@ -4145,16 +4147,16 @@ function renderTabla(){
   }
   let html = botones + `<table class="standings">
     <thead><tr>
-      <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>JJ</th><th>JG</th><th>JP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
+      <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
     </tr></thead><tbody>`;
   standings.forEach((t,i)=>{
     const mov = movimientoDeEquipo(t.equipo, standings, filtro);
     html += `<tr>
       <td>${i+1}</td>
       <td class="mov ${mov.clase}" title="${mov.dice}">${mov.signo}</td>
-      <td>${t.equipo}</td><td>${t.jj}</td><td>${t.jg}</td><td>${t.jp}</td>
+      <td>${t.equipo}</td><td>${t.pj}</td><td>${t.pg}</td><td>${t.pp}</td>
       <td>${t.pf}</td><td>${t.pc}</td><td>${t.dif > 0 ? "+" + t.dif : t.dif}</td>
-      <td>${(t.pg*100).toFixed(1)}%</td>
+      <td>${(t.pct*100).toFixed(1)}%</td>
     </tr>`;
   });
   html += "</tbody></table>";
@@ -4174,15 +4176,15 @@ function computeRachas(categoria){
   const cat = categoria || "general";
   const esDeLaCat = m => cat === "general" ||
     categoriaDeEquipo(m.local) === cat || categoriaDeEquipo(m.visitante) === cat;
-  const juegos = RESULTADOS.filter(esDeLaCat);
+  const partidos = RESULTADOS.filter(esDeLaCat);
 
   const bitacora = {};
-  juegos.forEach(m=>{
+  partidos.forEach(m=>{
     if(!bitacora[m.local]) bitacora[m.local] = [];
     if(!bitacora[m.visitante]) bitacora[m.visitante] = [];
   });
 
-  const ordenados = [...juegos].sort((a,b)=> a.jornada - b.jornada || String(a.fecha).localeCompare(String(b.fecha)));
+  const ordenados = [...partidos].sort((a,b)=> a.jornada - b.jornada || String(a.fecha).localeCompare(String(b.fecha)));
   ordenados.forEach(m=>{
     const margen = Math.abs(m.ptsLocal - m.ptsVisitante);
     const localGana = m.ptsLocal > m.ptsVisitante;
@@ -4192,19 +4194,19 @@ function computeRachas(categoria){
 
   const stats = Object.keys(bitacora).map(equipo=>{
     const entries = bitacora[equipo];
-    const jj = entries.length;
-    if(jj === 0) return null;
-    const jg = entries.filter(e=>e.resultado === "G").length;
-    const jp = jj - jg;
-    const avgFavor = entries.reduce((s,e)=>s + e.favor, 0) / jj;
-    const avgContra = entries.reduce((s,e)=>s + e.contra, 0) / jj;
+    const pj = entries.length;
+    if(pj === 0) return null;
+    const pg = entries.filter(e=>e.resultado === "G").length;
+    const pp = pj - pg;
+    const avgFavor = entries.reduce((s,e)=>s + e.favor, 0) / pj;
+    const avgContra = entries.reduce((s,e)=>s + e.contra, 0) / pj;
     const wins = entries.filter(e=>e.resultado === "G");
     const streakType = entries[entries.length - 1].resultado;
     let streak = 0;
     for(let i = entries.length - 1; i >= 0; i--){
       if(entries[i].resultado === streakType) streak++; else break;
     }
-    return {equipo, cat: categoriaDeEquipo(equipo), jj, jg, jp, avgFavor, avgContra, wins, streak, streakType};
+    return {equipo, cat: categoriaDeEquipo(equipo), pj, pg, pp, avgFavor, avgContra, wins, streak, streakType};
   }).filter(Boolean);
 
   const insights = [];
@@ -4213,25 +4215,25 @@ function computeRachas(categoria){
      Van de uno en uno mientras sean pocos; en cuanto pasan de tres se juntan
      en una sola tarjeta, porque viendo "General" salían diez seguidas casi
      idénticas y no se leía ninguna. */
-  const deMasAMenos = (a,b)=> b.jj - a.jj || String(a.equipo).localeCompare(String(b.equipo));
+  const deMasAMenos = (a,b)=> b.pj - a.pj || String(a.equipo).localeCompare(String(b.equipo));
 
-  const invictos = stats.filter(s=>s.jg === s.jj && s.jj >= 2).sort(deMasAMenos);
+  const invictos = stats.filter(s=>s.pg === s.pj && s.pj >= 2).sort(deMasAMenos);
   if(invictos.length > 3){
     insights.push({icono:"🔥", titulo:`${invictos.length} equipos siguen invictos`,
-      texto: invictos.map(s=>`${s.equipo} (${s.jj}-0)`).join(" · ") + ".", prioridad:1});
+      texto: invictos.map(s=>`${s.equipo} (${s.pj}-0)`).join(" · ") + ".", prioridad:1});
   } else {
     invictos.forEach(s=>{
-      insights.push({icono:"🔥", titulo:`${s.equipo} sigue invicto`, texto:`Ha ganado sus ${s.jj} partidos disputados — racha activa de ${s.streak} victorias seguidas.`, prioridad:1});
+      insights.push({icono:"🔥", titulo:`${s.equipo} sigue invicto`, texto:`Ha ganado sus ${s.pj} partidos disputados — racha activa de ${s.streak} victorias seguidas.`, prioridad:1});
     });
   }
 
-  const sinGanar = stats.filter(s=>s.jp === s.jj && s.jj >= 2).sort(deMasAMenos);
+  const sinGanar = stats.filter(s=>s.pp === s.pj && s.pj >= 2).sort(deMasAMenos);
   if(sinGanar.length > 3){
     insights.push({icono:"📉", titulo:`${sinGanar.length} equipos buscan su primera victoria`,
-      texto: sinGanar.map(s=>`${s.equipo} (0-${s.jj})`).join(" · ") + ".", prioridad:1});
+      texto: sinGanar.map(s=>`${s.equipo} (0-${s.pj})`).join(" · ") + ".", prioridad:1});
   } else {
     sinGanar.forEach(s=>{
-      insights.push({icono:"📉", titulo:`${s.equipo} busca su primera victoria`, texto:`Sigue sin ganar en ${s.jj} partidos — racha activa de ${s.streak} derrotas seguidas.`, prioridad:1});
+      insights.push({icono:"📉", titulo:`${s.equipo} busca su primera victoria`, texto:`Sigue sin ganar en ${s.pj} partidos — racha activa de ${s.streak} derrotas seguidas.`, prioridad:1});
     });
   }
 
@@ -4246,7 +4248,7 @@ function computeRachas(categoria){
   });
 
   // Rachas activas de 3+ que no sean ya un invicto/sin-victorias total (para no duplicar el mensaje)
-  stats.filter(s=>s.streak >= 3 && s.jg !== s.jj && s.jp !== s.jj).forEach(s=>{
+  stats.filter(s=>s.streak >= 3 && s.pg !== s.pj && s.pp !== s.pj).forEach(s=>{
     if(s.streakType === "G"){
       insights.push({icono:"⬆️", titulo:`${s.equipo} está en racha`, texto:`Lleva ${s.streak} victorias consecutivas.`, prioridad:2});
     } else {
@@ -4261,7 +4263,7 @@ function computeRachas(categoria){
      sacan DENTRO de cada categoría, y cuando se está viendo General se dice
      de cuál categoría es cada uno. Los márgenes de más abajo sí se comparan
      parejo: un partido de un punto es de un punto en cualquier fuerza. */
-  const conSuficientes = stats.filter(s=>s.jj >= 2);
+  const conSuficientes = stats.filter(s=>s.pj >= 2);
   const porCategoria = {};
   conSuficientes.forEach(s=>{
     const c = s.cat || "Sin categoría";
@@ -4284,8 +4286,8 @@ function computeRachas(categoria){
     }
   });
 
-  if(juegos.length){
-    const conMargen = juegos.map(m=>({...m, margen: Math.abs(m.ptsLocal - m.ptsVisitante)}));
+  if(partidos.length){
+    const conMargen = partidos.map(m=>({...m, margen: Math.abs(m.ptsLocal - m.ptsVisitante)}));
     const masCerrado = [...conMargen].sort((a,b)=>a.margen - b.margen)[0];
     insights.push({icono:"🎢", titulo:"El partido más cerrado de la temporada", texto:`${masCerrado.local} ${masCerrado.ptsLocal} - ${masCerrado.ptsVisitante} ${masCerrado.visitante} (Semana ${masCerrado.jornada}), decidido por ${masCerrado.margen} punto${masCerrado.margen === 1 ? "" : "s"}.`, prioridad:3});
 
@@ -4306,14 +4308,14 @@ function computeRachas(categoria){
    números revueltos.
 
    Cuatro familias de tarjetas, que son las que pidió Mauricio:
-     · el partidazo   — lo más que alguien anotó (y metió de triples) en un juego
+     · el partidazo   — lo más que alguien anotó (y metió de triples) en un partido
      · las rachas     — quién viene enrachado hoy
      · los promedios  — quién sostiene el nivel, no quién tuvo una buena noche
      · los cuartos    — quién aparece cuando el partido se decide
    ============================================================ */
 
 /* Cuántos partidos hay que tener para entrar a los promedios. Con uno solo,
-   el que anotó 30 en su único juego le gana a quien lleva 25 de promedio en
+   el que anotó 30 en su único partido le gana a quien lleva 25 de promedio en
    cuatro, y eso no es una tendencia: es una noche. */
 const TEND_MIN_PARTIDOS = 2;
 
@@ -4346,39 +4348,39 @@ function computeRachasJugadores(categoria){
   const porJugador = {};
   filas.forEach(e=>{
     const clave = e.equipo + "|" + e.jugador;
-    if(!porJugador[clave]) porJugador[clave] = { jugador:e.jugador, equipo:e.equipo, juegos:[] };
-    porJugador[clave].juegos.push(e);
+    if(!porJugador[clave]) porJugador[clave] = { jugador:e.jugador, equipo:e.equipo, partidos:[] };
+    porJugador[clave].partidos.push(e);
   });
 
   const jugadores = Object.values(porJugador).map(j=>{
-    const juegos = j.juegos.slice().sort((a,b)=>
+    const partidos = j.partidos.slice().sort((a,b)=>
       (a.semana - b.semana) || String(a.fecha).localeCompare(String(b.fecha)));
-    const pj = juegos.length;
-    const puntos  = juegos.reduce((s,g)=> s + (Number(g.total)   || 0), 0);
-    const triples = juegos.reduce((s,g)=> s + (Number(g.triples) || 0), 0);
+    const pj = partidos.length;
+    const puntos  = partidos.reduce((s,g)=> s + (Number(g.total)   || 0), 0);
+    const triples = partidos.reduce((s,g)=> s + (Number(g.triples) || 0), 0);
 
     /* El 4º cuarto solo se cuenta donde sí quedó el desglose por periodo: hay
        partidos capturados nada más con el total, y ahí los cuartos están en
        cero. Sumarlos como si fueran ceros de verdad castigaría a quien jugó
        esos partidos. */
-    const conCuartos = juegos.filter(g => (g.q1 + g.q2 + g.q3 + g.q4) > 0);
+    const conCuartos = partidos.filter(g => (g.q1 + g.q2 + g.q3 + g.q4) > 0);
     const q4 = conCuartos.reduce((s,g)=> s + (Number(g.q4) || 0), 0);
 
     /* Rachas ACTIVAS: se cuentan desde el último partido hacia atrás, porque
        lo que interesa es cómo llega hoy, no lo que hizo en agosto. */
     const rachaDesdeElFinal = (cumple) => {
       let n = 0;
-      for(let i = juegos.length - 1; i >= 0; i--){ if(cumple(juegos[i])) n++; else break; }
+      for(let i = partidos.length - 1; i >= 0; i--){ if(cumple(partidos[i])) n++; else break; }
       return n;
     };
 
-    const ultimos3 = juegos.slice(-3);
+    const ultimos3 = partidos.slice(-3);
     const vieneSubiendo = ultimos3.length === 3 &&
       ultimos3[0].total < ultimos3[1].total && ultimos3[1].total < ultimos3[2].total &&
       ultimos3[2].total >= 10;
 
-    return { jugador:j.jugador, equipo:j.equipo, juegos, pj, puntos, triples, q4,
-             juegosConCuartos: conCuartos.length,
+    return { jugador:j.jugador, equipo:j.equipo, partidos, pj, puntos, triples, q4,
+             partidosConCuartos: conCuartos.length,
              prom: puntos / pj, promT: triples / pj,
              rachaDobleDigito: rachaDesdeElFinal(g => g.total >= 10),
              rachaTriples: rachaDesdeElFinal(g => g.triples >= 1),
@@ -4394,11 +4396,11 @@ function computeRachasJugadores(categoria){
                             String(a.equipo).localeCompare(String(b.equipo));
 
   /* ---------- El partidazo ---------- */
-  const mejorJuego = filas.slice().sort((a,b)=> b.total - a.total || porNombre(a,b))[0];
-  if(mejorJuego && mejorJuego.total > 0){
+  const mejorPartido = filas.slice().sort((a,b)=> b.total - a.total || porNombre(a,b))[0];
+  if(mejorPartido && mejorPartido.total > 0){
     insights.push({icono:"🏀",
-      titulo:`${mejorJuego.jugador} tiene el partidazo de la temporada`,
-      texto:`Anotó ${mejorJuego.total} puntos en un solo partido — ${mejorJuego.equipo}${contra(mejorJuego)}, Semana ${mejorJuego.semana}.`,
+      titulo:`${mejorPartido.jugador} tiene el partidazo de la temporada`,
+      texto:`Anotó ${mejorPartido.total} puntos en un solo partido — ${mejorPartido.equipo}${contra(mejorPartido)}, Semana ${mejorPartido.semana}.`,
       prioridad:1});
   }
 
@@ -4460,7 +4462,7 @@ function computeRachasJugadores(categoria){
          casos. Los demás títulos de aquí también son neutros. */
       insights.push({icono:"⭐",
         titulo:`${masAnota.jugador} lleva el mejor promedio`,
-        texto:`Promedia ${masAnota.prom.toFixed(1)} puntos por partido en ${masAnota.pj} juegos con ${masAnota.equipo}.`,
+        texto:`Promedia ${masAnota.prom.toFixed(1)} puntos por partido en ${masAnota.pj} partidos con ${masAnota.equipo}.`,
         prioridad:3});
     }
 
@@ -4468,13 +4470,13 @@ function computeRachasJugadores(categoria){
     if(masTriples.promT > 0){
       insights.push({icono:"🎪",
         titulo:`${masTriples.jugador} vive del triple`,
-        texto:`Promedia ${masTriples.promT.toFixed(1)} triples por partido — ${masTriples.triples} en ${masTriples.pj} juegos con ${masTriples.equipo}.`,
+        texto:`Promedia ${masTriples.promT.toFixed(1)} triples por partido — ${masTriples.triples} en ${masTriples.pj} partidos con ${masTriples.equipo}.`,
         prioridad:3});
     }
   }
 
   /* ---------- El 4º cuarto ---------- */
-  const deCuartos = jugadores.filter(j=> j.juegosConCuartos >= TEND_MIN_PARTIDOS && j.q4 > 0)
+  const deCuartos = jugadores.filter(j=> j.partidosConCuartos >= TEND_MIN_PARTIDOS && j.q4 > 0)
     .sort((a,b)=> b.q4 - a.q4 || porNombre(a,b))[0];
   if(deCuartos){
     insights.push({icono:"⏱️",
@@ -4688,16 +4690,16 @@ function renderRachas(){
    PLAYOFFS — arma las llaves de cuartos de final (1vs8, 2vs7, 3vs6,
    4vs5) a partir de la tabla de posiciones final. Solo se muestra
    cuando ya se jugaron todos los partidos de la temporada regular
-   (Rol de Juego sin ningún partido "Programado").
+   (Rol de Partidos sin ningún partido "Programado").
    ============================================================ */
 /* Por ahora los Playoffs muestran un mensaje fijo hasta la semana 5 de
-   juego. Cuando llegue ese momento, se puede quitar este "return" para
+   temporada. Cuando llegue ese momento, se puede quitar este "return" para
    volver a activar el armado automático de llaves de abajo. */
 function renderPlayoffs(){
   const el = document.getElementById("view-playoffs");
   el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div>' +
     botonesCategoria("playoffs") +
-    '<div class="empty-state">Esta información estará disponible a partir de la semana 5 de juego.</div>';
+    '<div class="empty-state">Esta información estará disponible a partir de la semana 5 de la temporada.</div>';
   return;
 
   const standings = computeStandings();
@@ -6461,7 +6463,7 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
   });
 });
 
-/* Menús desplegables del nav ("Rol de Juego y Estadística", "Información").
+/* Menús desplegables del nav ("Rol de Partidos y Estadística", "Información").
    El menú usa position:fixed (calculado aquí) en vez de absolute porque
    nav.tabs tiene overflow-x:auto para el scroll horizontal en móvil, y eso
    recorta cualquier hijo absolutamente posicionado que se salga de su caja. */
