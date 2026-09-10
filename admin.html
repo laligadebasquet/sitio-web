@@ -1043,6 +1043,32 @@
     border:1px solid var(--line);border-left:3px solid #39FF14;border-radius:6px;
     padding:10px 12px;font-size:13px;line-height:1.5;margin-bottom:12px;
   }
+  /* El aviso y el botón de guardar. Se hacen notar a propósito: escoger las
+     opciones se siente como si ya hubieras decidido, y el último paso pasaba
+     desapercibido. */
+  .rp-aviso-guardar{
+    font-size:12px;color:var(--muted);margin-bottom:8px;text-align:center;line-height:1.4;
+  }
+  .save-btn.rp-guardar{
+    background:#39FF14; color:#0A0A0A; border-color:#39FF14; font-weight:800;
+  }
+  .save-btn.rp-guardar:hover:not(:disabled){ background:#5BFF3E; border-color:#5BFF3E; }
+  .save-btn.rp-guardar:disabled{ background:var(--surface-2); color:var(--muted); border-color:var(--line); }
+
+  /* ---------- Historial de reprogramaciones ---------- */
+  .repro-hist{margin-top:22px;}
+  .repro-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+  .repro-tabla th{
+    text-align:left;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);
+    padding:6px 8px;white-space:nowrap;
+  }
+  .repro-tabla td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top;}
+  .repro-tabla tr:hover td{background:var(--surface-2);}
+  .repro-de{color:var(--muted);text-decoration:line-through;}
+  .repro-a{font-weight:700;}
+  .repro-sinfecha{color:#E0A800;font-weight:700;}
+  .repro-quien{white-space:nowrap;}
+  .repro-motivo{color:var(--muted);}
   /* Menú de fuerza dentro de la tabla de equipos. */
   .sel-categoria{
     background:var(--surface-2); color:var(--text); border:1px solid var(--line);
@@ -1452,6 +1478,17 @@
         <div class="rol-col">
           <h3 class="rol-col-titulo">Rol de partidos · todas las categorías</h3>
           <div id="rolSemanal"></div>
+
+          <!-- El historial de la R verde. Vive debajo del rol porque es lo
+               mismo visto en el tiempo: qué partidos se movieron, de dónde a
+               dónde y quién lo pidió. Se carga solo cuando se abre. -->
+          <div class="repro-hist">
+            <h3 class="rol-col-titulo">Reprogramaciones
+              <button class="mini-btn" onclick="cargarReprogramaciones(true)"
+                      style="margin-left:8px;">Actualizar</button>
+            </h3>
+            <div id="reproHistorial"></div>
+          </div>
         </div>
         <div class="rol-col">
           <h3 class="rol-col-titulo" id="crucesTitulo">Cruces</h3>
@@ -2667,6 +2704,9 @@ async function initData(){
   renderScheduleList();
   renderBotonesOliver();
   oliverCargarRestricciones();
+  /* El historial va aparte y sin esperar: es una lectura chica y si tarda o
+     falla, el rol ya está en pantalla. */
+  cargarReprogramaciones();
 
   // La pestaña Editar se arma sola al entrar (ver renderEditarPartido).
 
@@ -3059,6 +3099,12 @@ function abrirReprogramar(p){
 }
 
 function cerrarReprogramar(){
+  /* Si ya escogió algo y no lo guardó, se le pregunta. Cerrar sin avisar fue
+     justo lo que hizo que la primera reprogramación se perdiera. */
+  if(RP && RP.pidio && !RP.guardando){
+    if(!confirm("Escogiste opciones pero no le diste a guardar.\n\n" +
+                "Si sales ahora, el partido se queda como está.\n\n¿Salir de todos modos?")) return;
+  }
   document.getElementById("reprogramarModal").classList.remove("open");
   RP = null;
 }
@@ -3214,10 +3260,27 @@ function rpRender(){
     Lo pidió: <strong>${rpEsc(RP.pidio)}</strong>
   </div>`;
 
+  /* El botón dice LO QUE VA A HACER, no "Guardar" a secas.
+
+     Esto empezó como un error de verdad: Mauricio picó la R, escogió "No
+     aplica" y luego "Dejarlo sin fecha"... y se salió. Escoger la opción se
+     siente como si ya hubieras decidido, así que el último paso parecía de
+     adorno. No se guardó nada y el partido siguió en su lugar.
+
+     Ahora el botón nombra la acción ("Dejar sin fecha", "Mover al Sáb sep
+     12"), y arriba de él se avisa que hasta que no se pique no cambia nada.
+     Además, cerrar con cambios sin guardar pregunta antes. */
   const listo = RP.sinFecha || !!RP.fecha;
-  html += `<button class="save-btn" id="rp_guardar" onclick="guardarReprogramacion()"
-    ${listo && !RP.guardando ? "" : "disabled"}>
-    ${RP.guardando ? "Guardando…" : "Guardar reprogramación"}</button>`;
+  const queDice = RP.guardando ? "Guardando…"
+    : RP.sinFecha ? "Dejar sin fecha y guardar"
+    : RP.fecha ? "Mover al " + fechaBonita(RP.fecha) +
+                 (RP.hora ? " " + rpHoraBonita(RP.hora) : "") + " y guardar"
+    : "Falta decir a qué día se mueve";
+
+  html += `<div class="rp-aviso-guardar">Nada de esto se aplica hasta que le
+    piques al botón de abajo.</div>`;
+  html += `<button class="save-btn rp-guardar" id="rp_guardar" onclick="guardarReprogramacion()"
+    ${listo && !RP.guardando ? "" : "disabled"}>${queDice}</button>`;
   html += `<div id="rp_estado" style="margin-top:10px;font-size:13px;">${rpEsc(RP.estado)}</div>`;
 
   caja.innerHTML = html;
@@ -3271,14 +3334,114 @@ async function guardarReprogramacion(){
       MATCHES[i].hora  = RP.sinFecha ? "" : RP.hora;
       MATCHES[i].estatus = RP.sinFecha ? "Por reprogramar" : "Programado";
     }
-    cerrarReprogramar();
+    /* Se cierra sin preguntar: ya se guardó, no hay nada que perder. */
+    RP = null;
+    document.getElementById("reprogramarModal").classList.remove("open");
     renderRolSemanal();
     if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+    cargarReprogramaciones(true);   // que el historial lo enseñe de inmediato
   }catch(err){
     RP.guardando = false;
     RP.estado = "No se pudo reprogramar: " + err.message;
     rpRender();
   }
+}
+
+/* ============================================================
+   EL HISTORIAL DE REPROGRAMACIONES
+
+   Cada vez que se guarda una R, el servidor escribe un renglón en la hoja
+   "Reprogramaciones". Aquí se leen y se enseñan debajo del rol.
+
+   Es un historial, no una lista de estados: si un partido se movió tres
+   veces, salen los tres renglones. Por eso van del más reciente al más
+   viejo — lo que acaba de pasar es lo que se está buscando.
+
+   La hoja no existe hasta la primera reprogramación, así que el servidor la
+   crea sola al pedirla y aquí simplemente sale vacía.
+   ============================================================ */
+
+let REPROGRAMACIONES = null;   // null = todavía no se ha pedido
+
+async function cargarReprogramaciones(forzar){
+  const caja = document.getElementById("reproHistorial");
+  if(!caja) return;
+  if(REPROGRAMACIONES && !forzar){ renderReprogramaciones(); return; }
+
+  caja.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const r = await postAppsScript({
+      action: "leerHojasAdmin",
+      clave: CONFIG.adminPassword,
+      hojas: ["Reprogramaciones"]
+    });
+    REPROGRAMACIONES = (r && r.hojas && r.hojas["Reprogramaciones"]) || [];
+    renderReprogramaciones();
+  }catch(err){
+    caja.innerHTML = `<div class="empty-state">No se pudo leer el historial: ${rpEsc(err.message)}</div>`;
+  }
+}
+
+function renderReprogramaciones(){
+  const caja = document.getElementById("reproHistorial");
+  if(!caja) return;
+  const filas = REPROGRAMACIONES || [];
+
+  if(!filas.length){
+    caja.innerHTML = `<div class="empty-state">Todavía no se ha reprogramado ningún partido.
+      Se llena solo con la <strong style="color:#39FF14;">R</strong> verde de cada renglón del rol.</div>`;
+    return;
+  }
+
+  /* Lo más reciente arriba: el Timestamp viene como texto de la hoja, y
+     comparar textos de fecha no siempre ordena bien, así que se convierte. */
+  const conFecha = filas.map(f => {
+    const t = new Date(f["Timestamp"]);
+    return { f, cuando: isNaN(t.getTime()) ? 0 : t.getTime() };
+  }).sort((a,b) => b.cuando - a.cuando);
+
+  let html = `<table class="repro-tabla"><tr>
+    <th>cuándo</th><th>partido</th><th>de</th><th>a</th><th>lo pidió</th><th>motivo</th></tr>`;
+
+  conFecha.forEach(({f, cuando})=>{
+    const dia = (iso, hora) => {
+      const d = String(iso || "").slice(0, 10);
+      if(!d) return "";
+      return fechaBonita(d) + (hora ? " " + rpHoraBonita(hora) : "");
+    };
+    const de = dia(f["Fecha anterior"], f["Hora anterior"]);
+    const a  = dia(f["Fecha nueva"], f["Hora nueva"]);
+    const sinFecha = !String(f["Fecha nueva"] || "").trim();
+
+    html += `<tr>
+      <td>${cuando ? fechaBonita(new Date(cuando).toISOString().slice(0,10)) : ""}</td>
+      <td><strong>${rpEsc(f["Equipo Local"])}</strong> vs <strong>${rpEsc(f["Equipo Visitante"])}</strong>
+          <div class="repro-motivo">Semana ${rpEsc(f["Semana"])} · ${rpEsc(f["Categoría"])}</div></td>
+      <td class="repro-de">${rpEsc(de) || "—"}</td>
+      <td class="${sinFecha ? "repro-sinfecha" : "repro-a"}">${sinFecha ? "Por reprogramar" : rpEsc(a)}</td>
+      <td class="repro-quien">${rpEsc(f["Quién pidió"]) || "No aplica"}</td>
+      <td class="repro-motivo">${rpEsc(f["Motivo"]) || ""}</td>
+    </tr>`;
+  });
+  html += "</table>";
+
+  /* Los que quedaron sin fecha son los que hay que acomodar. Se cuentan
+     mirando el ÚLTIMO movimiento de cada partido, no todos: uno que se dejó
+     sin fecha y después se acomodó ya no está pendiente. */
+  const ultimo = {};
+  conFecha.slice().reverse().forEach(({f})=>{
+    ultimo[f["Equipo Local"] + "|" + f["Equipo Visitante"] + "|" + f["Semana"]] = f;
+  });
+  const pendientes = Object.values(ultimo).filter(f => !String(f["Fecha nueva"] || "").trim());
+  if(pendientes.length){
+    html = `<div class="rp-nota" style="margin-bottom:8px;">
+      <strong class="repro-sinfecha">${pendientes.length} ${pendientes.length === 1
+        ? "partido está" : "partidos están"} sin fecha</strong>, esperando acomodo:
+      ${pendientes.map(f => rpEsc(f["Equipo Local"]) + " vs " + rpEsc(f["Equipo Visitante"])).join(" · ")}.
+    </div>` + html;
+  }
+
+  caja.innerHTML = html;
 }
 
 async function guardarEdicionPartido(){
