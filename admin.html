@@ -808,7 +808,7 @@
     color:#ddd;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
   }
   .mini-btn:hover{background:#E8365D;border-color:#E8365D;color:#fff;}
-  /* ---------- Rol de juego: filtro por categoría + dos columnas ---------- */
+  /* ---------- Rol de partidos: filtro por categoría + dos columnas ---------- */
   .cat-botones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .cat-btn{
     padding:8px 16px;border-radius:999px;border:1px solid #333;background:#1a1a1a;
@@ -903,7 +903,7 @@
   .ol-dia{margin-bottom:12px;}
   .ol-dia-tit{font-size:14px;font-weight:900;color:#fff;letter-spacing:.5px;margin-bottom:6px;}
   .ol-dia-tit span{font-weight:400;color:#888;font-size:12px;letter-spacing:0;}
-  .ol-juego{
+  .ol-partido{
     display:flex;align-items:center;gap:12px;background:#101010;border:1px solid #242428;
     border-radius:10px;padding:9px 12px;margin-bottom:5px;border-left-width:5px;
   }
@@ -1010,6 +1010,39 @@
   .btn-editar-partido:hover{border-color:var(--accent);}
   .rol-tabla tr:hover .btn-borrar-partido{opacity:1;}
   .btn-borrar-partido:hover{border-color:var(--loss);}
+  /* La R de reprogramar. Verde fosforescente para que se distinga de un
+     golpe del lápiz y del basurero, que son los otros dos de la fila. */
+  .btn-repro-partido{
+    color:#39FF14; font-weight:900; font-size:13px; letter-spacing:.5px;
+    text-shadow:0 0 6px rgba(57,255,20,.45);
+  }
+  .rol-tabla tr:hover .btn-repro-partido{opacity:1;}
+  .btn-repro-partido:hover{border-color:#39FF14;}
+
+  /* ---------- Reprogramar: los pasos del modal ---------- */
+  .rp-paso{margin-bottom:16px;}
+  .rp-pregunta{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text);}
+  .rp-ops{display:flex;gap:8px;flex-wrap:wrap;}
+  .rp-op{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:8px 12px; font-size:13px; font-family:inherit;
+    font-weight:600; cursor:pointer; transition:border-color .12s, background .12s;
+  }
+  .rp-op:hover{border-color:var(--accent);}
+  .rp-op.active{border-color:#39FF14; background:rgba(57,255,20,.10); color:#39FF14;}
+  .rp-huecos{display:flex;flex-direction:column;gap:6px;max-height:190px;overflow-y:auto;
+             border:1px solid var(--line);border-radius:6px;padding:8px;}
+  .rp-hueco{
+    background:transparent;color:var(--text);border:1px solid transparent;border-radius:5px;
+    padding:6px 8px;font-size:13px;font-family:inherit;text-align:left;cursor:pointer;
+  }
+  .rp-hueco:hover{border-color:var(--accent);}
+  .rp-hueco.active{border-color:#39FF14;background:rgba(57,255,20,.10);}
+  .rp-nota{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45;}
+  .rp-resumen{
+    border:1px solid var(--line);border-left:3px solid #39FF14;border-radius:6px;
+    padding:10px 12px;font-size:13px;line-height:1.5;margin-bottom:12px;
+  }
   /* Menú de fuerza dentro de la tabla de equipos. */
   .sel-categoria{
     background:var(--surface-2); color:var(--text); border:1px solid var(--line);
@@ -1192,10 +1225,10 @@
 <header class="topbar">
   <div class="topbar-inner">
     <h1>ADMIN<span class="accent-dot">.</span>LIGA</h1>
-    <span>Armar el rol de juego · capturar resultado y asistencia</span>
+    <span>Armar el rol de partidos · capturar resultado y asistencia</span>
   </div>
   <nav class="tabs">
-    <button data-view="rol" class="active">Rol de Juego</button>
+    <button data-view="rol" class="active">Rol de Partidos</button>
     <button data-view="equipos">Equipos</button>
     <button data-view="asistencia">Asistencia</button>
     <button data-view="pasado">Editar</button>
@@ -1218,7 +1251,7 @@
     ⚠️ Falta configurar <code>CONFIG.appsScriptUrl</code> en el código de esta página (la URL del Web App de Apps Script). Mientras tanto puedes revisar el formulario, pero "Guardar" no va a funcionar.
   </div>
 
-  <!-- ============ TAB: ROL DE JUEGO ============ -->
+  <!-- ============ TAB: ROL DE PARTIDOS ============ -->
   <section class="view active" id="view-rol-admin">
 
     <!-- OLIVER: arma el rol con la lógica de Mauricio. Primero enseña una
@@ -1417,7 +1450,7 @@
       <div class="cat-botones" id="catBotones"></div>
       <div class="rol-split">
         <div class="rol-col">
-          <h3 class="rol-col-titulo">Rol de juego · todas las categorías</h3>
+          <h3 class="rol-col-titulo">Rol de partidos · todas las categorías</h3>
           <div id="rolSemanal"></div>
         </div>
         <div class="rol-col">
@@ -1807,7 +1840,7 @@
       <div class="empty-state" style="text-align:left; padding:0 0 14px 0;">
         Cualquier equipo inscrito con el nombre exacto <strong>"Prueba"</strong> se detecta
         automáticamente y se saca de la Consola pública y de las demás pestañas de este
-        Admin (Rol de Juego, Cruces, Pagos, Inscripciones, etc.), para que nunca se mezcle
+        Admin (Rol de Partidos, Cruces, Pagos, Inscripciones, etc.), para que nunca se mezcle
         con los equipos reales. Todo lo relacionado con esas pruebas aparece aquí.
       </div>
       <button class="save-btn" style="padding:8px 16px;font-size:13px;" onclick="renderPruebas(true)">🔄 Actualizar</button>
@@ -1836,7 +1869,7 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">Partidos de prueba (Rol de Juego / Resultados)</h3>
+      <h3 style="margin:0 0 10px 0;">Partidos de prueba (Rol de Partidos / Resultados)</h3>
       <div class="cruces-scroll">
         <table class="cruces-table" id="pruebasPartidosTable"></table>
       </div>
@@ -1914,6 +1947,23 @@
       <button class="save-btn" id="ep_guardar" onclick="guardarEdicionPartido()">Guardar cambios</button>
       <div id="ep_estado" style="margin-top:10px;font-size:13px;"></div>
     </div>
+  </div>
+</div>
+
+<!-- ============ REPROGRAMAR UN PARTIDO ============
+     Se abre con la R verde de cada renglón del rol. Todo el cuerpo se pinta
+     desde rpRender(): son tres preguntas encadenadas y cada respuesta decide
+     qué se enseña abajo. -->
+<div class="modal-overlay" id="reprogramarModal" onclick="if(event.target===this) cerrarReprogramar()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div>
+        <h3>Reprogramar partido</h3>
+        <span id="rpSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarReprogramar()">✕</button>
+    </div>
+    <div class="modal-body" id="rpCuerpo"></div>
   </div>
 </div>
 
@@ -2016,7 +2066,7 @@ const CONFIG = {
   // NO quedan en una URL pública. Ponlo en false para usar datos de ejemplo.
   leerEnVivo: true,
   cuotaEquipo: 1500,       // cuota de inscripción por equipo, debe coincidir con "Instrucciones" en el Excel
-  // Datos que aparecen en el encabezado de la Cédula de Juego impresa:
+  // Datos que aparecen en el encabezado de la Cédula de Partido impresa:
   clubNombre: "Club Central Gante",
   clubSubtitulo: "San Pedro",
   ligaNombreCedula: "Liga Club Central Basquetbol",
@@ -2191,7 +2241,7 @@ function repintarVistaActual(){
     else if(vista === "pasado") renderEditarPartido();
     else if(vista === "correos") renderCorreos();
     else if(vista === "pruebas") renderPruebas();
-    else { // pestaña Rol de Juego
+    else { // pestaña Rol de Partidos
       if(typeof renderScheduleList === "function") renderScheduleList();
       if(typeof renderRolSemanal === "function") renderRolSemanal();
       if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
@@ -2354,8 +2404,8 @@ const DEMO_EQUIPOS = [];
 const DEMO_MATCHES = [];
 /* Nota: estos son datos de ejemplo de la temporada simulada — 9 equipos,
    round-robin de 8 partidos por equipo, 36 partidos / 9 semanas en total.
-   Conecta CONFIG.rolJuegoCsvUrl con el link CSV publicado de tu hoja
-   "Rol de Juego" para ver y usar tu calendario real. */
+   Conecta CONFIG.rolPartidosCsvUrl con el link CSV publicado de tu hoja
+   "Rol de Partidos" para ver y usar tu calendario real. */
 
 const DEMO_ROSTERS = {};
 
@@ -2490,7 +2540,7 @@ function mapAsistenciaCsv(rows){
 
 let EQUIPOS = DEMO_EQUIPOS;
 let CATEGORIA_POR_EQUIPO = {};
-/* Categoría elegida con los botones del Rol de Juego. "todas" = sin filtro. */
+/* Categoría elegida con los botones del Rol de Partidos. "todas" = sin filtro. */
 let CATEGORIA_ROL = "todas";
 let MATCHES = DEMO_MATCHES;
 let ROSTERS = DEMO_ROSTERS;
@@ -2549,12 +2599,12 @@ async function initData(){
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
     // Lo que NO es privado se lee por la vía abierta (rápida, sin contraseña).
     const datos = await leerDelSheetConReintentos([
-      "Equipos","Rol de Juego","Resultados","Asistencia","Estadísticas"
+      "Equipos","Rol de Partidos","Resultados","Asistencia","Estadísticas"
     ]);
     if(datos){
       if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
                                 CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
-      if(datos["Rol de Juego"])             MATCHES = mapRolCsv(datos["Rol de Juego"]);
+      if(datos["Rol de Partidos"])             MATCHES = mapRolCsv(datos["Rol de Partidos"]);
       if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
       if(datos["Asistencia"])            ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
       if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
@@ -2608,7 +2658,7 @@ async function initData(){
     document.getElementById("scheduleBtn").disabled = true;
   }
 
-  // --- Tab Rol de Juego ---
+  // --- Tab Rol de Partidos ---
   llenarMenusDelFormulario();
   llenarEquiposDelFormulario();   // depende de la categoría elegida arriba
   renderBotonesCategoria();
@@ -2702,7 +2752,7 @@ function llenarEquiposDelFormulario(){
 }
 
 /* ============================================================
-   ROL DE JUEGO: filtro de categoría, rol semanal y cruces
+   ROL DE PARTIDOS: filtro de categoría, rol semanal y cruces
    ============================================================ */
 
 function renderBotonesCategoria(){
@@ -2734,7 +2784,7 @@ function fechaBonita(iso){
   return `${_DIAS[d.getDay()]} ${_MESES[d.getMonth()]} ${d.getDate()}`;
 }
 
-/* ---------- IZQUIERDA: rol de juego, TODAS las categorías ----------
+/* ---------- IZQUIERDA: rol de partidos, TODAS las categorías ----------
    Siempre muestra todo, agrupado por semana. Es la lista que se va
    sumando conforme se rolan partidos. */
 function renderRolSemanal(){
@@ -2776,6 +2826,8 @@ function renderRolSemanal(){
           onclick='abrirEditarPartido(${ref})'>✏️</button>
         <button class="btn-editar-partido btn-borrar-partido" title="Borrar este partido del rol"
           onclick='borrarPartido(${ref})'>🗑️</button>
+        <button class="btn-editar-partido btn-repro-partido" title="Reprogramar este partido"
+          onclick='abrirReprogramar(${ref})'>R</button>
       </td>
     </tr>`;
   });
@@ -2902,6 +2954,330 @@ async function borrarPartido(p){
     if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
   }catch(err){
     alert("No se pudo borrar: " + err.message);
+  }
+}
+
+/* ============================================================
+   REPROGRAMAR UN PARTIDO  —  la R verde del rol
+
+   El lápiz ya servía para cambiarle la fecha a un partido, pero eso es
+   *corregir un dedazo*. Reprogramar es otra cosa: alguien lo pidió, hay un
+   motivo, y en tres meses van a preguntar por qué se movió. Por eso esto es
+   su propio botón y deja constancia en la hoja "Reprogramaciones".
+
+   Son tres preguntas encadenadas, y cada respuesta decide la siguiente:
+
+     1. ¿Quién pidió la reprogramación?  → Equipo 1 · Equipo 2 · No aplica
+     2a. Si fue un equipo: se le enseñan las opciones que hay para jugar.
+     2b. Si es "No aplica": qué se va a hacer con el partido.
+     3. A dónde se mueve (día y hora), o se queda sin fecha.
+
+   OJO: por ahora se ofrecen TODOS los espacios de esa categoría, tal como lo
+   pidió Mauricio. Las restricciones de verdad —que un equipo no juegue dos
+   veces el mismo día, respetar los descansos, no encimar canchas— están
+   anotadas en PENDIENTES y van después.
+   ============================================================ */
+
+const RP_HORAS_SEMANA = ["20:10", "21:10", "22:10"];
+const RP_HORAS_SABADO = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+/* Todo el estado del modal en un solo objeto: así reiniciarlo es una línea y
+   no quedan restos de la vez pasada. */
+let RP = null;
+
+function rpHoraBonita(h){
+  const p = String(h || "").split(":");
+  if(p.length !== 2) return h || "";
+  let hh = Number(p[0]);
+  const ampm = hh >= 12 ? "pm" : "am";
+  if(hh > 12) hh -= 12;
+  if(hh === 0) hh = 12;
+  return hh + ":" + p[1] + " " + ampm;
+}
+
+function rpEsSabado(iso){
+  const p = String(iso || "").split("-");
+  if(p.length !== 3) return false;
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay() === 6;
+}
+
+/* Los espacios donde esa categoría juega, de hoy en adelante.
+
+   Se sacan del rol que ya existe en vez de inventar un calendario: los días
+   en que una fuerza juega son los días en que TIENE partidos. Si la liga
+   cambia de días, esto se entera solo. */
+function rpEspacios(categoria){
+  const hoy = hdHoyISO();
+  const porDia = {};
+  (MATCHES || []).forEach(m=>{
+    const cat = String(m.categoria || "").trim();
+    if(categoria && cat !== categoria) return;
+    const f = String(m.fecha || "").slice(0, 10);
+    if(!f || f < hoy) return;
+    if(!porDia[f]) porDia[f] = [];
+    porDia[f].push(m);
+  });
+
+  const espacios = [];
+  Object.keys(porDia).sort().forEach(fecha=>{
+    const horas = rpEsSabado(fecha) ? RP_HORAS_SABADO : RP_HORAS_SEMANA;
+    horas.forEach(hora=>{
+      /* Se marca lo que ya está tomado. No se esconde: quien manda a veces
+         quiere encimar a propósito, y esconderlo le quitaría la decisión. */
+      const tomado = porDia[fecha].find(m => String(m.hora || "").trim() === hora);
+      const esElMismo = tomado && RP && tomado.local === RP.p.local &&
+                        tomado.visit === RP.p.visit;
+      espacios.push({
+        fecha, hora,
+        ocupado: tomado && !esElMismo ? (tomado.local + " vs " + tomado.visit) : ""
+      });
+    });
+  });
+  return espacios;
+}
+
+function abrirReprogramar(p){
+  RP = {
+    p: p,
+    pidio: null,          // nombre del equipo, o "No aplica"
+    queHacer: null,       // solo cuando pidio === "No aplica"
+    fecha: p.fecha || "",
+    hora: p.hora || "",
+    sinFecha: false,
+    motivo: "",
+    guardando: false,
+    estado: ""
+  };
+  const sub = document.getElementById("rpSub");
+  if(sub){
+    sub.textContent = `Semana ${p.semana} · ${p.local} vs ${p.visit}` +
+      (p.fecha ? ` · ${fechaBonita(p.fecha)}` : "") +
+      (p.hora ? ` ${rpHoraBonita(p.hora)}` : "");
+  }
+  rpRender();
+  document.getElementById("reprogramarModal").classList.add("open");
+}
+
+function cerrarReprogramar(){
+  document.getElementById("reprogramarModal").classList.remove("open");
+  RP = null;
+}
+
+function rpElegirQuienPidio(quien){
+  RP.pidio = quien;
+  RP.queHacer = null;
+  rpRender();
+}
+
+function rpElegirQueHacer(cual){
+  RP.queHacer = cual;
+  RP.sinFecha = (cual === "pendiente");
+  if(cual === "pendiente"){ RP.fecha = ""; RP.hora = ""; }
+  rpRender();
+}
+
+function rpElegirEspacio(fecha, hora){
+  RP.fecha = fecha;
+  RP.hora = hora;
+  RP.sinFecha = false;
+  rpRender();
+}
+
+function rpCambio(campo, valor){
+  RP[campo] = valor;
+  if(campo === "fecha" || campo === "hora") RP.sinFecha = false;
+  /* El motivo no repinta: si repintara, se perdería el cursor a media
+     palabra y escribir sería un martirio. */
+  if(campo !== "motivo") rpRender();
+}
+
+const rpEsc = t => String(t == null ? "" : t)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+function rpRender(){
+  if(!RP) return;
+  const caja = document.getElementById("rpCuerpo");
+  if(!caja) return;
+
+  const boton = (texto, activo, accion) =>
+    `<button type="button" class="rp-op${activo ? " active" : ""}" onclick="${accion}">${texto}</button>`;
+
+  let html = "";
+
+  /* ---------- 1 · ¿Quién la pidió? ---------- */
+  html += `<div class="rp-paso">
+    <div class="rp-pregunta">¿Qué equipo pidió reprogramación?</div>
+    <div class="rp-ops">
+      ${boton(rpEsc(RP.p.local), RP.pidio === RP.p.local, `rpElegirQuienPidio('${rpEsc(RP.p.local).replace(/'/g, "\\'")}')`)}
+      ${boton(rpEsc(RP.p.visit), RP.pidio === RP.p.visit, `rpElegirQuienPidio('${rpEsc(RP.p.visit).replace(/'/g, "\\'")}')`)}
+      ${boton("No aplica", RP.pidio === "No aplica", "rpElegirQuienPidio('No aplica')")}
+    </div>
+  </div>`;
+
+  if(!RP.pidio){
+    caja.innerHTML = html;
+    return;
+  }
+
+  /* ---------- 2b · No aplica: ¿qué se hace? ---------- */
+  let mostrarEspacios = RP.pidio !== "No aplica";
+  let mostrarManual = RP.pidio !== "No aplica";
+
+  if(RP.pidio === "No aplica"){
+    html += `<div class="rp-paso">
+      <div class="rp-pregunta">Nadie lo pidió. ¿Qué se hace con el partido?</div>
+      <div class="rp-ops">
+        ${boton("Lo voy a mover manual", RP.queHacer === "manual", "rpElegirQueHacer('manual')")}
+        ${boton("Dejarlo sin fecha", RP.queHacer === "pendiente", "rpElegirQueHacer('pendiente')")}
+        ${boton("Que la liga proponga fecha", RP.queHacer === "proponer", "rpElegirQueHacer('proponer')")}
+        ${boton("Otro", RP.queHacer === "otro", "rpElegirQueHacer('otro')")}
+      </div>
+    </div>`;
+    if(!RP.queHacer){ caja.innerHTML = html; return; }
+    mostrarEspacios = RP.queHacer === "proponer";
+    mostrarManual   = RP.queHacer === "manual" || RP.queHacer === "otro";
+
+    if(RP.queHacer === "pendiente"){
+      html += `<div class="rp-nota">Se le quita la fecha y queda como
+        <strong>Por reprogramar</strong>. Sigue en el rol para que no se
+        olvide, pero no aparece con día ni hora hasta que se acomode.</div>`;
+    }
+  }
+
+  /* ---------- 2a · Los espacios que hay ---------- */
+  if(mostrarEspacios){
+    const espacios = rpEspacios(RP.p.categoria);
+    const dice = RP.pidio === "No aplica"
+      ? "Espacios de " + rpEsc(RP.p.categoria || "esta categoría")
+      : "Opciones que tiene " + rpEsc(RP.pidio) + " para jugar";
+    html += `<div class="rp-paso">
+      <div class="rp-pregunta">${dice}</div>`;
+    if(!espacios.length){
+      html += `<div class="rp-nota">No hay más fechas de esta categoría en el rol.
+        Usa el día y la hora de abajo para ponerle una.</div>`;
+    } else {
+      html += '<div class="rp-huecos">';
+      espacios.forEach(e=>{
+        const puesto = RP.fecha === e.fecha && RP.hora === e.hora;
+        html += `<button type="button" class="rp-hueco${puesto ? " active" : ""}"
+          onclick="rpElegirEspacio('${e.fecha}','${e.hora}')">
+          ${fechaBonita(e.fecha)} · ${rpHoraBonita(e.hora)}
+          ${e.ocupado ? `<span style="color:var(--muted);"> — ocupado: ${rpEsc(e.ocupado)}</span>` : ""}
+        </button>`;
+      });
+      html += "</div>";
+      html += `<div class="rp-nota">Por ahora salen todos los espacios de la
+        categoría. Los que ya tienen partido se marcan, pero no se bloquean.</div>`;
+    }
+    html += "</div>";
+  }
+
+  /* ---------- 3 · Día y hora a mano ---------- */
+  if(mostrarManual || mostrarEspacios){
+    html += `<div class="rp-paso">
+      <div class="rp-pregunta">${mostrarEspacios ? "O ponle otro día y hora" : "¿A qué día y hora se mueve?"}</div>
+      <div class="grid-2">
+        <div>
+          <label for="rp_fecha">Día</label>
+          <input id="rp_fecha" type="date" value="${rpEsc(RP.fecha)}"
+                 onchange="rpCambio('fecha', this.value)">
+        </div>
+        <div>
+          <label for="rp_hora">Hora</label>
+          <select id="rp_hora" onchange="rpCambio('hora', this.value)">
+            ${RP_HORAS_SEMANA.concat(RP_HORAS_SABADO).map(h =>
+              `<option value="${h}"${RP.hora === h ? " selected" : ""}>${rpHoraBonita(h)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------- El motivo ---------- */
+  html += `<div class="rp-paso">
+    <div class="rp-pregunta">Motivo ${RP.queHacer === "otro" ? "" : "(opcional)"}</div>
+    <input id="rp_motivo" type="text" value="${rpEsc(RP.motivo)}"
+           placeholder="Lluvia, cancha ocupada, falta de árbitro…"
+           oninput="rpCambio('motivo', this.value)">
+  </div>`;
+
+  /* ---------- Resumen y guardar ---------- */
+  const deDonde = (RP.p.fecha ? fechaBonita(RP.p.fecha) : "sin fecha") +
+                  (RP.p.hora ? " " + rpHoraBonita(RP.p.hora) : "");
+  const aDonde = RP.sinFecha ? "sin fecha (Por reprogramar)"
+    : (RP.fecha ? fechaBonita(RP.fecha) + (RP.hora ? " " + rpHoraBonita(RP.hora) : "") : "—");
+
+  html += `<div class="rp-resumen">
+    <strong>${rpEsc(RP.p.local)} vs ${rpEsc(RP.p.visit)}</strong><br>
+    De <strong>${deDonde}</strong> a <strong>${aDonde}</strong><br>
+    Lo pidió: <strong>${rpEsc(RP.pidio)}</strong>
+  </div>`;
+
+  const listo = RP.sinFecha || !!RP.fecha;
+  html += `<button class="save-btn" id="rp_guardar" onclick="guardarReprogramacion()"
+    ${listo && !RP.guardando ? "" : "disabled"}>
+    ${RP.guardando ? "Guardando…" : "Guardar reprogramación"}</button>`;
+  html += `<div id="rp_estado" style="margin-top:10px;font-size:13px;">${rpEsc(RP.estado)}</div>`;
+
+  caja.innerHTML = html;
+}
+
+async function guardarReprogramacion(){
+  if(!RP || RP.guardando) return;
+  const p = RP.p;
+
+  if(!RP.sinFecha && !RP.fecha){
+    RP.estado = "Falta decir a qué día se mueve.";
+    rpRender();
+    return;
+  }
+
+  /* El motivo del cursor: el input no repinta mientras se escribe, así que
+     aquí se lee lo último que quedó en pantalla. */
+  const campoMotivo = document.getElementById("rp_motivo");
+  if(campoMotivo) RP.motivo = campoMotivo.value;
+
+  if(RP.queHacer === "otro" && !String(RP.motivo).trim()){
+    RP.estado = "Escogiste \"Otro\": escribe el motivo.";
+    rpRender();
+    return;
+  }
+
+  RP.guardando = true;
+  RP.estado = "";
+  rpRender();
+
+  try{
+    await postAppsScript({
+      action: "reprogramarPartido",
+      clave: CONFIG.adminPassword,
+      original: {
+        semana: p.semana,
+        equipoLocal: p.local,
+        equipoVisit: p.visit
+      },
+      fecha: RP.sinFecha ? "" : RP.fecha,
+      hora: RP.sinFecha ? "" : RP.hora,
+      pidio: RP.pidio,
+      motivo: RP.motivo
+    });
+
+    /* Se refleja en la tabla sin volver a bajar todo el rol. */
+    const i = MATCHES.findIndex(x => String(x.jornada) === String(p.semana) &&
+                                     x.local === p.local && x.visit === p.visit);
+    if(i >= 0){
+      MATCHES[i].fecha = RP.sinFecha ? "" : RP.fecha;
+      MATCHES[i].hora  = RP.sinFecha ? "" : RP.hora;
+      MATCHES[i].estatus = RP.sinFecha ? "Por reprogramar" : "Programado";
+    }
+    cerrarReprogramar();
+    renderRolSemanal();
+    if(typeof renderCrucesCategoria === "function") renderCrucesCategoria();
+  }catch(err){
+    RP.guardando = false;
+    RP.estado = "No se pudo reprogramar: " + err.message;
+    rpRender();
   }
 }
 
@@ -3533,7 +3909,7 @@ async function fotoRolCargar(){
     return;
   }
 
-  if(!confirm(`Se van a programar ${listos.length} partido(s) en la hoja "Rol de Juego".` +
+  if(!confirm(`Se van a programar ${listos.length} partido(s) en la hoja "Rol de Partidos".` +
               (incompletos ? `\n\n${incompletos} renglón(es) sin terminar se quedan fuera.` : "") +
               `\n\n¿Le seguimos?`)) return;
 
@@ -3604,26 +3980,26 @@ const OLIVER_SEMANAS = [
   {
     semana:1, rango:"17 al 22 de agosto 2026",
     dias:[
-      {dia:"LUNES", fecha:"2026-08-17", etiqueta:"17 de agosto", fuerza:"A", juegos:[
+      {dia:"LUNES", fecha:"2026-08-17", etiqueta:"17 de agosto", fuerza:"A", partidos:[
         {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil A", local:"BEETLES", visit:"Fever"},
         {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"swish kebabs", visit:"Sementeros"},
         {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil A", local:"WE THE SOUTH", visit:"Lecheras"}
       ]},
-      {dia:"MARTES", fecha:"2026-08-18", etiqueta:"18 de agosto", fuerza:"B", juegos:[
+      {dia:"MARTES", fecha:"2026-08-18", etiqueta:"18 de agosto", fuerza:"B", partidos:[
         {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Panthers", visit:"Joe’s"},
         {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil B", local:"Kool Aiders", visit:"Los Cangrejos de Santiago"},
         {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"Green Fn", visit:"Hot Goofys", nota:"solo entre semana"}
       ]},
-      {dia:"MIÉRCOLES", fecha:"2026-08-19", etiqueta:"19 de agosto", fuerza:"A", juegos:[
+      {dia:"MIÉRCOLES", fecha:"2026-08-19", etiqueta:"19 de agosto", fuerza:"A", partidos:[
         {hora:"20:10", hTxt:"8:10 PM", cat:"Varonil A", local:"ORLANDO MAGIC", visit:"Glorious Kings"},
         {hora:"21:10", hTxt:"9:10 PM", cat:"Varonil A", local:"Cosmonauticos", visit:"Clavadillas"},
         {hora:"22:10", hTxt:"10:10 PM", cat:"Varonil B", local:"P & THE DIDDIES", visit:"Big dogs"}
       ]},
-      {dia:"JUEVES", fecha:"2026-08-20", etiqueta:"20 de agosto", fuerza:"B", juegos:[
+      {dia:"JUEVES", fecha:"2026-08-20", etiqueta:"20 de agosto", fuerza:"B", partidos:[
         {hora:"20:10", hTxt:"8:10 PM", cat:"Femenil B", local:"Comebacks", visit:"Mavericks"},
         {hora:"21:10", hTxt:"9:10 PM", cat:"Femenil B", local:"Wolves", visit:"UNOS"}
       ]},
-      {dia:"SÁBADO", fecha:"2026-08-22", etiqueta:"22 de agosto", fuerza:"A + B", descansa:"Pink panthers", juegos:[
+      {dia:"SÁBADO", fecha:"2026-08-22", etiqueta:"22 de agosto", fuerza:"A + B", descansa:"Pink panthers", partidos:[
         {hora:"12:00", hTxt:"12:00 PM", cat:"Femenil A", local:"EX UDEM", visit:"ExBorreguitas", nota:"nunca lunes"},
         {hora:"13:00", hTxt:"1:00 PM", cat:"Varonil B", local:"2K ELITE", visit:"Cordilleros"},
         {hora:"14:00", hTxt:"2:00 PM", cat:"Varonil B", local:"Chinolas", visit:"Wildcats"},
@@ -3997,19 +4373,19 @@ function renderOliverPreview(){
   let html = "", totalPartidos = 0;
 
   semanas.forEach(sem=>{
-    const nJuegos = sem.dias.reduce((n,d)=>n + d.juegos.length, 0);
-    totalPartidos += nJuegos;
+    const nPartidos = sem.dias.reduce((n,d)=>n + d.partidos.length, 0);
+    totalPartidos += nPartidos;
     html += `<div class="ol-sem">
       <div class="ol-sem-tit">
         <h3>Semana ${sem.semana}</h3>
-        <span class="oliver-sub">${sem.rango} · ${nJuegos} partidos</span>
+        <span class="oliver-sub">${sem.rango} · ${nPartidos} partidos</span>
       </div>`;
     sem.dias.forEach(d=>{
       html += `<div class="ol-dia">
         <div class="ol-dia-tit">${d.dia} <span>${d.etiqueta} · fuerza ${d.fuerza}</span></div>`;
-      d.juegos.forEach(j=>{
+      d.partidos.forEach(j=>{
         const c = OL_COLOR[j.cat] || {bg:"#666",tx:"#FFF"};
-        html += `<div class="ol-juego" style="border-left-color:${c.bg};">
+        html += `<div class="ol-partido" style="border-left-color:${c.bg};">
           <span class="ol-hora">${j.hTxt}</span>
           <span class="ol-cat" style="background:${c.bg};color:${c.tx};">${j.cat.toUpperCase()}</span>
           <span class="ol-vs"><strong>${j.local}</strong><em>vs</em><strong>${j.visit}</strong></span>
@@ -4036,7 +4412,7 @@ function renderOliverPreview(){
   if(totalPartidos){
     html += `<div class="oliver-acciones" style="margin-top:16px;">
       <button class="save-btn" id="oliverGuardarBtn" onclick="oliverGuardarEnRol()" style="margin:0;">
-        Guardar ${totalPartidos} partidos en Rol de Juego
+        Guardar ${totalPartidos} partidos en Rol de Partidos
       </button>
       <span class="msg" id="oliverGuardarMsg"></span>
     </div>
@@ -4054,7 +4430,7 @@ async function oliverGuardarEnRol(){
   const partidos = [];
   OLIVER_GENERADO.semanas.forEach(sem=>{
     sem.dias.forEach(d=>{
-      d.juegos.forEach(j=>{
+      d.partidos.forEach(j=>{
         partidos.push({
           semana: sem.semana, fecha: d.fecha, hora: j.hora,
           sede: (CONFIG.sedes && CONFIG.sedes[0]) || "",
@@ -4068,7 +4444,7 @@ async function oliverGuardarEnRol(){
   const btn = document.getElementById("oliverGuardarBtn");
   const msg = document.getElementById("oliverGuardarMsg");
   msg.className = "msg";
-  if(!confirm(`Se van a programar ${partidos.length} partidos en la hoja "Rol de Juego".\n\n¿Le seguimos?`)) return;
+  if(!confirm(`Se van a programar ${partidos.length} partidos en la hoja "Rol de Partidos".\n\n¿Le seguimos?`)) return;
 
   btn.disabled = true; btn.textContent = "Guardando…";
   try{
@@ -4091,7 +4467,7 @@ async function oliverGuardarEnRol(){
     msg.textContent = "No se pudo guardar: " + err.message;
   }finally{
     btn.disabled = false;
-    btn.textContent = "Guardar en Rol de Juego";
+    btn.textContent = "Guardar en Rol de Partidos";
   }
 }
 
@@ -4527,10 +4903,10 @@ function edParcial(lado, k, valor){
    había en pantalla. */
 async function recargarDatosAdmin(){
   const datos = await leerDelSheetConReintentos([
-    "Rol de Juego","Resultados","Asistencia","Estadísticas"
+    "Rol de Partidos","Resultados","Asistencia","Estadísticas"
   ]);
   if(!datos) return false;
-  if(datos["Rol de Juego"])   MATCHES = mapRolCsv(datos["Rol de Juego"]);
+  if(datos["Rol de Partidos"])   MATCHES = mapRolCsv(datos["Rol de Partidos"]);
   if(datos["Resultados"])     RESULTADOS = mapResultadosCsv(datos["Resultados"]);
   if(datos["Asistencia"])     ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
   if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
@@ -4639,7 +5015,7 @@ async function edGuardar(){
 }
 
 /* ============================================================
-   CÉDULAS DE JUEGO (hoja oficial imprimible por partido)
+   CÉDULAS DE PARTIDO (hoja oficial imprimible por partido)
    ============================================================ */
 
 const MESES_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -4808,7 +5184,7 @@ function hdNuevoPartido(m){
     jugadas: [],
     /* Cuánto duró el partido de verdad. "arranco" se pone en el momento en
        que la mesa pica el primer periodo, y "termino" cuando sube el partido.
-       Con esos dos se puede ver cuánto se está tardando cada juego y dónde
+       Con esos dos se puede ver cuánto se está tardando cada partido y dónde
        se va el tiempo entre uno y otro. */
     arranco: "", termino: "",
     /* Mientras esto sea false, la hoja enseña la pantalla previa: nada más
@@ -5735,7 +6111,7 @@ function hdCerradoHTML(){
     </div>
     <div class="hd-cerrado-nota">
       Si aquí abajo ves algo mal, dale a <strong>Reabrir para corregir</strong>.
-      Si ya vas a capturar otro juego, usa el botón de arriba o elige el partido
+      Si ya vas a capturar otro partido, usa el botón de arriba o elige el partido
       en la lista de hasta arriba de la página.
     </div>
   </div>`;
@@ -5797,7 +6173,7 @@ function hdRender(){
       </div>
       <div style="color:#c9a05a;font-size:12px;margin-top:6px;">
         Practica todo lo que quieras. Al finalizar <strong>no se guarda nada</strong>:
-        ni el marcador, ni las estadísticas, ni se toca el rol de juego.
+        ni el marcador, ni las estadísticas, ni se toca el rol de partidos.
       </div>
     </div>`;
   }
@@ -6037,7 +6413,7 @@ function hdPaletaHTML(){
 /* Panel de la izquierda del todo: la MINUTA del partido.
    ------------------------------------------------------------
    En la hoja de papel la mesa va tachando los puntos y anotando quién los
-   hizo, así que de un vistazo se ve la historia del juego. En la hoja digital
+   hizo, así que de un vistazo se ve la historia del partido. En la hoja digital
    eso se perdía: los puntos entraban al total del jugador y ya, sin manera de
    revisar quién anotó qué ni de cachar al momento que una canasta se le puso
    al jugador equivocado.
@@ -6390,7 +6766,7 @@ async function hdFinalizar(){
   /* La minuta del partido: lo que hasta hoy solo vivía en la tablet mientras
      el partido estaba abierto y se perdía al cerrarlo. Ahora se guarda, y con
      ella los árbitros, la mesa, los tiempos fuera que usó cada equipo y las
-     horas de inicio y fin — para poder ver cuánto dura de verdad cada juego. */
+     horas de inicio y fin — para poder ver cuánto dura de verdad cada partido. */
   HD.termino = hdAhoraHM();
   const minutaPayload = {
     arbitro1: HD.arbitro1 || "", arbitro2: HD.arbitro2 || "", mesa: HD.mesa || "",
@@ -7200,7 +7576,7 @@ function renderCruces(){
   const filasPorEquipo = {};
   let maxPartidos = 0;
   EQUIPOS.forEach(equipo=>{
-    const juegos = MATCHES
+    const partidos = MATCHES
       .filter(m => m.local === equipo || m.visit === equipo)
       .sort((a,b) => a.jornada - b.jornada)
       .map(m=>{
@@ -7220,8 +7596,8 @@ function renderCruces(){
         }
         return { jornada: m.jornada, rival, estadoClase, metaTexto };
       });
-    filasPorEquipo[equipo] = juegos;
-    maxPartidos = Math.max(maxPartidos, juegos.length);
+    filasPorEquipo[equipo] = partidos;
+    maxPartidos = Math.max(maxPartidos, partidos.length);
   });
 
   let html = "<thead><tr><th class=\"cruces-team-col\">Equipo</th>";
@@ -7230,9 +7606,9 @@ function renderCruces(){
 
   EQUIPOS.forEach(equipo=>{
     html += `<tr><td class="cruces-team-col">${equipo}</td>`;
-    const juegos = filasPorEquipo[equipo];
+    const partidos = filasPorEquipo[equipo];
     for(let i = 0; i < maxPartidos; i++){
-      const j = juegos[i];
+      const j = partidos[i];
       if(!j){
         html += '<td class="cruces-empty">—</td>';
       } else {
@@ -7534,7 +7910,7 @@ async function cambiarFuerzaEquipo(sel){
       const lista = partidos.map(p =>
         `  • Semana ${p.semana}: ${p.equipoLocal} vs ${p.equipoVisit} (${p.categoria || "sin categoría"})`
       ).join("\n");
-      alert(`${equipo} ya está en ${nueva}.\n\nOJO: ya tiene ${partidos.length} partido(s) programado(s) con la categoría anterior:\n\n${lista}\n\nSi hay que moverlos, edítalos en Rol de Juego.`);
+      alert(`${equipo} ya está en ${nueva}.\n\nOJO: ya tiene ${partidos.length} partido(s) programado(s) con la categoría anterior:\n\n${lista}\n\nSi hay que moverlos, edítalos en Rol de Partidos.`);
     }
     renderEquiposPorCategoria();
   }catch(err){
@@ -7606,7 +7982,7 @@ function finPartidos(cfg){
 }
 
 /* Calendario: lunes a jueves y sábado, hasta que se acaben los partidos.
-   Devuelve los días de juego con cuántos partidos toca en cada uno. */
+   Devuelve los días de partidos con cuántos partidos toca en cada uno. */
 function finCalendario(cfg, totalPartidos){
   const dias = [];
   if(!totalPartidos) return dias;
@@ -7622,9 +7998,9 @@ function finCalendario(cfg, totalPartidos){
     if(esEntreSemana || esSabado){
       const cupo = esSabado ? cfg.partidosSabado : cfg.partidosEntreSemana;
       if(cupo > 0){
-        const juegos = Math.min(cupo, quedan);
-        quedan -= juegos;
-        dias.push({ fecha: new Date(d.getTime()), juegos, sabado: esSabado });
+        const partidos = Math.min(cupo, quedan);
+        quedan -= partidos;
+        dias.push({ fecha: new Date(d.getTime()), partidos, sabado: esSabado });
       }
     }
     d.setDate(d.getDate() + 1);
@@ -7790,7 +8166,7 @@ function renderFinanzas(){
       ${fila("Arbitraje", f.p.total + " partidos × " + pesos(c.costoArbitraje), f.arbitraje, "fin-egreso")}
       ${fila("Video", f.p.total + " partidos × " + pesos(c.costoVideo), f.video, "fin-egreso")}
       ${fila("Renta", f.p.equipos + " equipos × " + pesos(c.rentaPorEquipo), f.renta, "fin-egreso")}
-      ${fila("Coordinador", f.dias.length + " días de juego × " + pesos(c.pagoCoordinador), f.coordinador, "fin-egreso")}
+      ${fila("Coordinador", f.dias.length + " días de partidos × " + pesos(c.pagoCoordinador), f.coordinador, "fin-egreso")}
       ${fila("Trofeos", "monto fijo", f.trofeos, "fin-egreso")}
       ${fila("Total de gastos", "", f.egresos, "fin-egreso")}
       <tr class="total"><td>Balance</td>
@@ -7816,7 +8192,7 @@ function renderFinanzas(){
   const ultimo = f.dias[f.dias.length - 1].fecha;
   const semanas = Math.ceil(f.dias.length / 5);
   nota.innerHTML = `Lunes a jueves ${c.partidosEntreSemana} partidos (8:10, 9:10 y 10:10 pm) y sábado ${c.partidosSabado}
-    (12:00 a 5:00 pm). Son <strong>${f.p.total} partidos</strong> en <strong>${f.dias.length} días de juego</strong>
+    (12:00 a 5:00 pm). Son <strong>${f.p.total} partidos</strong> en <strong>${f.dias.length} días de partidos</strong>
     (unas ${semanas} semanas), y el último cae el
     <strong>${DIAS[ultimo.getDay()]} ${ultimo.getDate()} de ${MESES[ultimo.getMonth()]}</strong>.`;
 
@@ -7824,12 +8200,12 @@ function renderFinanzas(){
   const horasSemana = ["8:10 pm","9:10 pm","10:10 pm"];
   const horasSabado = ["12:00","1:00","2:00","3:00","4:00"];
   f.dias.forEach((d, i)=>{
-    const horas = (d.sabado ? horasSabado : horasSemana).slice(0, d.juegos).join(" · ");
+    const horas = (d.sabado ? horasSabado : horasSemana).slice(0, d.partidos).join(" · ");
     html += `<tr>
       <td style="color:#666;">${i + 1}</td>
       <td style="${d.sabado ? "color:#F3A128;font-weight:700;" : ""}">${DIAS[d.fecha.getDay()]}</td>
       <td>${d.fecha.getDate()} de ${MESES[d.fecha.getMonth()]}</td>
-      <td style="font-weight:800;">${d.juegos}</td>
+      <td style="font-weight:800;">${d.partidos}</td>
       <td style="color:#888;font-size:11px;">${horas || "—"}</td>
     </tr>`;
   });
@@ -8173,7 +8549,7 @@ async function renderPruebas(forzarRecarga){
   }
 
   const partidos = [
-    ...((PRUEBAS && PRUEBAS["Rol de Juego"]) || []).map(p=>({...p, __tipo: "Rol de Juego"})),
+    ...((PRUEBAS && PRUEBAS["Rol de Partidos"]) || []).map(p=>({...p, __tipo: "Rol de Partidos"})),
     ...((PRUEBAS && PRUEBAS["Resultados"]) || []).map(p=>({...p, __tipo: "Resultado"}))
   ];
   const tablaPartidos = document.getElementById("pruebasPartidosTable");
