@@ -3906,6 +3906,17 @@ function cambiarJornadaProximos(delta){
   renderProximos();
 }
 
+/* Un partido que la liga movió y todavía no tiene día nuevo.
+
+   Pasa cuando se usa la R del Admin y se escoge "Dejarlo sin fecha": el
+   partido sigue existiendo —no se canceló, se va a jugar— pero nadie sabe
+   cuándo. En la página tiene que verse así y no como uno programado normal,
+   porque si no la gente se presenta a una hora que ya no existe. */
+function porReprogramar(m){
+  return !String(m.fecha || "").trim() ||
+         /reprogramar/i.test(String(m.estatus || ""));
+}
+
 function renderProximos(){
   if(proximaJornadaActual === null) proximaJornadaActual = jornadaProximaPorDefecto();
   const el = document.getElementById("proximosPartidosBox");
@@ -3923,10 +3934,13 @@ function renderProximos(){
   } else {
     html += '<div class="cards-grid">';
     partidos.forEach(m=>{
-      const badgeClass = m.estatus === "Jugado" ? "jugado" : m.estatus === "Pospuesto" || m.estatus === "Cancelado" ? "pospuesto" : "programado";
+      const enEspera = porReprogramar(m);
+      const badgeClass = m.estatus === "Jugado" ? "jugado"
+        : (enEspera || m.estatus === "Pospuesto" || m.estatus === "Cancelado") ? "pospuesto" : "programado";
       html += `
         <div class="match-card">
-          <div class="match-meta"><span>${m.fecha} · ${m.hora || ""}</span><span>${m.sede || ""}</span></div>
+          <div class="match-meta"><span>${enEspera ? "Sin fecha todavía"
+            : (m.fecha + " · " + (m.hora || ""))}</span><span>${m.sede || ""}</span></div>
           <div class="match-row"><span class="team-name"><span class="team-dot"></span>${m.local}</span></div>
           <div class="match-row"><span class="team-name"><span class="team-dot"></span>${m.visitante}</span></div>
           <span class="badge ${badgeClass}">${m.estatus || "Programado"}</span>
@@ -4011,11 +4025,12 @@ function renderRol(){
     visibleItems.forEach(m=>{
       /* Un partido que ya se jugó enseña el marcador; el que no, su estatus. */
       const d = dueloDeEseDia(m.local, m.fecha, m.jornada);
-      const jugado = m.estatus === "Jugado" || (m.fecha && m.fecha < hoyISO());
+      const enEspera = porReprogramar(m);
+      const jugado = !enEspera && (m.estatus === "Jugado" || (m.fecha && m.fecha < hoyISO()));
       const conMarcador = jugado && d && d.hayMarcador;
 
       const badgeClass = jugado ? "jugado"
-        : (m.estatus === "Pospuesto" || m.estatus === "Cancelado") ? "pospuesto" : "programado";
+        : (enEspera || m.estatus === "Pospuesto" || m.estatus === "Cancelado") ? "pospuesto" : "programado";
 
       const ptsL = conMarcador ? d.propios : null;
       const ptsV = conMarcador ? d.ajenos : null;
@@ -4024,7 +4039,8 @@ function renderRol(){
 
       html += `
         <div class="match-card">
-          <div class="match-meta"><span>${fechaCorta(m.fecha)} · ${horaBonita(m.hora)}</span><span>${m.sede || ""}</span></div>
+          <div class="match-meta"><span>${enEspera ? "Sin fecha todavía"
+            : (fechaCorta(m.fecha) + " · " + horaBonita(m.hora))}</span><span>${m.sede || ""}</span></div>
           <div class="match-row${ganoL ? " gano" : ""}">
             <span class="team-name"><span class="team-dot"></span>${m.local}</span>
             ${conMarcador ? `<span class="match-pts">${ptsL}</span>` : ""}
