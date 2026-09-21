@@ -1019,6 +1019,11 @@
   .rol-tabla tr:hover .btn-repro-partido{opacity:1;}
   .btn-repro-partido:hover{border-color:#39FF14;}
 
+  /* ---------- La hora en dos menús: hora y minutos ---------- */
+  .hora-par{display:flex;align-items:center;gap:6px;}
+  .hora-par select{flex:1;min-width:0;}
+  .hora-sep{font-weight:800;color:var(--muted);}
+
   /* ---------- Reprogramar: los pasos del modal ---------- */
   .rp-paso{margin-bottom:16px;}
   .rp-pregunta{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text);}
@@ -1430,8 +1435,12 @@
           <input type="date" id="f_fecha">
         </div>
         <div>
-          <label for="f_hora">Hora</label>
-          <input type="time" id="f_hora">
+          <label for="f_hora_h">Hora</label>
+          <div class="hora-par">
+            <select id="f_hora_h"></select>
+            <span class="hora-sep">:</span>
+            <select id="f_hora_m"></select>
+          </div>
         </div>
         <div>
           <label for="f_sede">Sede / Cancha</label>
@@ -1959,18 +1968,15 @@
           <input id="ep_fecha" type="date">
         </div>
         <div>
-          <label for="ep_hora">Hora</label>
-          <select id="ep_hora">
-            <option value="20:10">8:10 pm</option>
-            <option value="21:10">9:10 pm</option>
-            <option value="22:10">10:10 pm</option>
-            <option value="12:00">12:00 pm</option>
-            <option value="13:00">1:00 pm</option>
-            <option value="14:00">2:00 pm</option>
-            <option value="15:00">3:00 pm</option>
-            <option value="16:00">4:00 pm</option>
-            <option value="17:00">5:00 pm</option>
-          </select>
+          <label for="ep_hora_h">Hora</label>
+          <!-- Dos menús en vez de una lista cerrada: la hora por un lado y
+               los minutos de 10 en 10 por el otro. Los partidos del sábado no
+               siempre caen en los horarios de entre semana. -->
+          <div class="hora-par">
+            <select id="ep_hora_h"></select>
+            <span class="hora-sep">:</span>
+            <select id="ep_hora_m"></select>
+          </div>
         </div>
         <div>
           <label for="ep_local">Equipo 1</label>
@@ -2778,6 +2784,7 @@ function llenarMenusDelFormulario(){
     '<option value="">—</option>' + opciones(CONFIG.arbitros2);
   document.getElementById("f_mesa").innerHTML =
     '<option value="">—</option>' + opciones(CONFIG.mesa);
+  ponerHoraEnPar("f_hora", "");
 }
 
 /* Equipo local y visitante: SOLO los de la categoría elegida arriba. */
@@ -2815,6 +2822,86 @@ function seleccionarCategoriaRol(cat){
 /* Fecha bonita: "lunes abril 27". La hoja guarda AAAA-MM-DD. */
 const _DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const _MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+/* ============================================================
+   LA HORA DE UN PARTIDO: dos menús, hora y minutos de 10 en 10
+
+   Antes cada lugar tenía lo suyo: Editar traía una lista cerrada de nueve
+   horarios (los de entre semana más los del sábado), y Programar un
+   <input type="time"> donde había que teclear. El problema salió con los
+   partidos del fin de semana, que no siempre caen en esos nueve horarios.
+
+   Ahora los tres lugares —Programar, Editar y la R de Reprogramar— usan lo
+   mismo: un menú de HORA y otro de MINUTOS de 10 en 10. Con eso se arma
+   cualquier horario de la liga sin teclear y sin listas que se queden cortas.
+
+   Las horas van de las 8 de la mañana a las 11 de la noche. Fuera de ahí no
+   se juega, y una lista de 24 horas solo hace más largo el menú. Si algún
+   día hiciera falta, se cambian estos dos números.
+   ============================================================ */
+const HORA_DESDE = 8;    // 8:00 am
+const HORA_HASTA = 23;   // 11:00 pm
+const MINUTOS_PASO = 10;
+
+/* "21:10" → {h:"21", m:"10"}. Lo que no se entienda se devuelve vacío para
+   que el menú abra sin nada escogido en vez de mentir con una hora. */
+function horaPartes(hora){
+  const p = String(hora || "").trim().split(":");
+  if(p.length < 2) return { h: "", m: "" };
+  const h = String(p[0]).padStart(2, "0");
+  const m = String(p[1]).slice(0, 2).padStart(2, "0");
+  return { h, m };
+}
+
+function horaAmPm(h, m){
+  let hh = Number(h);
+  if(isNaN(hh)) return "";
+  const ampm = hh >= 12 ? "pm" : "am";
+  if(hh > 12) hh -= 12;
+  if(hh === 0) hh = 12;
+  return hh + ":" + m + " " + ampm;
+}
+
+function opcionesHora(sel){
+  let html = `<option value=""${sel ? "" : " selected"}>--</option>`;
+  for(let h = HORA_DESDE; h <= HORA_HASTA; h++){
+    const v = String(h).padStart(2, "0");
+    html += `<option value="${v}"${v === sel ? " selected" : ""}>${horaAmPm(v, "00").replace(":00 ", " ")}</option>`;
+  }
+  return html;
+}
+
+function opcionesMinuto(sel){
+  let html = `<option value=""${sel ? "" : " selected"}>--</option>`;
+  for(let m = 0; m < 60; m += MINUTOS_PASO){
+    const v = String(m).padStart(2, "0");
+    html += `<option value="${v}"${v === sel ? " selected" : ""}>${v}</option>`;
+  }
+  /* Un partido viejo pudo quedar en un minuto que no es múltiplo de 10 (por
+     ejemplo 21:15). Se agrega para no perderlo al abrir la pantalla. */
+  if(sel && Number(sel) % MINUTOS_PASO !== 0){
+    html += `<option value="${sel}" selected>${sel}</option>`;
+  }
+  return html;
+}
+
+/* Llena un par de menús ya existentes en el HTML. */
+function ponerHoraEnPar(idBase, hora){
+  const ph = horaPartes(hora);
+  const selH = document.getElementById(idBase + "_h");
+  const selM = document.getElementById(idBase + "_m");
+  if(selH) selH.innerHTML = opcionesHora(ph.h);
+  if(selM) selM.innerHTML = opcionesMinuto(ph.m);
+}
+
+/* Lee un par de menús y devuelve "HH:MM", o "" si falta alguno. */
+function leerHoraDelPar(idBase){
+  const selH = document.getElementById(idBase + "_h");
+  const selM = document.getElementById(idBase + "_m");
+  const h = selH ? selH.value : "";
+  const m = selM ? selM.value : "";
+  return (h && m) ? (h + ":" + m) : "";
+}
+
 function fechaBonita(iso){
   if(!iso) return "";
   const p = String(iso).split("-");
@@ -2900,13 +2987,9 @@ function abrirEditarPartido(p){
   selCat.value = p.categoria || "";
   if(!selCat.value) selCat.selectedIndex = 0;
 
-  // Hora: si es una hora fuera del menú, se agrega para no perderla.
-  const selHora = document.getElementById("ep_hora");
-  const horaActual = (p.hora || "").slice(0,5);
-  if(horaActual && ![...selHora.options].some(o=>o.value === horaActual)){
-    selHora.insertAdjacentHTML("afterbegin", `<option value="${horaActual}">${horaActual}</option>`);
-  }
-  selHora.value = horaActual;
+  // Hora: dos menús, hora y minutos de 10 en 10. Si el partido trae un
+  // minuto que no es múltiplo de 10, opcionesMinuto lo agrega para no perderlo.
+  ponerHoraEnPar("ep_hora", (p.hora || "").slice(0,5));
 
   // Equipos: todos los inscritos, con el actual seleccionado.
   const equipos = [...new Set(INSCRIPCIONES.map(i=>i.equipo).filter(Boolean))].sort();
@@ -3129,6 +3212,12 @@ function rpElegirEspacio(fecha, hora){
   rpRender();
 }
 
+/* Los dos menús de la hora se leen juntos. Si falta uno, la hora queda
+   vacía y el botón de guardar lo dice. */
+function rpCambioHora(){
+  rpCambio("hora", leerHoraDelPar("rp_hora"));
+}
+
 function rpCambio(campo, valor){
   RP[campo] = valor;
   if(campo === "fecha" || campo === "hora") RP.sinFecha = false;
@@ -3230,11 +3319,16 @@ function rpRender(){
                  onchange="rpCambio('fecha', this.value)">
         </div>
         <div>
-          <label for="rp_hora">Hora</label>
-          <select id="rp_hora" onchange="rpCambio('hora', this.value)">
-            ${RP_HORAS_SEMANA.concat(RP_HORAS_SABADO).map(h =>
-              `<option value="${h}"${RP.hora === h ? " selected" : ""}>${rpHoraBonita(h)}</option>`).join("")}
-          </select>
+          <label for="rp_hora_h">Hora</label>
+          <div class="hora-par">
+            <select id="rp_hora_h" onchange="rpCambioHora()">
+              ${opcionesHora(horaPartes(RP.hora).h)}
+            </select>
+            <span class="hora-sep">:</span>
+            <select id="rp_hora_m" onchange="rpCambioHora()">
+              ${opcionesMinuto(horaPartes(RP.hora).m)}
+            </select>
+          </div>
         </div>
       </div>
     </div>`;
@@ -3453,7 +3547,7 @@ async function guardarEdicionPartido(){
   const nuevo = {
     semana: document.getElementById("ep_semana").value,
     fecha: document.getElementById("ep_fecha").value,
-    hora: document.getElementById("ep_hora").value,
+    hora: leerHoraDelPar("ep_hora"),
     categoria: document.getElementById("ep_categoria").value,
     equipoLocal: document.getElementById("ep_local").value,
     equipoVisit: document.getElementById("ep_visit").value
@@ -3629,7 +3723,7 @@ function renderCrucesCategoria(){
 async function agregarPartido(){
   const semana = document.getElementById("f_semana").value;
   const fecha = document.getElementById("f_fecha").value;
-  const hora = document.getElementById("f_hora").value;
+  const hora = leerHoraDelPar("f_hora");
   const sede = document.getElementById("f_sede").value;
   const categoria = document.getElementById("f_categoria").value;
   const arbitro = document.getElementById("f_arbitro").value;
@@ -3673,7 +3767,7 @@ async function agregarPartido(){
       // Se deja la semana y la categoría puestas: normalmente se cargan
       // varios partidos seguidos de la misma semana y categoría.
       document.getElementById("f_fecha").value = "";
-      document.getElementById("f_hora").value = "";
+      ponerHoraEnPar("f_hora", "");
     }else{
       throw new Error(data.error || "Error desconocido");
     }
