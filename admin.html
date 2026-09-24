@@ -1019,6 +1019,17 @@
   .rol-tabla tr:hover .btn-repro-partido{opacity:1;}
   .btn-repro-partido:hover{border-color:#39FF14;}
 
+  /* ---------- Partido por default ----------
+     En ámbar: no es una acción de todos los días y conviene que se note
+     antes de picarle, pero tampoco es un borrado. */
+  .ed-default{border-left-color:#E8912E;}
+  .ed-default-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .ed-default-pre{font-size:13px;font-weight:700;color:var(--muted);}
+  .mini-btn.ed-default-btn{
+    border-color:#E8912E; color:#E8912E; font-weight:800;
+  }
+  .mini-btn.ed-default-btn:hover{background:rgba(232,145,46,.12);}
+
   /* ---------- La hora en dos menús: hora y minutos ---------- */
   .hora-par{display:flex;align-items:center;gap:6px;}
   .hora-par select{flex:1;min-width:0;}
@@ -4777,6 +4788,80 @@ function edClave(m){ return [m.jornada, m.local, m.visit].join("|"); }
    salía en ningún lado: la hoja digital solo enseña los de HOY y Editar solo
    los que ya tienen resultado. O sea que al día siguiente no había manera de
    meterlo. Ahora sí. */
+/* ============================================================
+   PARTIDO POR DEFAULT
+
+   Un equipo no se presentó (o se presentó sin jugadores suficientes) y el
+   partido se da por perdido sin jugarse. No es lo mismo que un 20-0 de
+   verdad, y por eso se guarda distinto:
+
+     · El marcador es 20 - 0. El que ganó se lleva los 20.
+     · Los 20 puntos son DEL EQUIPO. No se le asignan a ningún jugador, así
+       que nadie sube en el ranking de anotadores ni en las tendencias por
+       haber estado en un partido que no se jugó.
+     · Tampoco se reparten por cuarto: los parciales quedan en cero. Es un
+       resultado, no un partido.
+     · Asistencia: TODOS los del equipo que ganó la tienen, y NINGUNO del que
+       perdió. Ese es justo el punto — el que no se presentó, no asistió.
+
+   El payload es el mismo `guardarHojaDigital` de siempre, nada más que con
+   `jugadores` vacío. Así el backend no tiene que aprender nada nuevo y el
+   resultado entra a la tabla como cualquier otro.
+   ============================================================ */
+
+const PUNTOS_POR_DEFAULT = 20;
+
+function rosterDeEquipo(equipo){
+  return (ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [])
+    .map(j => typeof j === "string" ? j : j.nombre)
+    .filter(Boolean);
+}
+
+/* Arma lo que se le manda al servidor para un partido ganado por default.
+   `m` necesita semana/jornada, fecha, categoría y los dos equipos. */
+function payloadPorDefault(m, ganador){
+  const local = m.local;
+  const visit = m.visit || m.visitante;
+  const ganoLocal = nombreEquipo(ganador) === nombreEquipo(local);
+
+  const asistencia = [];
+  [[local, ganoLocal], [visit, !ganoLocal]].forEach(([equipo, gano])=>{
+    rosterDeEquipo(equipo).forEach(nombre=>{
+      asistencia.push({ equipo: equipo, jugador: nombre, asistio: gano ? "Sí" : "No" });
+    });
+  });
+
+  return {
+    action: "guardarHojaDigital",
+    clave: CONFIG.adminPassword,
+    sinCedula: true,                 // un partido que no se jugó no lleva cédula
+    semana: m.jornada !== undefined ? m.jornada : m.semana,
+    fecha: m.fecha, categoria: m.categoria,
+    equipoLocal: local, equipoVisit: visit,
+    ptsLocal: ganoLocal ? PUNTOS_POR_DEFAULT : 0,
+    ptsVisit: ganoLocal ? 0 : PUNTOS_POR_DEFAULT,
+    porCuarto: { local: [0,0,0,0], visit: [0,0,0,0] },
+    periodos: ["C1","C2","C3","C4"],
+    jugadores: [],                   // los 20 puntos son del equipo, de nadie más
+    asistencia: asistencia,
+    pendientes: { local: {}, visit: {} }
+  };
+}
+
+/* El texto que se le enseña antes de guardar. Se dice completo a propósito:
+   esto mueve la tabla y la asistencia de doce personas. */
+function avisoPorDefault(m, ganador){
+  const perdedor = nombreEquipo(ganador) === nombreEquipo(m.local)
+    ? (m.visit || m.visitante) : m.local;
+  return "Se va a guardar como partido ganado por default:\n\n" +
+    "  " + ganador + "  " + PUNTOS_POR_DEFAULT + " — 0  " + perdedor + "\n\n" +
+    "· Los " + PUNTOS_POR_DEFAULT + " puntos son del equipo. No se le asignan a ningún jugador.\n" +
+    "· Los parciales por cuarto quedan en cero.\n" +
+    "· " + ganador + ": todos con asistencia.\n" +
+    "· " + perdedor + ": nadie con asistencia.\n\n" +
+    "¿Lo guardo así?";
+}
+
 function edYaPaso(m){
   const f = String(m.fecha || "").slice(0,10);
   return !!f && f < hdHoyISO();
@@ -5002,7 +5087,26 @@ function edPintar(){
     </div>`;
   };
 
-  cuerpo.innerHTML = `
+  /* El botón de por default va HASTA ARRIBA y solo en los partidos que se
+     rolaron, ya pasaron y nadie capturó. En uno que sí se jugó no pinta
+     nada: ahí lo que hay que hacer es corregir números, no borrarlos. */
+  const sinCapturar = !buscarResultado(m);
+  const eqLocal = String(m.local).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const eqVisit = String(m.visit).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const cabezaDefault = !sinCapturar ? "" : `
+    <div class="card ed-default">
+      <h2>¿Este partido no se jugó?</h2>
+      <p class="ed-nota">Si un equipo no se presentó, dale por default. Se
+        guarda <strong>${PUNTOS_POR_DEFAULT} - 0</strong> para el que ganó, sin
+        repartir puntos a nadie y con asistencia solo del lado que sí llegó.</p>
+      <div class="ed-default-btns">
+        <span class="ed-default-pre">Ganó por default:</span>
+        <button class="mini-btn ed-default-btn" onclick="edPorDefault('${eqLocal}')">${m.local}</button>
+        <button class="mini-btn ed-default-btn" onclick="edPorDefault('${eqVisit}')">${m.visit}</button>
+      </div>
+    </div>`;
+
+  cuerpo.innerHTML = cabezaDefault + `
     <div class="card">
       <h2>1 · Puntos totales</h2>
       <p class="ed-nota">Es el marcador que ya está publicado. Todo lo demás tiene que dar este número.</p>
@@ -5234,6 +5338,49 @@ function edDescuadres(){
       (x.caben === 1 ? " triple." : " triples."));
   });
   return avisos;
+}
+
+/* Dar por default el partido que está abierto en Editar.
+
+   Se guarda de una vez, sin pasar por la pantalla de captura: no hay nada
+   que capturar. Antes se dice exactamente qué va a quedar guardado, porque
+   esto mueve la tabla y la asistencia de los dos equipos. */
+async function edPorDefault(ganador){
+  if(!ED_PARTIDO || ED_GUARDANDO) return;
+  const m = ED_PARTIDO.m;
+
+  /* La misma puerta que la de la pantalla: un partido que ya tiene marcador
+     no se da por default desde aquí. Si hubiera que anularlo, primero se
+     corrigen los números a mano. */
+  if(buscarResultado(m)){
+    alert("Este partido ya tiene marcador capturado.\n\nPara darlo por default habría " +
+          "que borrar antes lo que ya tiene.");
+    return;
+  }
+  if(!confirm(avisoPorDefault(m, ganador))) return;
+
+  ED_GUARDANDO = true;
+  edPintar();
+  const msg = document.getElementById("edMsg");
+  if(msg){ msg.className = "msg"; msg.textContent = "Guardando…"; }
+
+  try{
+    const r = await postAppsScript(payloadPorDefault(m, ganador));
+    if(!r.ok) throw new Error(r.error || "Error desconocido");
+    ED_GUARDANDO = false;
+    await recargarDatosAdmin();
+    edCargarPartido();
+    const m2 = document.getElementById("edMsg");
+    if(m2){
+      m2.className = "msg ok";
+      m2.textContent = "Guardado por default: ganó " + ganador + " " + PUNTOS_POR_DEFAULT + " - 0.";
+    }
+  }catch(e){
+    ED_GUARDANDO = false;
+    edPintar();
+    const m2 = document.getElementById("edMsg");
+    if(m2){ m2.className = "msg err"; m2.textContent = "No se pudo guardar: " + e.message; }
+  }
 }
 
 async function edGuardar(){
@@ -6184,6 +6331,26 @@ function hdPrevioHTML(){
     </div>
   </div>`;
 
+  /* Por default, arriba de todo.
+
+     Solo existe en esta pantalla, que es la de ANTES de arrancar. En cuanto
+     el partido inicia, hdRender() ya no pinta esta pantalla y el botón
+     desaparece solo — no hay forma de darlo por default a media captura.
+     hdPorDefault() lo vuelve a comprobar por si acaso. */
+  const eqL = String(HD.local).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const eqV = String(HD.visit).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  html += `<div class="card ed-default">
+    <h3 style="margin:0 0 6px 0;">¿No se presentó alguno?</h3>
+    <p class="hd-previo-nota" style="margin:0 0 10px 0;">
+      Dale por default y el partido queda guardado <strong>${PUNTOS_POR_DEFAULT} - 0</strong>
+      sin capturar nada. Solo se puede antes de iniciar.</p>
+    <div class="ed-default-btns">
+      <span class="ed-default-pre">Ganó por default:</span>
+      <button class="mini-btn ed-default-btn" onclick="hdPorDefault('${eqL}')">${HD.local}</button>
+      <button class="mini-btn ed-default-btn" onclick="hdPorDefault('${eqV}')">${HD.visit}</button>
+    </div>
+  </div>`;
+
   /* Árbitros y mesa: de una lista, no escritos a mano. Son siempre las mismas
      personas y a mano cada quien los escribe distinto —"Fco", "Francisco",
      "francisco"— y después no se pueden contar. La lista vive en CONFIG. */
@@ -6260,6 +6427,50 @@ function hdPrevioHTML(){
   return html;
 }
 
+/* Dar por default desde la hoja digital, antes de arrancar.
+
+   La mesa está en la cancha esperando y un equipo no llegó. En vez de
+   iniciar un partido que no existe, se guarda el resultado y se cierra.
+
+   El candado es doble: esta pantalla solo se pinta cuando el partido NO ha
+   iniciado, y aquí se vuelve a comprobar. Un partido ya arrancado no se
+   puede dar por default — para eso está Editar. */
+async function hdPorDefault(ganador){
+  if(!HD) return;
+  if(hdYaInicio()){
+    alert("Este partido ya inició, así que ya no se puede dar por default.\n\n" +
+          "Si hay que corregirlo, se hace desde la pestaña Editar.");
+    return;
+  }
+  const m = { jornada: HD.semana, fecha: HD.fecha, categoria: HD.categoria,
+              local: HD.local, visit: HD.visit };
+  if(!confirm(avisoPorDefault(m, ganador))) return;
+
+  const aviso = document.getElementById("hdAviso");
+  if(aviso) aviso.textContent = "Guardando…";
+
+  try{
+    const r = await postAppsScript(payloadPorDefault(m, ganador));
+    if(r && r.ok === false) throw new Error(r.error || "Error desconocido");
+
+    /* Se cierra como cualquier partido terminado: la mesa ya no tiene nada
+       que hacer aquí y la pantalla se lo dice. */
+    HD.iniciado = true;
+    HD.cerrado = true;
+    HD.porDefault = ganador;
+    HD.marcadorGuardado = true;
+    HD.cedulaPendiente = false;
+    hdGuardarRespaldo();
+    hdRender();
+    alert("Guardado.\n\nGanó por default " + ganador + " " + PUNTOS_POR_DEFAULT + " - 0.\n\n" +
+          "No lleva cédula: el partido no se jugó.");
+  }catch(err){
+    if(aviso) aviso.textContent = "";
+    alert("No se pudo guardar: " + err.message +
+          "\n\nTRANQUILO: nada se perdió. Inténtalo otra vez en un momento.");
+  }
+}
+
 /* Arranca el partido: de aquí en adelante ya sale la pantalla de captura. */
 function hdIniciarPartido(){
   if(!HD || hdYaInicio()) return;
@@ -6331,6 +6542,26 @@ function hdIrAlSelector(){
    diferencia entre corregir a tiempo y corregir tarde. */
 function hdReabrir(){
   if(!HD || !HD.cerrado) return;
+
+  /* Un partido por default no tiene nada capturado que corregir: se vuelve a
+     la pantalla de antes de empezar, como si nunca se hubiera tocado. El
+     20 - 0 YA quedó guardado en la hoja; si ahora sí se juega y se captura,
+     al finalizar se reescribe encima. */
+  if(HD.porDefault){
+    if(!confirm("Este partido se dio por default (ganó " + HD.porDefault + ").\n\n" +
+                "Al reabrirlo vuelves a la pantalla de antes de empezar, por si " +
+                "al final sí se va a jugar.\n\n" +
+                "OJO: el " + PUNTOS_POR_DEFAULT + " - 0 ya está guardado. Se reemplaza " +
+                "solo si capturas el partido y le das Finalizar.\n\n¿Reabrir?")) return;
+    HD.cerrado = false;
+    HD.iniciado = false;
+    HD.porDefault = "";
+    HD.marcadorGuardado = false;
+    hdGuardarRespaldo();
+    hdRender();
+    return;
+  }
+
   if(!confirm("¿Reabrir este partido para corregirlo?\n\n" +
               HD.local + " " + hdTotal(HD,"local") + " — " + hdTotal(HD,"visit") + " " + HD.visit +
               "\n\nOJO: si la cédula ya le salió por correo a las jugadoras, la corrección " +
@@ -6348,11 +6579,18 @@ function hdReabrir(){
    justamente la trampa: se veía idéntica a la de capturar, así que la mesa
    seguía picando. Aquí no hay un solo botón de +1, +2 o falta. */
 function hdCerradoHTML(){
-  const ptsL = hdTotal(HD, "local"), ptsV = hdTotal(HD, "visit");
+  /* Un partido por default no tiene jugadas capturadas, así que hdTotal daría
+     0 - 0. El marcador sale de la decisión, no de la cancha. */
+  const porDef = HD.porDefault || "";
+  const ganoLocalDef = porDef && nombreEquipo(porDef) === nombreEquipo(HD.local);
+  const ptsL = porDef ? (ganoLocalDef ? PUNTOS_POR_DEFAULT : 0) : hdTotal(HD, "local");
+  const ptsV = porDef ? (ganoLocalDef ? 0 : PUNTOS_POR_DEFAULT) : hdTotal(HD, "visit");
   const gana = ptsL > ptsV ? HD.local : (ptsV > ptsL ? HD.visit : "");
 
   let html = `<div class="card" style="border-left-color:#33E08A;">
-    <div class="hd-cerrado-tit">✅ Este partido ya terminó y se guardó</div>
+    <div class="hd-cerrado-tit">${porDef
+      ? "✅ Este partido se dio por default y se guardó"
+      : "✅ Este partido ya terminó y se guardó"}</div>
     <div class="hd-cerrado-marcador">
       <span${ptsL >= ptsV ? ' class="gana"' : ''}>${HD.local} ${ptsL}</span>
       <span class="sep">—</span>
