@@ -1287,6 +1287,25 @@
     text-transform:uppercase;
     letter-spacing:.6px;
     margin:22px 0 12px 0;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  /* La fecha de la ronda, al lado del título. Va en minúsculas y en naranja
+     para que se lea como un dato y no como parte del encabezado. */
+  .playoffs-cuando{
+    font-size:11px;
+    font-weight:700;
+    color:var(--orange);
+    text-transform:none;
+    letter-spacing:0;
+  }
+  /* Los lugares que todavía no tienen dueño ("Ganador de la llave 1"). */
+  .bracket-team.por-definir{
+    font-weight:600;
+    color:var(--text-soft);
+    font-style:italic;
   }
   .bracket-grid{
     display:grid;
@@ -4749,47 +4768,160 @@ function renderRachas(){
 /* Por ahora los Playoffs muestran un mensaje fijo hasta la semana 5 de
    temporada. Cuando llegue ese momento, se puede quitar este "return" para
    volver a activar el armado automático de llaves de abajo. */
-function renderPlayoffs(){
-  const el = document.getElementById("view-playoffs");
-  el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div>' +
-    botonesCategoria("playoffs") +
-    '<div class="empty-state">Esta información estará disponible a partir de la semana 5 de la temporada.</div>';
-  return;
+/* ============================================================
+   PLAYOFFS — el cuadro, con los duelos de hoy
 
-  const standings = computeStandings();
-  if(standings.length < 8){
-    el.innerHTML = '<div class="section-heading">Playoffs<span class="line"></span></div><div class="empty-state">Se necesitan al menos 8 equipos con resultados para armar los playoffs.</div>';
-    return;
+   Cada fuerza clasifica distinto, y eso viene de Mauricio:
+
+     · Varonil A — pasan los 8 primeros. Cuartos, semis y final.
+     · Femenil A — son 6. El 1º y el 2º entran directo a semifinal;
+       el 3º vs 6º y el 4º vs 5º juegan un repechaje.
+     · Varonil B — son 14. Los 6 primeros entran directo; el 7º vs 10º
+       y el 8º vs 9º juegan un repechaje por los dos lugares que faltan.
+     · Femenil B — son 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º
+       y 4º vs 5º.
+
+   En todas, siempre la mejor posición contra la más baja, un solo partido
+   y quien pierde se va. Los partidos del 1er lugar nunca a las 10:10.
+
+   Lo que se pinta son los cruces COMO VAN HOY, con la tabla al día. La
+   temporada regular todavía no termina, así que esto se mueve; el letrero
+   de arriba lo dice para que nadie lo lea como definitivo.
+   ============================================================ */
+
+const PLAYOFFS_FORMATO = {
+  "Varonil A": {
+    directos: 8, repechaje: [],
+    llaves: [[1,8],[2,7],[3,6],[4,5]],
+    nombrePrimera: "Cuartos de Final",
+    dice: "Pasan los 8 primeros de la tabla."
+  },
+  "Femenil A": {
+    directos: 2, repechaje: [[3,6],[4,5]],
+    llaves: [["1º","ganador del repechaje con peor posición"],
+             ["2º","ganador del repechaje con mejor posición"]],
+    nombrePrimera: "Repechaje",
+    dice: "El 1º y el 2º pasan directo a semifinal. El 3º vs 6º y el 4º vs 5º se juegan los otros dos lugares."
+  },
+  "Varonil B": {
+    directos: 6, repechaje: [[7,10],[8,9]],
+    llaves: [["1º","ganador de 8º vs 9º"],["2º","ganador de 7º vs 10º"],[3,6],[4,5]],
+    nombrePrimera: "Repechaje",
+    dice: "Los 6 primeros pasan directo. El 7º vs 10º y el 8º vs 9º se juegan los otros dos lugares de cuartos."
+  },
+  "Femenil B": {
+    directos: 8, repechaje: [],
+    llaves: [[1,8],[2,7],[3,6],[4,5]],
+    nombrePrimera: "Cuartos de Final",
+    dice: "Pasan las 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º y 4º vs 5º."
+  }
+};
+
+/* Las fechas ya están apartadas. Van aquí para que el cuadro las enseñe
+   junto a cada duelo y nadie tenga que buscarlas en otro lado. */
+const PLAYOFFS_FECHAS = {
+  "Varonil A": { "Cuartos de Final":"lun 2 y mié 4 de noviembre",
+                 "Semifinales":"lun 9 de noviembre",
+                 "Final":"sáb 21 de noviembre · 2:10 pm" },
+  "Femenil A": { "Repechaje":"lun 2 y mié 4 de noviembre",
+                 "Semifinales":"lun 9 y mié 11 de noviembre",
+                 "Final":"sáb 21 de noviembre · 3:10 pm" },
+  "Varonil B": { "Repechaje":"mar 3 de noviembre",
+                 "Cuartos de Final":"mar 10 y jue 12 de noviembre",
+                 "Semifinales":"mar 17 de noviembre",
+                 "Final":"sáb 21 de noviembre · 4:10 pm" },
+  "Femenil B": { "Cuartos de Final":"mar 3 y jue 5 de noviembre",
+                 "Semifinales":"mar 10 y jue 12 de noviembre",
+                 "Final":"sáb 21 de noviembre · 1:10 pm" }
+};
+
+/* Una fila del cuadro. "lugar" puede ser un número (ese lugar de la tabla)
+   o un texto, cuando todavía no se sabe quién va a llegar ahí. */
+function filaDeCuadro(lugar, tabla){
+  if(typeof lugar === "number"){
+    const t = tabla[lugar - 1];
+    return '<div class="bracket-seed-row"><span class="bracket-seed">' + lugar + '</span>' +
+           '<span class="bracket-team">' + (t ? t.equipo : "Por definir") + '</span></div>';
+  }
+  const n = /^(\d+)º$/.exec(lugar);
+  if(n){
+    const t = tabla[Number(n[1]) - 1];
+    return '<div class="bracket-seed-row"><span class="bracket-seed">' + n[1] + '</span>' +
+           '<span class="bracket-team">' + (t ? t.equipo : "Por definir") + '</span></div>';
+  }
+  return '<div class="bracket-seed-row"><span class="bracket-seed">—</span>' +
+         '<span class="bracket-team por-definir">' + lugar + '</span></div>';
+}
+
+function duelosDeCuadro(pares, tabla){
+  return '<div class="bracket-grid">' + pares.map(function(p){
+    return '<div class="bracket-match">' + filaDeCuadro(p[0], tabla) +
+           '<div class="bracket-vs">VS</div>' + filaDeCuadro(p[1], tabla) + '</div>';
+  }).join("") + '</div>';
+}
+
+function rondaDeCuadro(titulo, cuando, pares, tabla){
+  return '<div class="playoffs-round-label">' + titulo +
+         (cuando ? '<span class="playoffs-cuando">' + cuando + '</span>' : "") + '</div>' +
+         duelosDeCuadro(pares, tabla);
+}
+
+function cuadroDeCategoria(cat){
+  const f = PLAYOFFS_FORMATO[cat];
+  const fechas = PLAYOFFS_FECHAS[cat] || {};
+  if(!f) return "";
+
+  const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
+  const necesarios = f.directos + f.repechaje.length * 2;
+
+  let html = '<div class="section-heading">' + cat + '<span class="line"></span></div>';
+  html += '<div class="playoffs-note">' + f.dice + '</div>';
+
+  if(tabla.length < necesarios){
+    html += '<div class="empty-state">Faltan equipos con resultados para armar el cuadro de ' + cat +
+            ' (hay ' + tabla.length + ' y se necesitan ' + necesarios + ').</div>';
+    return html;
   }
 
-  const clasificados = standings.slice(0, 8);
-  const eliminados = standings.slice(8);
-  const cruces = [
-    [clasificados[0], clasificados[7]],
-    [clasificados[1], clasificados[6]],
-    [clasificados[2], clasificados[5]],
-    [clasificados[3], clasificados[4]],
-  ];
+  if(f.repechaje.length){
+    html += rondaDeCuadro("Repechaje", fechas["Repechaje"], f.repechaje, tabla);
+    html += rondaDeCuadro(cat === "Femenil A" ? "Semifinales" : "Cuartos de Final",
+                          fechas[cat === "Femenil A" ? "Semifinales" : "Cuartos de Final"],
+                          f.llaves, tabla);
+  }else{
+    html += rondaDeCuadro("Cuartos de Final", fechas["Cuartos de Final"], f.llaves, tabla);
+  }
 
-  let html = '<div class="section-heading">Playoffs — Cuartos de Final<span class="line"></span></div>';
-  const notaEliminados = eliminados.length
-    ? `Clasificaron los primeros 8 lugares de la tabla general. ${eliminados.map(e=>e.equipo).join(", ")} qued${eliminados.length === 1 ? "a" : "an"} fuera de los playoffs.`
-    : "Clasificaron los primeros 8 lugares de la tabla general.";
-  html += `<div class="playoffs-note">${notaEliminados}</div>`;
-  html += '<div class="bracket-grid">';
-  cruces.forEach(par=>{
-    const [a, b] = par;
-    const seedA = standings.indexOf(a) + 1;
-    const seedB = standings.indexOf(b) + 1;
-    html += `
-      <div class="bracket-match">
-        <div class="bracket-seed-row"><span class="bracket-seed">${seedA}</span><span class="bracket-team">${a.equipo}</span></div>
-        <div class="bracket-vs">VS</div>
-        <div class="bracket-seed-row"><span class="bracket-seed">${seedB}</span><span class="bracket-team">${b.equipo}</span></div>
-      </div>`;
-  });
-  html += "</div>";
-  el.innerHTML = html;
+  if(cat !== "Femenil A"){
+    html += rondaDeCuadro("Semifinales", fechas["Semifinales"],
+      [["Ganador de la llave 1","Ganador de la llave 4"],
+       ["Ganador de la llave 2","Ganador de la llave 3"]], tabla);
+  }
+  html += rondaDeCuadro("Final", fechas["Final"],
+    [["Ganador de la semifinal 1","Ganador de la semifinal 2"]], tabla);
+
+  const fuera = tabla.slice(necesarios);
+  if(fuera.length){
+    html += '<div class="playoffs-eliminado">Hoy quedarían fuera: ' +
+            fuera.map(function(t){ return t.equipo; }).join(", ") + '.</div>';
+  }
+  return html;
+}
+
+function renderPlayoffs(){
+  const el = document.getElementById("view-playoffs");
+  const cat = CAT_VISTA["playoffs"];
+  let html = '<div class="section-heading">Playoffs<span class="line"></span></div>' +
+             botonesCategoria("playoffs");
+
+  html += '<div class="playoffs-note"><strong>Así van los cruces hoy.</strong> ' +
+          'La temporada regular todavía no termina, así que esto se mueve con cada ' +
+          'partido. Las fechas sí están apartadas y no cambian.</div>';
+
+  const cats = (cat === "general") ? CATS_ROL : [cat];
+  const cuadros = cats.map(cuadroDeCategoria).filter(Boolean).join("");
+  el.innerHTML = html + (cuadros ||
+    '<div class="empty-state">Todavía no hay resultados para armar los cuadros.</div>');
 }
 
 /* Concentrado: resumen general de la temporada. Se llena más adelante con
