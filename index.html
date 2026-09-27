@@ -1292,15 +1292,6 @@
     gap:10px;
     flex-wrap:wrap;
   }
-  /* La fecha de la ronda, al lado del título. Va en minúsculas y en naranja
-     para que se lea como un dato y no como parte del encabezado. */
-  .playoffs-cuando{
-    font-size:11px;
-    font-weight:700;
-    color:var(--orange);
-    text-transform:none;
-    letter-spacing:0;
-  }
   /* Los lugares que todavía no tienen dueño ("Ganador de la llave 1"). */
   .bracket-team.por-definir{
     font-weight:600;
@@ -4817,23 +4808,14 @@ const PLAYOFFS_FORMATO = {
   }
 };
 
-/* Las fechas ya están apartadas. Van aquí para que el cuadro las enseñe
-   junto a cada duelo y nadie tenga que buscarlas en otro lado. */
-const PLAYOFFS_FECHAS = {
-  "Varonil A": { "Cuartos de Final":"lun 2 y mié 4 de noviembre",
-                 "Semifinales":"lun 9 de noviembre",
-                 "Final":"sáb 21 de noviembre · 2:10 pm" },
-  "Femenil A": { "Repechaje":"lun 2 y mié 4 de noviembre",
-                 "Semifinales":"lun 9 y mié 11 de noviembre",
-                 "Final":"sáb 21 de noviembre · 3:10 pm" },
-  "Varonil B": { "Repechaje":"mar 3 de noviembre",
-                 "Cuartos de Final":"mar 10 y jue 12 de noviembre",
-                 "Semifinales":"mar 17 de noviembre",
-                 "Final":"sáb 21 de noviembre · 4:10 pm" },
-  "Femenil B": { "Cuartos de Final":"mar 3 y jue 5 de noviembre",
-                 "Semifinales":"mar 10 y jue 12 de noviembre",
-                 "Final":"sáb 21 de noviembre · 1:10 pm" }
-};
+/* LAS FECHAS DE LOS PLAYOFFS NO VAN EN LA PÁGINA.
+
+   Estaban aquí, pegadas a cada ronda, y Mauricio pidió quitarlas: las
+   maneja él y las suelta cuando le convenga. El cuadro sí se queda — lo que
+   la gente quiere ver es contra quién le tocaría hoy, no qué día.
+
+   Si algún día se vuelven públicas, se le regresa el tercer parámetro a
+   rondaDeCuadro() y vuelven a salir al lado del título de cada ronda. */
 
 /* Una fila del cuadro. "lugar" puede ser un número (ese lugar de la tabla)
    o un texto, cuando todavía no se sabe quién va a llegar ahí. */
@@ -4860,15 +4842,13 @@ function duelosDeCuadro(pares, tabla){
   }).join("") + '</div>';
 }
 
-function rondaDeCuadro(titulo, cuando, pares, tabla){
-  return '<div class="playoffs-round-label">' + titulo +
-         (cuando ? '<span class="playoffs-cuando">' + cuando + '</span>' : "") + '</div>' +
+function rondaDeCuadro(titulo, pares, tabla){
+  return '<div class="playoffs-round-label">' + titulo + '</div>' +
          duelosDeCuadro(pares, tabla);
 }
 
 function cuadroDeCategoria(cat){
   const f = PLAYOFFS_FORMATO[cat];
-  const fechas = PLAYOFFS_FECHAS[cat] || {};
   if(!f) return "";
 
   const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
@@ -4884,20 +4864,19 @@ function cuadroDeCategoria(cat){
   }
 
   if(f.repechaje.length){
-    html += rondaDeCuadro("Repechaje", fechas["Repechaje"], f.repechaje, tabla);
+    html += rondaDeCuadro("Repechaje", f.repechaje, tabla);
     html += rondaDeCuadro(cat === "Femenil A" ? "Semifinales" : "Cuartos de Final",
-                          fechas[cat === "Femenil A" ? "Semifinales" : "Cuartos de Final"],
                           f.llaves, tabla);
   }else{
-    html += rondaDeCuadro("Cuartos de Final", fechas["Cuartos de Final"], f.llaves, tabla);
+    html += rondaDeCuadro("Cuartos de Final", f.llaves, tabla);
   }
 
   if(cat !== "Femenil A"){
-    html += rondaDeCuadro("Semifinales", fechas["Semifinales"],
+    html += rondaDeCuadro("Semifinales",
       [["Ganador de la llave 1","Ganador de la llave 4"],
        ["Ganador de la llave 2","Ganador de la llave 3"]], tabla);
   }
-  html += rondaDeCuadro("Final", fechas["Final"],
+  html += rondaDeCuadro("Final",
     [["Ganador de la semifinal 1","Ganador de la semifinal 2"]], tabla);
 
   const fuera = tabla.slice(necesarios);
@@ -4916,7 +4895,7 @@ function renderPlayoffs(){
 
   html += '<div class="playoffs-note"><strong>Así van los cruces hoy.</strong> ' +
           'La temporada regular todavía no termina, así que esto se mueve con cada ' +
-          'partido. Las fechas sí están apartadas y no cambian.</div>';
+          'partido. Las fechas se anuncian después.</div>';
 
   const cats = (cat === "general") ? CATS_ROL : [cat];
   const cuadros = cats.map(cuadroDeCategoria).filter(Boolean).join("");
