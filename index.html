@@ -2693,8 +2693,27 @@ function pintarTodoDelSheet(){
   renderJugadores();
 }
 
-const HOJAS_DE_INICIO = ["Resultados","Rol de Partidos","Equipos","Integrantes",
-                         "Asistencia","Cédulas","Estadísticas","Patrocinadores"];
+/* LAS HOJAS SE PIDEN EN DOS TANDAS, NO EN UNA.
+
+   Antes se pedían las ocho juntas y funcionaba… hasta que el rol creció. El
+   problema es que "Integrantes" y "Estadísticas" solas se tardan más de 18
+   segundos cada una, así que la llamada completa se pasaba del medio minuto,
+   se rendía por tiempo y la página se quedaba pintando la copia de la visita
+   anterior. Se veía peor de lo que era: el rol salía incompleto —le faltaban
+   los partidos nuevos— pero sin ningún letrero de error.
+
+   Ahora van en dos tandas:
+
+     · LIGERAS  — el rol, los resultados, los equipos y los patrocinadores.
+       Es lo que la gente entra a ver. Pesa poco y llega rápido.
+     · PESADAS  — los rosters, la asistencia, las cédulas y las estadísticas.
+       Llegan después y repintan lo que dependa de ellas.
+
+   Si la segunda tanda se tarda o falla, el rol YA está bien pintado. Antes,
+   una hoja lenta se llevaba entre las patas a todas las demás. */
+const HOJAS_LIGERAS = ["Rol de Partidos","Resultados","Equipos","Patrocinadores"];
+const HOJAS_PESADAS = ["Integrantes","Asistencia","Cédulas","Estadísticas"];
+const HOJAS_DE_INICIO = HOJAS_LIGERAS.concat(HOJAS_PESADAS);
 
 async function init(){
   /* Las vistas que NO dependen del Sheet (Reglamento, Inscripción, Dónde
@@ -2723,16 +2742,35 @@ async function init(){
     pintarTodoDelSheet();
   }
 
-  /* 2) Y lo fresco, por detrás. Sin las fotos: son 12 MB de la hoja
-     Integrantes. Se piden después, por equipo, solo cuando alguien abre
-     uno. */
-  const datos = await leerDelSheet(HOJAS_DE_INICIO, 30000, { sinFotos: 1 });
+  /* 2) Y lo fresco, por detrás, en dos tandas. Sin las fotos: son 12 MB de
+     la hoja Integrantes. Se piden después, por equipo, solo cuando alguien
+     abre uno. */
+  const guardado = Object.assign({}, memoria ? memoria.hojas : null);
+  let algoLlego = false;
 
-  if(datos){
-    aplicarDatos(datos);
-    guardarEnMemoria(datos);
+  /* Primero lo ligero, que es lo que la gente entra a ver. */
+  const ligeras = await leerDelSheet(HOJAS_LIGERAS, 25000, { sinFotos: 1 });
+  if(ligeras){
+    algoLlego = true;
+    aplicarDatos(ligeras);
+    Object.assign(guardado, ligeras);
     pintarTodoDelSheet();
     document.getElementById("configNote").style.display = "none";
+  }
+
+  /* Y luego lo pesado. Se le da más tiempo porque de por sí tarda, y si no
+     llega, el rol ya quedó bien. */
+  const pesadas = await leerDelSheet(HOJAS_PESADAS, 45000, { sinFotos: 1 });
+  if(pesadas){
+    algoLlego = true;
+    aplicarDatos(pesadas);
+    Object.assign(guardado, pesadas);
+    pintarTodoDelSheet();
+    document.getElementById("configNote").style.display = "none";
+  }
+
+  if(algoLlego){
+    guardarEnMemoria(guardado);
   }else if(!yaHayAlgo){
     /* Solo se avisa cuando de verdad no hay nada que enseñar. Si ya se pintó
        lo de la visita anterior, el visitante está viendo información buena y
