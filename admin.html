@@ -977,6 +977,15 @@
   .fin-tabla tr.total td{border-top:2px solid #444;border-bottom:none;font-size:15px;font-weight:900;padding-top:12px;}
   .fin-egreso{color:#e2544a;}
   .fin-ingreso{color:#4caf74;}
+  /* La barra para capturar un gasto: fecha, concepto, monto y el +. */
+  .gasto-alta{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .gasto-alta input{
+    background:#101014; border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-size:13px;
+  }
+  .gasto-alta input:focus{border-color:var(--accent); outline:none;}
+  .gasto-alta input#gastoConcepto{flex:1; min-width:180px;}
+  .gasto-alta input#gastoMonto{width:120px;}
   .fin-cuota{
     width:110px;padding:6px 8px;background:#000;border:1px solid #444;
     border-radius:6px;color:#fff;font-size:13px;font-weight:700;text-align:right;
@@ -1534,6 +1543,7 @@
       </div>
       <div class="cat-botones" id="catBotonesAsistencia"></div>
       <div id="asistenciaResumen" class="equipos-resumen"></div>
+      <div id="asistenciaExplica" style="margin-top:16px;font-size:12px;color:var(--text-soft);line-height:1.6;"></div>
     </div>
 
     <div class="card">
@@ -1609,8 +1619,32 @@
         <div class="fin-config" id="finConfig"></div>
       </div>
       <div class="card">
+        <h3 style="margin:0 0 10px 0;">Cobranza</h3>
+        <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+          Lo que de verdad ha entrado a la caja, contra lo que se les puso de cuota.
+        </div>
+        <div id="finCobranza"></div>
+      </div>
+      <div class="card">
         <h3 style="margin:0 0 10px 0;">Entra y sale</h3>
         <div id="finResumen"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 4px 0;">Gastos variables e inversión</h3>
+        <div class="empty-state" style="text-align:left; padding:0 0 12px 0;">
+          Lo que vas gastando sobre la marcha y no cabe en una fórmula: equipo para la
+          mesa, balones, lo que sea. Se resta del balance.
+        </div>
+        <div class="gasto-alta">
+          <input id="gastoFecha" type="date">
+          <input id="gastoConcepto" type="text" placeholder="En qué se gastó" maxlength="80">
+          <input id="gastoMonto" type="number" min="1" step="1" placeholder="Monto">
+          <button class="mini-btn" id="gastoAgregar" onclick="agregarGasto()">+ Agregar</button>
+        </div>
+        <div id="gastoMsg" style="font-size:12px;color:#888;margin-top:8px;min-height:16px;"></div>
+        <div class="cruces-scroll" style="margin-top:10px;">
+          <table class="cruces-table" id="gastosTabla"></table>
+        </div>
       </div>
       <div class="card">
         <h3 style="margin:0 0 4px 0;">Calendario de la temporada</h3>
@@ -2610,6 +2644,10 @@ let MATCHES = DEMO_MATCHES;
 let ROSTERS = DEMO_ROSTERS;
 let RESULTADOS = DEMO_RESULTADOS;
 let ASISTENCIA = DEMO_ASISTENCIA;
+/* Los renglones tal cual vienen de la hoja. El mapa de arriba se queda con
+   "quién fue a qué partido" pero tira la FECHA, y sin fecha no se puede
+   sacar cuánta gente juega por día, por semana o por mes. */
+let ASISTENCIA_FILAS = [];
 /* La hoja Estadísticas: un renglón por jugador y partido, con sus puntos por
    periodo, triples y faltas. La usa la pestaña Editar. */
 let ESTADISTICAS_ADMIN = [];
@@ -2670,7 +2708,8 @@ async function initData(){
                                 CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
       if(datos["Rol de Partidos"])             MATCHES = mapRolCsv(datos["Rol de Partidos"]);
       if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
-      if(datos["Asistencia"])            ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
+      if(datos["Asistencia"]){           ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
+                                         ASISTENCIA_FILAS = datos["Asistencia"]; }
       if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
     } else {
       usedFallback = true;
@@ -8592,6 +8631,150 @@ function finCalendario(cfg, totalPartidos){
   return dias;
 }
 
+/* ============================================================
+   COBRANZA Y GASTOS VARIABLES
+
+   La pestaña ya calculaba la temporada en teoría: cuotas contra gastos
+   fijos. Faltaban las dos mitades de la realidad.
+
+   COBRANZA — la cuota es lo que cada equipo DEBE; la hoja Pagos es lo que
+   de verdad entró. No es lo mismo, y la diferencia es justo lo que hay que
+   perseguir. Aquí sale cuánto se ha cobrado, cuánto falta y el porcentaje.
+
+   GASTOS VARIABLES — los fijos (arbitraje, video, renta, coordinador,
+   trofeos) salen de una fórmula porque son predecibles. Lo que se gasta
+   sobre la marcha para mejorar la liga no, así que se captura a mano con
+   tres datos: fecha, concepto y monto. Viven en la hoja "Gastos".
+   ============================================================ */
+let GASTOS = [];
+
+function mapGastosCsv(rows){
+  return (rows || []).filter(r=>r["Concepto"]).map(r=>({
+    fecha: String(r["Fecha"] || "").slice(0,10),
+    concepto: r["Concepto"] || "",
+    monto: montoDePago(r["Monto ($)"] !== undefined ? r["Monto ($)"] : r["Monto"]),
+    quien: r["Registrado por"] || "",
+    __fila: r.__fila
+  })).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+}
+
+function totalGastosVariables(){
+  return GASTOS.reduce((n,g)=>n + (Number(g.monto) || 0), 0);
+}
+
+/* Lo cobrado de verdad: la suma de la hoja Pagos. */
+function finCobranza(){
+  const cobrado = (PAGOS || []).reduce((n,p)=>n + (Number(p.monto) || 0), 0);
+  const cuotas  = (INSCRIPCIONES || []).reduce((n,i)=>n + (Number(i.cuota) || 0), 0);
+  const falta   = Math.max(0, cuotas - cobrado);
+  const equiposPagados = new Set((PAGOS || []).map(p=>nombreEquipo(p.equipo)));
+  return {
+    cobrado, cuotas, falta,
+    pct: cuotas ? Math.round((cobrado / cuotas) * 100) : 0,
+    equiposConAlgo: equiposPagados.size,
+    equipos: (INSCRIPCIONES || []).length
+  };
+}
+
+function renderCobranza(){
+  const caja = document.getElementById("finCobranza");
+  if(!caja) return;
+  const c = finCobranza();
+  const color = c.pct >= 80 ? "#4caf74" : c.pct >= 50 ? "#e0a63c" : "#e2544a";
+  caja.innerHTML = `
+    <div class="equipos-resumen" style="margin-bottom:12px;">
+      <div class="eq-chip"><div class="n">${pesos(c.cobrado)}</div><div class="t">Cobrado</div></div>
+      <div class="eq-chip${c.falta ? " alerta" : ""}"><div class="n">${pesos(c.falta)}</div><div class="t">Falta por cobrar</div></div>
+      <div class="eq-chip"><div class="n" style="color:${color};">${c.pct}%</div><div class="t">Cobrado de las cuotas</div></div>
+      <div class="eq-chip"><div class="n">${c.equiposConAlgo}/${c.equipos}</div><div class="t">Equipos con algún pago</div></div>
+    </div>
+    <table class="fin-tabla" style="max-width:520px;">
+      <tr><td>Cuotas puestas<div class="detalle">lo que deberían pagar los ${c.equipos} equipos</div></td><td class="n">${pesos(c.cuotas)}</td></tr>
+      <tr><td>Cobrado<div class="detalle">suma de la hoja de pagos</div></td><td class="n fin-ingreso">${pesos(c.cobrado)}</td></tr>
+      <tr class="total"><td>Falta por cobrar</td><td class="n ${c.falta ? "fin-egreso" : "fin-ingreso"}">${pesos(c.falta)}</td></tr>
+    </table>`;
+}
+
+function renderGastos(){
+  const tabla = document.getElementById("gastosTabla");
+  if(!tabla) return;
+  if(!GASTOS.length){
+    tabla.innerHTML = '<tr><td class="empty-state">Todavía no has capturado ningún gasto variable.</td></tr>';
+    return;
+  }
+  let html = "<tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th></th></tr>";
+  GASTOS.forEach(g=>{
+    html += `<tr>
+      <td style="color:#888;">${g.fecha || "—"}</td>
+      <td>${g.concepto}</td>
+      <td class="n fin-egreso" style="font-weight:800;">${pesos(g.monto)}</td>
+      <td><button class="mini-btn" onclick="borrarGasto(${g.__fila})">Borrar</button></td>
+    </tr>`;
+  });
+  html += `<tr class="total"><td colspan="2">Total de gastos variables</td>
+           <td class="n fin-egreso">${pesos(totalGastosVariables())}</td><td></td></tr>`;
+  tabla.innerHTML = html;
+}
+
+async function cargarGastos(){
+  try{
+    const d = await postAppsScript({ action:"leerHojasAdmin", clave: CONFIG.adminPassword, hojas:["Gastos"] });
+    GASTOS = mapGastosCsv((d.hojas && d.hojas["Gastos"]) || []);
+  }catch(err){
+    /* Si la hoja todavía no existe o falla la lectura, la pantalla no se
+       rompe: se queda sin gastos y el balance solo trae los fijos. */
+    GASTOS = [];
+  }
+  renderGastos();
+  renderFinanzas();
+}
+
+async function agregarGasto(){
+  const fecha = document.getElementById("gastoFecha").value;
+  const concepto = document.getElementById("gastoConcepto").value.trim();
+  const monto = Number(document.getElementById("gastoMonto").value);
+  const msg = document.getElementById("gastoMsg");
+  const btn = document.getElementById("gastoAgregar");
+
+  if(!concepto){ msg.style.color = "#e2544a"; msg.textContent = "Falta decir en qué se gastó."; return; }
+  if(!(monto > 0)){ msg.style.color = "#e2544a"; msg.textContent = "El monto tiene que ser mayor que cero."; return; }
+
+  btn.disabled = true;
+  msg.style.color = "#888";
+  msg.textContent = "Guardando…";
+  try{
+    await postAppsScript({ action:"guardarGasto", clave: CONFIG.adminPassword,
+                           fecha, concepto, monto });
+    document.getElementById("gastoConcepto").value = "";
+    document.getElementById("gastoMonto").value = "";
+    msg.style.color = "#4caf74";
+    msg.textContent = concepto + " por " + pesos(monto) + ", guardado.";
+    await cargarGastos();
+  }catch(err){
+    msg.style.color = "#e2544a";
+    msg.textContent = "No se pudo guardar: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function borrarGasto(fila){
+  const g = GASTOS.find(x=>x.__fila === fila);
+  if(!g) return;
+  if(!confirm("¿Borrar el gasto \"" + g.concepto + "\" de " + pesos(g.monto) + "?")) return;
+  const msg = document.getElementById("gastoMsg");
+  msg.style.color = "#888";
+  msg.textContent = "Borrando…";
+  try{
+    await postAppsScript({ action:"eliminarGasto", clave: CONFIG.adminPassword, fila });
+    msg.style.color = "#4caf74";
+    msg.textContent = "Se borró " + g.concepto + ".";
+    await cargarGastos();
+  }catch(err){
+    msg.style.color = "#e2544a";
+    msg.textContent = "No se pudo borrar: " + err.message;
+  }
+}
+
 function finNumeros(){
   const cfg = finLeerConfig();
   const p = finPartidos(cfg);
@@ -8602,13 +8785,17 @@ function finNumeros(){
   const renta      = p.equipos * cfg.rentaPorEquipo;
   const coordinador= dias.length * cfg.pagoCoordinador;
   const trofeos    = cfg.trofeos;
-  const egresos    = arbitraje + video + renta + coordinador + trofeos;
+  /* Los gastos fijos salen de la fórmula; los variables, de lo que Mauricio
+     haya capturado. El balance tiene que restar los dos. */
+  const variables  = totalGastosVariables();
+  const egresos    = arbitraje + video + renta + coordinador + trofeos + variables;
 
   // Lo que entra: la cuota que tú le pusiste a cada equipo.
   const ingresos = INSCRIPCIONES.reduce((s,i)=>s + (Number(i.cuota) || 0), 0);
   const sinCuota = INSCRIPCIONES.filter(i=>!Number(i.cuota)).length;
 
-  return { cfg, p, dias, arbitraje, video, renta, coordinador, trofeos, egresos, ingresos, sinCuota };
+  return { cfg, p, dias, arbitraje, video, renta, coordinador, trofeos, variables,
+           egresos, ingresos, sinCuota };
 }
 
 function pagosSubTab(cual){
@@ -8618,7 +8805,14 @@ function pagosSubTab(cual){
     document.getElementById(paneles[k]).style.display = (k === cual) ? "block" : "none";
     document.getElementById(botones[k]).classList.toggle("active", k === cual);
   });
-  if(cual === "general") renderFinanzas();
+  if(cual === "general"){
+    renderFinanzas();
+    renderCobranza();
+    renderGastos();
+    /* Los gastos viven en su propia hoja y no vienen en la carga inicial:
+       se piden al abrir esta sub-pestaña, no al arrancar Admin. */
+    if(!GASTOS.length) cargarGastos();
+  }
   else if(cual === "jp") cargarPagosJP();
   else renderPagos();
 }
@@ -8714,6 +8908,8 @@ async function resolverPagoJP(fila, decision){
 function renderFinanzas(){
   const cont = document.getElementById("finConfig");
   if(!cont) return;
+  const fGasto = document.getElementById("gastoFecha");
+  if(fGasto && !fGasto.value) fGasto.value = new Date().toISOString().slice(0,10);
   const f = finNumeros();
   const c = f.cfg;
 
@@ -8752,6 +8948,9 @@ function renderFinanzas(){
       ${fila("Renta", f.p.equipos + " equipos × " + pesos(c.rentaPorEquipo), f.renta, "fin-egreso")}
       ${fila("Coordinador", f.dias.length + " días de partidos × " + pesos(c.pagoCoordinador), f.coordinador, "fin-egreso")}
       ${fila("Trofeos", "monto fijo", f.trofeos, "fin-egreso")}
+      ${fila("Gastos variables e inversión",
+             GASTOS.length ? GASTOS.length + " capturado(s) abajo" : "todavía ninguno",
+             f.variables, "fin-egreso")}
       ${fila("Total de gastos", "", f.egresos, "fin-egreso")}
       <tr class="total"><td>Balance</td>
         <td class="n ${balance >= 0 ? "fin-ingreso" : "fin-egreso"}">${pesos(balance)}</td></tr>
@@ -8882,6 +9081,64 @@ function resumenAsistencia(cat){
   });
 }
 
+/* ============================================================
+   CUÁNTA GENTE JUEGA — por partido, por día, por semana, por mes
+
+   El porcentaje de "Asistencia general" contesta otra pregunta: de cada
+   diez veces que un jugador PUDO jugar, cuántas fue. Mide constancia, no
+   volumen. Mauricio quería saber el volumen: cuánta gente pisa la cancha.
+
+   Aquí se cuentan dos cosas distintas a propósito:
+
+     · ASISTENCIAS — cada vez que alguien jugó. Si un jugador va tres veces
+       en la semana, cuenta tres. Es lo que sirve para la renta y para saber
+       qué tan llena está la cancha.
+     · PERSONAS — cuántos jugadores distintos. Si ese mismo va tres veces,
+       cuenta uno. Es lo que sirve para saber a cuánta gente mueve la liga.
+
+   Un partido se cuenta como una fecha con dos equipos, así que se suman las
+   parejas equipo+fecha y se dividen entre dos.
+   ============================================================ */
+function volumenAsistencia(cat){
+  const filas = (ASISTENCIA_FILAS || []).filter(r=>{
+    if(!r["Jugador"] || !r["Fecha"]) return false;
+    if(cat === "todas") return true;
+    return (CATEGORIA_POR_EQUIPO[nombreEquipo(r["Equipo"])] || "") === cat;
+  });
+  const fue = filas.filter(r => String(r["Asistió"]).trim() === "Sí");
+
+  const equipoFecha = new Set(filas.map(r => String(r["Fecha"]) + "|" + nombreEquipo(r["Equipo"])));
+  const partidos = Math.round(equipoFecha.size / 2);
+  const dias = new Set(filas.map(r => String(r["Fecha"])));
+  const semanas = new Set(filas.map(r => String(r["Jornada"])));
+  const meses = {};
+  fue.forEach(r => { const m = String(r["Fecha"]).slice(0,7); meses[m] = (meses[m] || 0) + 1; });
+  const personas = new Set(fue.map(r => nombreEquipo(r["Equipo"]) + "|" + nombreJugador(r["Jugador"], "")));
+
+  const prom = (a, b) => b ? Math.round((a / b) * 10) / 10 : 0;
+  return {
+    asistencias: fue.length,
+    faltas: filas.length - fue.length,
+    registros: filas.length,
+    personas: personas.size,
+    partidos, dias: dias.size, semanas: semanas.size,
+    porPartido: prom(fue.length, partidos),
+    porDia:     prom(fue.length, dias.size),
+    porSemana:  prom(fue.length, semanas.size),
+    partidosPorDia: prom(partidos, dias.size),
+    meses,
+    primerDia: [...dias].sort()[0] || "",
+    ultimoDia: [...dias].sort().pop() || ""
+  };
+}
+
+const MESES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                     "agosto","septiembre","octubre","noviembre","diciembre"];
+function mesBonito(clave){
+  const p = String(clave).split("-");
+  return p.length === 2 ? MESES_LARGO[Number(p[1]) - 1] : clave;
+}
+
 function renderAsistencia(){
   renderBotonesCategoriaAsistencia();
   const cat = CATEGORIA_ASISTENCIA;
@@ -8905,11 +9162,40 @@ function renderAsistencia(){
   const totalSi = lista.reduce((n,r)=>n + r.si, 0);
   const totalReg = lista.reduce((n,r)=>n + r.si + r.no, 0);
   const flojos = lista.filter(r=>r.pct < 50).length;
+  const pctGeneral = totalReg ? Math.round((totalSi/totalReg)*100) : 0;
+  const v = volumenAsistencia(cat);
+
   resumen.innerHTML = `
     <div class="eq-chip"><div class="n">${equipos.size}</div><div class="t">Equipos</div></div>
-    <div class="eq-chip"><div class="n">${lista.length}</div><div class="t">Jugadores</div></div>
-    <div class="eq-chip"><div class="n">${totalReg ? Math.round((totalSi/totalReg)*100) : 0}%</div><div class="t">Asistencia general</div></div>
-    <div class="eq-chip${flojos ? " alerta" : ""}"><div class="n">${flojos}</div><div class="t">Abajo del 50%</div></div>`;
+    <div class="eq-chip"><div class="n">${lista.length}</div><div class="t">Jugadores dados de alta</div></div>
+    <div class="eq-chip"><div class="n">${pctGeneral}%</div><div class="t">Constancia</div></div>
+    <div class="eq-chip${flojos ? " alerta" : ""}"><div class="n">${flojos}</div><div class="t">Abajo del 50%</div></div>
+    <div class="eq-chip"><div class="n">${v.partidos}</div><div class="t">Partidos jugados</div></div>
+    <div class="eq-chip"><div class="n">${v.porPartido}</div><div class="t">Jugadores por partido</div></div>
+    <div class="eq-chip"><div class="n">${v.porDia}</div><div class="t">Juegan por día</div></div>
+    <div class="eq-chip"><div class="n">${v.personas}</div><div class="t">Personas distintas</div></div>`;
+
+  /* El porcentaje se malinterpreta solo, así que se explica con sus propios
+     números en vez de dejarlo suelto. */
+  const expl = document.getElementById("asistenciaExplica");
+  if(expl){
+    const meses = Object.keys(v.meses).sort();
+    expl.innerHTML = `
+      <p style="margin:0 0 10px;"><strong>Constancia ${pctGeneral}%</strong> no quiere decir
+      que solo haya ido ese porcentaje de la gente. Cada vez que un equipo juega, la mesa
+      marca a todos sus jugadores con Sí o No: van ${v.registros} marcas, ${v.asistencias}
+      de Sí y ${v.faltas} de No. O sea que <strong>de cada 10 veces que un jugador pudo
+      jugar, fue ${(pctGeneral/10).toFixed(1)}</strong>.</p>
+      <table class="fin-tabla" style="max-width:520px;">
+        <tr><td>Partidos jugados</td><td class="n">${v.partidos}</td></tr>
+        <tr><td>Días con partidos<div class="detalle">${v.dias} días, ${v.partidosPorDia} partidos por día</div></td><td class="n">${v.dias}</td></tr>
+        <tr><td>Jugadores por partido<div class="detalle">promedio de los dos equipos juntos</div></td><td class="n">${v.porPartido}</td></tr>
+        <tr><td>Juegan por día<div class="detalle">asistencias, no personas: quien va dos veces cuenta dos</div></td><td class="n">${v.porDia}</td></tr>
+        <tr><td>Juegan por semana de liga<div class="detalle">${v.semanas} semanas con partidos</div></td><td class="n">${v.porSemana}</td></tr>
+        ${meses.map(m=>`<tr><td style="padding-left:18px;color:#888;">en ${mesBonito(m)}</td><td class="n" style="color:#888;">${v.meses[m]}</td></tr>`).join("")}
+        <tr class="total"><td>Personas distintas que han jugado<div class="detalle">de ${lista.length} dados de alta</div></td><td class="n">${v.personas}</td></tr>
+      </table>`;
+  }
 
   let html = `<tr><th>Equipo</th><th>Jugador</th><th>Asistió</th><th>Faltó</th><th>Partidos</th><th>%</th></tr>`;
   let equipoAnterior = null;
