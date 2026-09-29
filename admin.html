@@ -2331,7 +2331,7 @@ async function leerDelSheetConReintentos(hojas){
   return null;
 }
 
-function leerDelSheet(hojas, timeoutMs){
+function leerDelSheet(hojas, timeoutMs, opciones){
   return new Promise(resolve=>{
     const nombre = "__ligaCb" + Date.now() + Math.floor(Math.random()*1000);
     const script = document.createElement("script");
@@ -2378,8 +2378,18 @@ function leerDelSheet(hojas, timeoutMs){
       resolve(null);
     };
 
+    /* Parámetros extra, como fotosDe: sirven para pedir las fotos de un solo
+       equipo en vez de las 448 de la liga. */
+    let extra = "";
+    if(opciones){
+      for(const clave in opciones){
+        if(opciones[clave] === undefined || opciones[clave] === "") continue;
+        extra += "&" + clave + "=" + encodeURIComponent(opciones[clave]);
+      }
+    }
     script.src = CONFIG.appsScriptUrl
       + "?hojas=" + encodeURIComponent(hojas.join(","))
+      + extra
       + "&callback=" + nombre;
     document.head.appendChild(script);
   });
@@ -2672,10 +2682,20 @@ async function initData(){
        abierta del Apps Script — se piden aparte, con la contraseña de este
        Admin, igual que "Inscripción de Equipos". */
     try{
+      /* SIN LAS FOTOS.
+
+         Son 448 fotos guardadas como texto dentro del Sheet: 15.4 MB en una
+         sola lectura, contra 889 KB sin ellas. Admin las bajaba TODAS cada
+         vez que abría, aunque fueras directo a la tabla de pagos. Es la
+         razón principal de que tardara tanto en arrancar.
+
+         Ahora se piden por equipo, solo cuando alguien abre un roster o una
+         foto — igual que ya lo hace la página pública desde hace semanas. */
       const priv = await postAppsScript({
         action: "leerHojasAdmin",
         clave: CONFIG.adminPassword,
-        hojas: ["Integrantes", "Pagos"]
+        hojas: ["Integrantes", "Pagos"],
+        sinFotos: "1"
       });
       const hojasPriv = (priv && priv.hojas) || {};
       if(hojasPriv["Integrantes"]){
@@ -8202,6 +8222,60 @@ function edadDe(fechaNac){
   return (edad >= 0 && edad < 120) ? edad : null;
 }
 
+/* ============================================================
+   LAS FOTOS SE PIDEN POR EQUIPO, NO TODAS DE GOLPE
+
+   Las 448 fotos de la liga pesan 15.4 MB guardadas como texto dentro del
+   Sheet. Admin las bajaba enteras en cada arranque —aunque fueras directo
+   a Pagos— y por eso tardaba tanto en responder.
+
+   Ahora el arranque va sin fotos (889 KB) y las de un equipo se piden en el
+   momento en que alguien abre su roster o pica "Ver foto". Se guardan en
+   memoria para no volver a pedirlas en esa sesión.
+
+   Se usa la vía pública del Apps Script, la misma que la página: cuando se
+   pide con fotosDe, el servidor devuelve nada más nombre, equipo y foto —
+   sin correos, sin fechas de nacimiento, sin datos de tutores.
+   ============================================================ */
+const FOTOS_POR_EQUIPO = {};      // equipo -> "listo" | promesa en curso
+
+function fotosCargadasDe(equipo){
+  return FOTOS_POR_EQUIPO[nombreEquipo(equipo)] === "listo";
+}
+
+function cargarFotosDe(equipo){
+  const clave = nombreEquipo(equipo);
+  const estado = FOTOS_POR_EQUIPO[clave];
+  if(estado === "listo") return Promise.resolve(true);
+  if(estado && estado.then) return estado;          // dos clics, un solo viaje
+  if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl) return Promise.resolve(false);
+
+  const norm = t => String(t || "").trim().toLowerCase();
+  const promesa = leerDelSheet(["Integrantes"], 20000, { fotosDe: equipo }).then(datos=>{
+    const filas = (datos && datos["Integrantes"]) || [];
+    const porNombre = {};
+    filas.forEach(r=>{
+      const nom = nombreJugador(r["Nombre Completo"], r["Apellido"]);
+      if(nom && r["Foto"]) porNombre[norm(nom)] = r["Foto"];
+    });
+    (ALTAS_JUGADORES || []).forEach(a=>{
+      if(nombreEquipo(a.equipo) !== clave) return;
+      const f = porNombre[norm(a.nombre)];
+      if(f) a.foto = f;
+    });
+    FOTOS_POR_EQUIPO[clave] = "listo";
+    return true;
+  }).catch(()=>{
+    /* Que falle una foto no rompe nada: se queda el hueco y se sigue. */
+    FOTOS_POR_EQUIPO[clave] = "listo";
+    return false;
+  });
+
+  FOTOS_POR_EQUIPO[clave] = promesa;
+  return promesa;
+}
+
+
 /* Plantilla de un equipo: foto, nombre y datos de cada jugador dado de alta.
    Se vuelve a picar el mismo equipo y se cierra. */
 function verRosterEquipo(equipo){
@@ -8209,6 +8283,16 @@ function verRosterEquipo(equipo){
   renderEquiposPorCategoria();
   const card = document.getElementById("equipoRosterCard");
   if(card && EQUIPO_ROSTER) card.scrollIntoView({behavior:"smooth", block:"nearest"});
+
+  /* La lista sale al instante con los nombres; las caras llegan un par de
+     segundos después y se repinta. Vale más ver el roster de inmediato que
+     esperar a que bajen las fotos. */
+  if(EQUIPO_ROSTER && !fotosCargadasDe(EQUIPO_ROSTER)){
+    const pedido = EQUIPO_ROSTER;
+    cargarFotosDe(pedido).then(()=>{
+      if(EQUIPO_ROSTER === pedido) renderRosterEquipo();
+    });
+  }
 }
 
 function renderRosterEquipo(){
@@ -8228,12 +8312,17 @@ function renderRosterEquipo(){
   });
 
   const menores = jugadores.filter(j => j.alta && j.alta.menor === "Sí").length;
-  const conFoto = jugadores.filter(j => j.alta && j.alta.foto).length;
+  /* Mientras las fotos vienen en camino no se dice "0 con foto", que sería
+     mentira: se dice que están cargando. */
+  const listas = fotosCargadasDe(EQUIPO_ROSTER);
+  const conFoto = listas
+    ? jugadores.filter(j => j.alta && j.alta.foto).length + " con foto"
+    : "fotos en camino…";
 
   document.getElementById("rosterTitulo").textContent = EQUIPO_ROSTER;
   document.getElementById("rosterSub").innerHTML =
     (CATEGORIA_POR_EQUIPO[EQUIPO_ROSTER] || "Sin categoría") + " · " +
-    jugadores.length + " jugador(es) · " + conFoto + " con foto" +
+    jugadores.length + " jugador(es) · " + conFoto +
     (menores ? ' · <span style="color:#e0a63c;font-weight:700;">' + menores + ' menor(es) de edad</span>' : "") +
     ' · <span style="color:#666;">vuelve a picar el equipo para cerrar</span>';
 
@@ -8249,7 +8338,7 @@ function renderRosterEquipo(){
     const esMenor = a && a.menor === "Sí";
     const foto = (a && a.foto)
       ? `<img class="roster-foto" src="${a.foto}" alt="Foto de ${j.nombre}" onclick="verFotoJugador(${j.pos})" title="Ver la foto en grande">`
-      : `<div class="roster-foto sin" title="Sin foto">?</div>`;
+      : `<div class="roster-foto sin" title="${listas ? "Sin foto" : "La foto viene en camino"}">${listas ? "?" : "…"}</div>`;
     return `<div class="roster-card${esMenor ? " menor" : ""}">
       ${foto}
       <div class="roster-datos">
@@ -8845,19 +8934,31 @@ function renderAsistencia(){
 /* Muestra la foto del jugador (la misma que sale en su credencial).
    Recibe el índice dentro de ALTAS_JUGADORES, no la foto: son data URLs de
    cientos de miles de caracteres y no tienen por qué viajar por el HTML. */
-function verFotoJugador(indice){
+async function verFotoJugador(indice){
   const j = (ALTAS_JUGADORES || [])[indice];
   if(!j) return;
   document.getElementById("fotoModalTitle").textContent = j.nombre || "Jugador";
   document.getElementById("fotoModalSub").textContent =
     (j.equipo || "") + (j.ts ? " · alta " + j.ts : "");
   const cuerpo = document.getElementById("fotoModalBody");
-  cuerpo.innerHTML = j.foto
-    ? `<img src="${j.foto}" alt="Foto de ${j.nombre}"
-            style="max-width:100%;max-height:60vh;border-radius:10px;border:1px solid #333;">
-       <p style="margin:12px 0 0;font-size:12px;color:#888;">${j.correo || ""}</p>`
-    : '<div class="empty-state">Este jugador no subió foto.</div>';
   document.getElementById("fotoModal").classList.add("open");
+
+  const pinta = ()=>{
+    cuerpo.innerHTML = j.foto
+      ? `<img src="${j.foto}" alt="Foto de ${j.nombre}"
+              style="max-width:100%;max-height:60vh;border-radius:10px;border:1px solid #333;">
+         <p style="margin:12px 0 0;font-size:12px;color:#888;">${j.correo || ""}</p>`
+      : '<div class="empty-state">Este jugador no subió foto.</div>';
+  };
+
+  /* Ya no vienen todas las fotos al arrancar, así que la primera vez que se
+     abre una de un equipo hay que ir por ellas. La ventana se abre de
+     inmediato y avisa, en vez de dejar el botón muerto un par de segundos. */
+  if(!j.foto && !fotosCargadasDe(j.equipo)){
+    cuerpo.innerHTML = '<div class="empty-state">Buscando la foto…</div>';
+    await cargarFotosDe(j.equipo);
+  }
+  pinta();
 }
 
 function cerrarFotoJugador(){
@@ -8937,7 +9038,11 @@ function renderAltasJugadores(){
   // HTML gigantesco y tumbaría la página.
   top.forEach((f, i)=>{
     const seguro = (t)=>String(t||"").replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    const btnFoto = f.foto
+    /* Mientras las fotos de ese equipo no se hayan pedido no se sabe si el
+       jugador subió una, así que se ofrece el botón y la ventana lo dice.
+       Antes esto se sabía de gratis porque venían las 448 en el arranque —
+       que es justo lo que hacía tardar a Admin. */
+    const btnFoto = (f.foto || !fotosCargadasDe(f.equipo))
       ? `<button class="mini-btn" onclick="verFotoJugador(${i})">Ver foto</button>`
       : `<span style="color:#777;font-size:11px;">Sin foto</span>`;
     html += `<tr>
