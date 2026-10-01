@@ -1267,7 +1267,7 @@
   <div class="lock-box">
     <h2>🔒 Acceso de administrador</h2>
     <p>Esta sección es solo para quien organiza la liga.</p>
-    <input type="text" id="lockInput" placeholder="Código de acceso" autocomplete="off">
+    <input type="password" id="lockInput" placeholder="Código de acceso" autocomplete="off">
     <button id="lockBoton" onclick="intentarAcceso()">Entrar</button>
     <div class="lock-error" id="lockError">Código incorrecto, intenta de nuevo.</div>
   </div>
@@ -2137,16 +2137,19 @@
 <script>
 /* ============================================================
    CONFIGURACIÓN
-   1. adminPassword: código simple para que no cualquiera entre a esta
-      página. OJO: esto NO es seguridad real (es solo una capa en el
-      navegador) — no compartas la URL de esta página públicamente.
+   1. adminPassword: VA VACÍA A PROPÓSITO. Se llena al entrar, con lo que
+      Mauricio teclea, y solo después de que Apps Script dice que es la
+      buena (acción "entrarAdmin"). Antes la contraseña venía escrita aquí,
+      y como esta página es pública cualquiera la podía leer en el código
+      fuente y entrar como admin: pagos, INE de los menores, borrar equipos.
+      La contraseña de verdad vive solo en las Propiedades del script.
    2. appsScriptUrl: la "URL de la aplicación web" que te da Google al
       implementar AppsScript_Liga.gs.
    3. Si dejas las URLs de CSV vacías, esta página usa datos de ejemplo
       (la temporada simulada) para que puedas probar cómo se ve.
    ============================================================ */
 const CONFIG = {
-  adminPassword: "liga2026",
+  adminPassword: "",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbyli-ZsXTYA6felhpvlBX7CFOrPaW-_DieSupKALbAulsdAMM4ajBU_jea_okdZcQNL/exec",
   // Con esto en true, el Admin lee los datos EN VIVO del Google Sheet a través
   // del Web App de Apps Script (appsScriptUrl). No hace falta publicar ninguna
@@ -2194,11 +2197,35 @@ function permisoStaff(cual){ return !!STAFF && STAFF.permisos.indexOf(cual) !== 
 
 function intentarAcceso(){
   if(PORTAL_STAFF){ entrarComoStaff(); return; }
-  const val = document.getElementById("lockInput").value;
-  if(val === CONFIG.adminPassword){
+  entrarComoAdmin();
+}
+
+/* Igual que la puerta del staff: quien sabe si la clave es buena es Google,
+   no esta página. Solo si contesta que sí se guarda la clave (en memoria,
+   nada más mientras esté abierta la pestaña) para las demás acciones. */
+async function entrarComoAdmin(){
+  const caja = document.getElementById("lockInput");
+  const err = document.getElementById("lockError");
+  const clave = String(caja.value || "").trim();
+  if(!clave) return;
+
+  err.style.display = "none";
+  const boton = document.getElementById("lockBoton");
+  if(boton){ boton.disabled = true; boton.textContent = "Entrando…"; }
+
+  try{
+    await postAppsScript({ action: "entrarAdmin", clave: clave });
+    CONFIG.adminPassword = clave;
+    caja.value = "";
     document.getElementById("lockOverlay").style.display = "none";
-  } else {
-    document.getElementById("lockError").style.display = "block";
+    initData();
+  }catch(e){
+    err.textContent = /no autorizado/i.test(e.message)
+      ? "Código incorrecto, intenta de nuevo."
+      : "No se pudo entrar: " + e.message;
+    err.style.display = "block";
+  }finally{
+    if(boton){ boton.disabled = false; boton.textContent = "Entrar"; }
   }
 }
 
@@ -2217,8 +2244,10 @@ async function entrarComoStaff(){
        contesta su nombre y sus pestañas. */
     const r = await postAppsScript({ action: "entrarStaff", claveStaff: clave });
     STAFF = { clave: clave, nombre: r.staff.nombre, permisos: r.staff.permisos || [] };
+    caja.value = "";
     document.getElementById("lockOverlay").style.display = "none";
     aplicarModoStaff();
+    initData();
   }catch(e){
     err.textContent = /no es de nadie/i.test(e.message)
       ? "Esa clave no es de nadie. Revísala."
@@ -2730,12 +2759,21 @@ async function initData(){
 
          Ahora se piden por equipo, solo cuando alguien abre un roster o una
          foto — igual que ya lo hace la página pública desde hace semanas. */
-      const priv = await postAppsScript({
+      /* Cada quien pide solo lo que le toca. Antes esto salía siempre con
+         la clave de Mauricio, aun en el portal de staff, porque corría al
+         abrir la página, antes de que nadie tecleara nada. Ahora corre
+         después de entrar, y con la clave del staff Apps Script rechaza la
+         lectura entera si una sola hoja no le toca: por eso Pagos solo se
+         pide siendo admin. */
+      const hojasPrivadas = STAFF
+        ? ((permisoStaff("cedulas") || permisoStaff("minuta")) ? ["Integrantes"] : [])
+        : ["Integrantes", "Pagos"];
+      const priv = hojasPrivadas.length ? await postAppsScript({
         action: "leerHojasAdmin",
         clave: CONFIG.adminPassword,
-        hojas: ["Integrantes", "Pagos"],
+        hojas: hojasPrivadas,
         sinFotos: "1"
-      });
+      }) : null;
       const hojasPriv = (priv && priv.hojas) || {};
       if(hojasPriv["Integrantes"]){
         ROSTERS = mapIntegrantesCsv(hojasPriv["Integrantes"]);
@@ -2749,7 +2787,8 @@ async function initData(){
     // "Inscripción de Equipos" tiene teléfonos y códigos de equipo, así que
     // no está en la lista blanca pública de doGet — se pide aparte por POST
     // mandando la misma contraseña del candado de este Admin.
-    try{
+    // Las inscripciones son solo de Mauricio; el staff ni las pide.
+    if(!STAFF) try{
       const d = await postAppsScript({action: "leerInscripciones", clave: CONFIG.adminPassword});
       INSCRIPCIONES = mapInscripcionesCsv(d.filas || []);
       INSCRIPCIONES_CARGADAS = true;
@@ -2781,8 +2820,8 @@ async function initData(){
   renderBotonesOliver();
   oliverCargarRestricciones();
   /* El historial va aparte y sin esperar: es una lectura chica y si tarda o
-     falla, el rol ya está en pantalla. */
-  cargarReprogramaciones();
+     falla, el rol ya está en pantalla. Es de Mauricio: el staff no lo ve. */
+  if(!STAFF) cargarReprogramaciones();
 
   // La pestaña Editar se arma sola al entrar (ver renderEditarPartido).
 
@@ -3816,7 +3855,7 @@ async function agregarPartido(){
   }
 
   const payload = {
-    action: "programar",
+    action: "programar", clave: CONFIG.adminPassword,
     semana: Number(semana), jornada: Number(semana), // jornada = compatibilidad
     fecha, hora, sede, categoria,
     equipoLocal: local, equipoVisit: visit, arbitro, arbitro2, mesa
@@ -9466,7 +9505,7 @@ async function cambiarEstatusInscripcion(equipo, estatus){
   msg.textContent = "Guardando...";
 
   try{
-    const data = await postAppsScript({action: "aprobarEquipo", nombreEquipo: equipo, estatus});
+    const data = await postAppsScript({action: "aprobarEquipo", clave: CONFIG.adminPassword, nombreEquipo: equipo, estatus});
 
     const insc = INSCRIPCIONES.find(i=>i.equipo === equipo);
     if(insc) insc.estatus = estatus;
@@ -9826,7 +9865,7 @@ async function guardarPago(){
         equipoEsperado: anterior ? anterior.equipo : equipo,
         equipo, categoria, concepto, monto: Number(monto),
         metodoPago, quienRecibio, fecha, referencia }
-    : { action: "registrarPago",
+    : { action: "registrarPago", clave: CONFIG.adminPassword,
         equipo, categoria, concepto, monto: Number(monto),
         metodoPago, quienRecibio, fecha, referencia };
 
@@ -10364,7 +10403,9 @@ async function quitarImagenCorreo(){
   }
 }
 
-initData();
+/* La carga ya NO arranca aquí, al abrir la página: arranca al entrar
+   (entrarComoAdmin / entrarComoStaff), cuando ya se sabe con qué clave
+   pedir los datos privados. */
 </script>
 </body>
 </html>
