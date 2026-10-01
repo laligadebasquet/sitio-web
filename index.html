@@ -2676,7 +2676,7 @@ function aplicarDatos(datos){
   if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
   if(datos["Rol de Partidos"]) ROL = mapRolCsv(datos["Rol de Partidos"]);
   if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
-  if(datos["Integrantes"])  ROSTERS = mapIntegrantesCsv(datos["Integrantes"]);
+  if(datos["Integrantes"]){ ROSTERS = mapIntegrantesCsv(datos["Integrantes"]); marcarFotosQueYaLlegaron(); }
   if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
   if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
   if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
@@ -2770,7 +2770,12 @@ async function init(){
 
   /* Y luego lo pesado. Se le da más tiempo porque de por sí tarda, y si no
      llega, el rol ya quedó bien. */
-  const pesadas = await leerDelSheet(HOJAS_PESADAS, 45000, { sinFotos: 1 });
+  /* Desde el 1 de octubre de 2026 las fotos viven en Drive y en el Sheet
+     queda solo su liga: Integrantes con fotos pesa 84 KB (antes 15.4 MB).
+     Ya no vale la pena pedirlas aparte por equipo: vienen aquí y la foto se
+     abre al instante. Las ligeras no traen Integrantes, por eso esas sí
+     siguen con sinFotos (no cambia nada). */
+  const pesadas = await leerDelSheet(HOJAS_PESADAS, 45000);
   if(pesadas){
     algoLlego = true;
     aplicarDatos(pesadas);
@@ -3380,6 +3385,16 @@ function fichaJugadorHTML(equipo, jugador){
    ============================================================ */
 const FOTOS_POR_EQUIPO = {};      // equipo -> "listo" | Promise en curso
 
+/* Las fotos ya vienen con la carga inicial: el equipo que trae alguna se
+   da por cargado y abrir una foto ya no hace otro viaje. Un equipo sin
+   ninguna (una visita anterior guardada antes del cambio, por ejemplo) se
+   queda como estaba y la pide aparte, igual que antes. */
+function marcarFotosQueYaLlegaron(){
+  Object.keys(ROSTERS).forEach(eq=>{
+    if((ROSTERS[eq] || []).some(j => j.foto)) FOTOS_POR_EQUIPO[nombreEquipo(eq)] = "listo";
+  });
+}
+
 function fotosYaCargadas(equipo){
   return FOTOS_POR_EQUIPO[nombreEquipo(equipo)] === "listo";
 }
@@ -3411,8 +3426,10 @@ function cargarFotosDe(equipo){
     FOTOS_POR_EQUIPO[clave] = "listo";
     return true;
   }).catch(()=>{
-    // Que falle una foto no debe romper nada: se quedan las iniciales.
-    FOTOS_POR_EQUIPO[clave] = "listo";
+    /* Que falle una foto no debe romper nada: se quedan las iniciales. Pero
+       no se marca "listo", para que la próxima vez se vuelva a intentar en
+       vez de dejar al equipo sin fotos hasta recargar. */
+    delete FOTOS_POR_EQUIPO[clave];
     return false;
   });
 
@@ -3427,18 +3444,21 @@ async function abrirFoto(equipo, jugador){
   if(!modal || !cuerpo) return;
   // Se abre de inmediato y se avisa que va en camino: la foto tarda un par
   // de segundos la primera vez que se pide de ese equipo.
+  let llego = true;
   if(!fotosYaCargadas(equipo)){
     cuerpo.innerHTML = '<div class="foto-sin">Cargando la foto…</div>' +
       `<div class="foto-nombre">${jugador}</div><div class="foto-equipo">${equipo}</div>`;
     modal.classList.add("open");
-    await cargarFotosDe(equipo);
+    llego = await cargarFotosDe(equipo);
   }
   const lista = ROSTERS[equipo] || ROSTERS[nombreEquipo(equipo)] || [];
   const j = lista.find(x=>normalizar(x.nombre) === normalizar(jugador));
+  /* Si la foto no llegó, se dice eso y no "no tiene foto": la foto es
+     obligatoria al darse de alta, así que casi siempre es que Google tardó. */
   cuerpo.innerHTML = (j && j.foto)
     ? `<img src="${j.foto}" alt="${jugador}"><div class="foto-nombre">${jugador}</div>
        <div class="foto-equipo">${equipo}</div>`
-    : `<div class="foto-sin">Este jugador todavía no tiene foto.</div>
+    : `<div class="foto-sin">${llego ? "Este jugador todavía no tiene foto." : "No se pudo cargar la foto. Ciérrala y vuelve a abrirla en un momento."}</div>
        <div class="foto-nombre">${jugador}</div><div class="foto-equipo">${equipo}</div>`;
   modal.classList.add("open");
 }
