@@ -1356,6 +1356,28 @@
     .hd-jug:not(.en-cancha) .hd-b{padding:6px 2px;font-size:14px;}
     .hd-jug:not(.en-cancha) .hd-jug-nombre{font-size:15px;}
   }
+  /* La minuta de cada equipo pegada a su derecha (solo en la tablet). */
+  .hd-eq-con-minuta{display:contents;}
+  .hd-minuta-eq{display:none;}
+  @media(max-width:1389px){
+    .hd-minuta{display:none;}
+    .hd-eq-con-minuta{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:6px;align-items:start;min-width:0;}
+    .hd-minuta-eq{
+      display:block;position:sticky;top:84px;background:#0c0c0c;border:1px solid #2a2a2a;
+      border-radius:12px;padding:8px 6px;
+    }
+    .hd-minuta-eq .hd-min-eq-nom{font-size:11px;}
+    .hd-minuta-eq .hd-min-lista{max-height:calc(100vh - 150px);}
+    .hd-minuta-eq .hd-min-periodo{font-size:10px;}
+    .hd-minuta-eq .hd-min-fila{padding:4px 5px;margin-bottom:3px;}
+    .hd-minuta-eq .hd-min-pts{font-size:14px;}
+    .hd-minuta-eq .hd-min-corrido{font-size:16px;}
+    .hd-minuta-eq .hd-min-num{min-width:26px;height:26px;font-size:14px;}
+    .hd-minuta-eq .hd-min-vacia{font-size:11px;}
+    /* Con la minuta al lado, la fila de jugador tiene menos ancho: el
+       nombre puede bajar a dos renglones, los botones nunca se cortan. */
+    .hd-jug-info{min-width:90px;}
+  }
   @media(max-width:1000px){
     .hd-bf-nombre{font-size:12px;}
     .hd-bf-pts{font-size:32px;min-width:46px;}
@@ -7014,8 +7036,15 @@ function hdRender(){
   html += '<div class="hd-conmarcador">';
   html += hdMinutaHTML();
   html += hdTableroHTML();
+  /* Cada equipo va junto a SU minuta. En la tablet (abajo de 1390 px) eso
+     arma cuatro columnas: equipo, su minuta, el otro equipo, su minuta —
+     así lo pidió Mauricio el 1 de octubre, para no tener que bajar a buscar
+     quién anotó. En pantalla grande la caja es "display:contents" y la
+     minuta suelta se oculta: ahí sigue el panel de minuta de la izquierda. */
   html += '<div class="hd-split">';
-  ["local","visit"].forEach(lado=> html += hdColumnaEquipo(lado));
+  ["local","visit"].forEach(lado=> html +=
+    `<div class="hd-eq-con-minuta">${hdColumnaEquipo(lado)}` +
+    `<div class="hd-minuta-eq">${hdMinutaColumna(lado, HD.jugadas || [])}</div></div>`);
   html += '</div>';
   html += hdPanelTiemposHTML();
   html += '</div>';
