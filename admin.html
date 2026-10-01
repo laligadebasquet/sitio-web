@@ -1259,6 +1259,109 @@
     gap:2px;
     padding:2px 0;
   }
+  /* ================= HOJA DIGITAL EN LA TABLET =================
+     Lo que se vio en la cancha el 1 de octubre de 2026 (foto de Mauricio):
+     en la tablet de la mesa (1280 px de ancho) todo salía chiquito y había
+     que hacer zoom. Tres causas, medidas en una réplica de la pantalla:
+
+       1. Toda la página vivía en una caja de 820 px: más de un tercio de la
+          tablet se quedaba vacío y la captura iba apretada en lo que sobraba.
+       2. El tablero (marcador, faltas, periodo) y los tiempos fuera solo se
+          quedaban pegados arriba de 1390 px. En la tablet se apilaban y se
+          perdían en cuanto la mesa bajaba por la lista.
+       3. Botones de 30 px con letra de 11 y nombres de 12: muy chicos para
+          picarlos con el dedo a media jugada.
+
+     Arreglo: la hoja digital usa todo el ancho, y abajo de 1390 px hay una
+     barra fija arriba con lo que se consulta a cada rato, y renglones del
+     tamaño de un dedo. Los cinco de cancha se ven primero, con barra verde
+     y fondo marcado; la banca va más chica y apagada. Arriba de 1390 px se
+     queda el acomodo de cuatro columnas de siempre. */
+  main:has(#view-cedulas.active){max-width:none;}
+  .hd-barra-fija{display:none;}
+  @media(max-width:1389px){
+    .hd-marcador{display:none;}
+    .hd-tablero, .hd-tiempos{display:none;}
+    .hd-minuta{order:5;}
+    .hd-barra-fija{
+      display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;
+      position:sticky;top:0;z-index:30;margin:0 0 10px;padding:8px 10px;
+      background:#0b0b0b;border:1px solid #2a2a2a;border-radius:0 0 14px 14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.6);
+    }
+    .hd-bf-eq{display:flex;align-items:center;gap:10px;min-width:0;}
+    .hd-bf-visit{flex-direction:row-reverse;}
+    .hd-bf-nombre{
+      background:none;border:none;padding:0;cursor:pointer;font-family:inherit;color:#fff;
+      font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;
+      display:flex;align-items:center;gap:7px;min-width:0;flex:1 1 auto;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .hd-bf-visit .hd-bf-nombre{justify-content:flex-end;flex-direction:row-reverse;}
+    .hd-bf-nombre i{width:14px;height:14px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.3);}
+    .hd-bf-pts{font-size:40px;font-weight:900;color:#fff;line-height:1;min-width:58px;text-align:center;flex:0 0 auto;}
+    .hd-bf-faltas{
+      flex:0 0 auto;font-size:13px;font-weight:900;color:#ddd;background:#161616;
+      border:1px solid #333;border-radius:9px;padding:7px 9px;text-align:center;line-height:1.15;
+    }
+    .hd-bf-faltas small{display:block;font-size:9px;color:#888;letter-spacing:.4px;}
+    .hd-bf-faltas.bonus{background:#4a1010;border-color:#e23b3b;color:#ffb3b3;}
+    .hd-bf-faltas.bonus small{color:#ffb3b3;}
+    .hd-bf-favor{
+      flex:0 0 auto;font-size:10px;font-weight:900;color:#1a0b00;background:#E8912E;
+      border-radius:6px;padding:4px 6px;letter-spacing:.4px;
+    }
+    .hd-bf-tf{
+      flex:0 0 auto;min-width:76px;padding:9px 10px;border-radius:10px;border:1px solid #3a5;
+      background:#152;color:#cfc;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;line-height:1.1;
+    }
+    .hd-bf-tf small{display:block;font-size:9px;font-weight:800;letter-spacing:.4px;opacity:.8;}
+    .hd-bf-tf:disabled{opacity:.35;cursor:not-allowed;}
+    .hd-bf-periodos{text-align:center;}
+    .hd-bf-per-tit{font-size:10px;font-weight:900;color:#E8365D;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+    .hd-bf-botones{display:flex;gap:5px;justify-content:center;}
+    .hd-bf-botones .hd-cuarto-btn{padding:10px 12px;font-size:14px;border-radius:9px;min-width:46px;}
+
+    /* La columna de cada equipo, sin la ayuda larga (ya se explica en la
+       pantalla de antes de arrancar) para que quepan los cinco de cancha. */
+    .hd-col{padding:10px;}
+    .hd-col h3{font-size:17px;}
+    .hd-col-sub{font-size:12px;margin-bottom:8px;}
+    .hd-acciones-equipo{margin-bottom:6px;}
+    .hd-cancha-ayuda{display:none;}
+    .hd-cancha-head{padding:6px 6px 6px;}
+    .hd-cancha-tit, .hd-cancha-cont{font-size:13px;}
+
+    /* Renglón del tamaño de un dedo, en una sola línea. */
+    .hd-jug{flex-wrap:nowrap;gap:10px;padding:7px 8px;border-radius:10px;}
+    .hd-circulo{width:30px;height:30px;}
+    .hd-jug > .hd-jcol{flex:0 0 58px;}
+    .hd-jersey{width:58px;font-size:20px;padding:7px 4px;}
+    .hd-c{font-size:13px;padding:4px 0;}
+    .hd-jug-nombre{font-size:17px;}
+    .hd-jug-datos{font-size:13px;margin-top:3px;}
+    .hd-btns{grid-template-columns:repeat(4,48px);gap:5px;}
+    .hd-b{font-size:16px;padding:9px 2px;border-radius:8px;}
+    .hd-pend .hd-b{padding:7px 10px;font-size:14px;}
+
+    /* Los cinco de cancha: imposibles de confundir. */
+    .hd-jug.en-cancha{
+      background:rgba(46,125,70,.30);border-left:7px solid #49c46f;
+      margin-bottom:5px;border-bottom:none;
+    }
+    .hd-jug.en-cancha .hd-jug-nombre{color:#fff;}
+    /* La banca: más chica y apagada, pero se puede usar igual. */
+    .hd-jug:not(.en-cancha){opacity:.6;padding:4px 8px;}
+    .hd-jug:not(.en-cancha):hover, .hd-jug:not(.en-cancha):focus-within{opacity:1;}
+    .hd-jug:not(.en-cancha) .hd-b{padding:6px 2px;font-size:14px;}
+    .hd-jug:not(.en-cancha) .hd-jug-nombre{font-size:15px;}
+  }
+  @media(max-width:1000px){
+    .hd-bf-nombre{font-size:12px;}
+    .hd-bf-pts{font-size:32px;min-width:46px;}
+    .hd-bf-botones .hd-cuarto-btn{padding:9px 8px;font-size:13px;min-width:38px;}
+  }
+
 </style>
 </head>
 <body>
@@ -6907,6 +7010,7 @@ function hdRender(){
 
   // Tablero pegado a la izquierda · jugadores en medio · tiempos fuera a la derecha
   html += hdPaletaHTML();
+  html += hdBarraFijaHTML();
   html += '<div class="hd-conmarcador">';
   html += hdMinutaHTML();
   html += hdTableroHTML();
@@ -6957,6 +7061,55 @@ function hdRender(){
    cuarto. Se queda pegado mientras la mesa baja por la lista, porque son los
    dos datos que le preguntan a media captura y antes había que subir hasta
    arriba a ver el marcador. */
+/* La barra fija de arriba, solo en la tablet (abajo de 1390 px; arriba de
+   eso la oculta el CSS y siguen los paneles de los lados). Junta en una sola
+   franja lo que en la pantalla grande vive en el tablero y en el panel de
+   tiempos fuera, con los mismos botones y las mismas reglas: no hay una
+   segunda lógica que se pueda desincronizar. */
+function hdBarraFijaHTML(){
+  const mitad = hdMitadActual();
+  const tope = hdTiemposFueraTope(mitad);
+  const lado = (l)=>{
+    const rival = l === "local" ? "visit" : "local";
+    const f = HD.cuarto ? hdFaltasEquipoCuarto(HD, l, HD.cuarto) : 0;
+    const aFavor = HD.cuarto ? hdFaltasEquipoCuarto(HD, rival, HD.cuarto) >= 5 : false;
+    const usados = HD.tiemposFuera[l][mitad] || 0;
+    const sinTf = tope === 0 || usados >= tope;
+    const color = hdColorEquipo(HD[l], l);
+    return `<div class="hd-bf-eq hd-bf-${l}">
+      <button class="hd-bf-nombre" onclick="hdAbrirPaleta('${l}')" title="Cambiar el color de ${HD[l]}">
+        <i style="background:${color}"></i>${HD[l]}
+      </button>
+      ${aFavor ? '<span class="hd-bf-favor" title="El rival ya lleva 5 faltas en este periodo">BONUS</span>' : ''}
+      <div class="hd-bf-faltas${f >= 5 ? " bonus" : ""}" title="Faltas de equipo en este periodo">
+        <small>FALTAS</small>${HD.cuarto ? f : "—"}
+      </div>
+      <button class="hd-bf-tf" ${sinTf ? "disabled" : ""} onclick="hdTiempoFuera('${l}')"
+              title="${tope === 0 ? "Del 2º tiempo extra en adelante no hay tiempos fuera" : "Tiempo fuera de " + HD[l]}">
+        <small>T. FUERA</small>⏱ ${usados}/${tope}
+      </button>
+      <div class="hd-bf-pts">${hdTotal(HD, l)}</div>
+    </div>`;
+  };
+  const botones = hdPeriodosVisibles().map(c=>{
+    const activo = HD.cuarto === c ? " activo" : "";
+    const cerrado = (c < HD.cuartoMax) ? " cerrado" : "";
+    const extra = hdEsExtra(c) ? " extra" : "";
+    const bloqueado = (c < HD.cuartoMax || HD.cerrado) ? " disabled" : "";
+    const texto = c <= HD_CUARTOS ? c + "º" : (c === 5 ? "T.E." : (c - HD_CUARTOS) + "º T.E.");
+    return `<button class="hd-cuarto-btn${activo}${cerrado}${extra}"${bloqueado}
+              onclick="hdSeleccionarCuarto(${c})" title="${hdNombrePeriodo(c)}">${texto}</button>`;
+  }).join("");
+  return `<div class="hd-barra-fija">
+    ${lado("local")}
+    <div class="hd-bf-periodos">
+      <div class="hd-bf-per-tit">${HD.cuarto ? hdNombrePeriodo(HD.cuarto) : "Sin iniciar"}</div>
+      <div class="hd-bf-botones">${botones}</div>
+    </div>
+    ${lado("visit")}
+  </div>`;
+}
+
 function hdTableroHTML(){
   /* Solo las faltas del periodo que está marcado. Las de los cuartos que ya
      pasaron no sirven para nada en la mesa: lo único que se necesita saber
