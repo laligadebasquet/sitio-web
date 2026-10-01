@@ -2768,16 +2768,20 @@ async function initData(){
       const hojasPrivadas = STAFF
         ? ((permisoStaff("cedulas") || permisoStaff("minuta")) ? ["Integrantes"] : [])
         : ["Integrantes", "Pagos"];
+      /* Ya sin sinFotos: desde el 1 de octubre de 2026 la columna Foto trae
+         solo ligas de Drive (84 KB las 449), así que las fotos llegan con
+         esta misma lectura y la mesa las ve al instante para verificar
+         identidad, sin otro viaje de varios segundos. */
       const priv = hojasPrivadas.length ? await postAppsScript({
         action: "leerHojasAdmin",
         clave: CONFIG.adminPassword,
-        hojas: hojasPrivadas,
-        sinFotos: "1"
+        hojas: hojasPrivadas
       }) : null;
       const hojasPriv = (priv && priv.hojas) || {};
       if(hojasPriv["Integrantes"]){
         ROSTERS = mapIntegrantesCsv(hojasPriv["Integrantes"]);
         ALTAS_JUGADORES = mapAltasJugadores(hojasPriv["Integrantes"]);
+        marcarFotosQueYaLlegaron();
       }
       if(hojasPriv["Pagos"]) PAGOS = mapPagosCsv(hojasPriv["Pagos"]);
     }catch(err){
@@ -5746,19 +5750,80 @@ function hdClaveRespaldo(esPrueba){
   return esPrueba ? HD_RESPALDO + "_prueba" : HD_RESPALDO;
 }
 
+/* Cada partido real tiene ADEMÁS su propio cajón en la tablet.
+
+   Antes había uno solo para todos: abrir un partido pisaba el respaldo del
+   anterior. El 30 de septiembre de 2026 eso costó un partido: el de las
+   9:10 (EXBORREGUITAS vs ALWAYS BLUE) no se pudo guardar porque justo se
+   estaban cambiando las claves, la mesa abrió el de las 10:10 en la misma
+   tablet, y el respaldo del de las 9:10 —el que el aviso decía "nada se
+   perdió"— quedó encimado. Con un cajón por partido eso ya no puede pasar.
+
+   El cajón único (HD_RESPALDO) se sigue escribiendo igual, para que una
+   tablet que todavía tenga la página vieja abierta no note la diferencia. */
+function hdClaveRespaldoDe(clave){ return HD_RESPALDO + "::" + clave; }
+
 function hdGuardarRespaldo(){
   if(!HD) return;
-  try{ localStorage.setItem(hdClaveRespaldo(HD.esPrueba), JSON.stringify(HD)); }
+  try{
+    const texto = JSON.stringify(HD);
+    if(!HD.esPrueba && HD.clave) localStorage.setItem(hdClaveRespaldoDe(HD.clave), texto);
+    localStorage.setItem(hdClaveRespaldo(HD.esPrueba), texto);
+  }
   catch(e){ console.warn("No se pudo respaldar la hoja digital:", e); }
 }
 
 function hdLeerRespaldo(clave){
   try{
+    const propio = localStorage.getItem(hdClaveRespaldoDe(clave));
+    if(propio){
+      const g = JSON.parse(propio);
+      if(g && g.clave === clave) return g;
+    }
     const crudo = localStorage.getItem(HD_RESPALDO);
     if(!crudo) return null;
     const guardado = JSON.parse(crudo);
     return (guardado && guardado.clave === clave) ? guardado : null;
   }catch(e){ return null; }
+}
+
+/* Al abrir la página, ANTES de que nadie escoja un partido: si el cajón
+   único trae un partido real, se copia a su propio cajón. Así lo que haya
+   dejado la página vieja no se pierde en cuanto se abra otro partido.
+
+   De paso se tiran los cajones de partidos ya cerrados y guardados de hace
+   más de una semana: la tablet tiene ~5 MB y cada partido pesa unos 20 KB. */
+function hdRescatarRespaldos(){
+  try{
+    const crudo = localStorage.getItem(HD_RESPALDO);
+    if(crudo){
+      const g = JSON.parse(crudo);
+      if(g && g.clave && !g.esPrueba){
+        const k = hdClaveRespaldoDe(g.clave);
+        if(!localStorage.getItem(k)) localStorage.setItem(k, crudo);
+      }
+    }
+    const h = hdHoyISO().split("-").map(Number);
+    const sem = new Date(h[0], h[1] - 1, h[2] - 7);
+    const haceUnaSemana = sem.getFullYear() + "-" + String(sem.getMonth() + 1).padStart(2, "0") + "-" +
+                          String(sem.getDate()).padStart(2, "0");
+    for(let i = localStorage.length - 1; i >= 0; i--){
+      const k = localStorage.key(i);
+      if(!k || k.indexOf(HD_RESPALDO + "::") !== 0) continue;
+      try{
+        const g = JSON.parse(localStorage.getItem(k));
+        if(g && g.cerrado && String(g.fecha || "").slice(0, 10) < haceUnaSemana) localStorage.removeItem(k);
+      }catch(e){ /* uno roto no detiene la limpieza */ }
+    }
+  }catch(e){ /* sin localStorage no hay nada que rescatar */ }
+}
+hdRescatarRespaldos();
+
+/* ¿Esta tablet tiene algo capturado de ese partido? Para avisarlo en la
+   lista: es justo lo que la mesa necesita saber para no empezar de cero. */
+function hdTieneCaptura(m){
+  const g = hdLeerRespaldo(hdClaveDe(m));
+  return !!(g && !g.cerrado && (g.cuarto > 0 || hdTotal(g, "local") + hdTotal(g, "visit") > 0));
 }
 
 /* ---------- Modo prueba ---------- */
@@ -5823,20 +5888,56 @@ function hdPartidosDeHoy(){
   return MATCHES.filter(m => String(m.fecha || "").slice(0,10) === hoy);
 }
 
+/* Los de días anteriores que se quedaron sin capturar. Antes la lista solo
+   enseñaba los de hoy, y un partido que no se guardó en su día ya no se
+   podía abrir en la hoja digital: quedaba solo la pestaña Editar, que no
+   guarda los puntos de cada jugador. Así se quedaron KOOL AIDERS vs BIG DOGS
+   y LIMONES vs CHINOLAS del 29 de agosto.
+
+   "Sin capturar" = en el rol no dice Jugado, no está por reprogramar, y no
+   tiene renglón en Resultados (los viejos a veces no tienen el Estatus al
+   día, por eso se revisan los dos). */
+function hdPartidosPendientes(){
+  const hoy = hdHoyISO();
+  return MATCHES.filter(m=>{
+    const f = String(m.fecha || "").slice(0, 10);
+    if(!f || f >= hoy) return false;
+    if(m.estatus === "Jugado") return false;
+    if(/reprogram|cancel|suspend/i.test(String(m.estatus || ""))) return false;
+    return !RESULTADOS.some(r => r.local === m.local && r.visit === m.visit &&
+                                 String(r.jornada) === String(m.jornada));
+  }).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+
 function hdLlenarSelector(){
   const sel = document.getElementById("hdPartidoSelect");
   if(!sel) return;
   const lista = hdPartidosDeHoy();
+  const pendientes = hdPartidosPendientes();
   const aviso = document.getElementById("hdAvisoDia");
   if(aviso){
-    aviso.textContent = lista.length
-      ? "Solo salen los partidos de hoy (" + lista.length + ")."
-      : "Hoy no hay partidos programados.";
+    aviso.textContent = (lista.length
+      ? "Partidos de hoy: " + lista.length + "."
+      : "Hoy no hay partidos programados.") +
+      (pendientes.length ? " ⚠️ Hay " + pendientes.length + " de días anteriores sin capturar (al final de la lista)." : "");
   }
-  sel.innerHTML = lista.length
+  const marca = m => hdTieneCaptura(m) ? " ✅ hay captura guardada en esta tablet" : "";
+  const deHoy = lista.map(m=>`<option value="${MATCHES.indexOf(m)}">${m.hora ? m.hora + " · " : ""}${m.categoria || ""} — ${m.local} vs ${m.visit}${m.estatus === "Jugado" ? " (ya capturado)" : ""}${marca(m)}</option>`).join("");
+  const atrasados = pendientes.map(m=>`<option value="${MATCHES.indexOf(m)}">${fechaCortaHd(m.fecha)}${m.hora ? " " + m.hora : ""} · ${m.categoria || ""} — ${m.local} vs ${m.visit}${marca(m)}</option>`).join("");
+  sel.innerHTML = (lista.length || pendientes.length)
     ? '<option value="">Elige el partido…</option>' +
-      lista.map(m=>`<option value="${MATCHES.indexOf(m)}">${m.hora ? m.hora + " · " : ""}${m.categoria || ""} — ${m.local} vs ${m.visit}${m.estatus === "Jugado" ? " (ya capturado)" : ""}</option>`).join("")
+      (lista.length ? '<optgroup label="Hoy">' + deHoy + '</optgroup>' : "") +
+      (pendientes.length ? '<optgroup label="⚠️ De días anteriores, sin capturar">' + atrasados + '</optgroup>' : "")
     : '<option value="">Hoy no hay partidos</option>';
+}
+
+/* "mié 30 sep" para la lista de pendientes: ahí sí importa el día. */
+function fechaCortaHd(iso){
+  const p = String(iso || "").slice(0, 10).split("-").map(Number);
+  if(p.length !== 3 || !p[0]) return String(iso || "");
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  return ["dom","lun","mar","mié","jue","vie","sáb"][d.getDay()] + " " + d.getDate() + " " +
+         ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][d.getMonth()];
 }
 
 function hdCambiarPartido(){
@@ -8317,6 +8418,14 @@ function edadDe(fechaNac){
    ============================================================ */
 const FOTOS_POR_EQUIPO = {};      // equipo -> "listo" | promesa en curso
 
+/* Lo que llegó con la carga inicial cuenta como cargado: abrir una foto ya
+   no hace otro viaje. Un equipo que no traiga ninguna la pide aparte. */
+function marcarFotosQueYaLlegaron(){
+  (ALTAS_JUGADORES || []).forEach(a=>{
+    if(a.foto) FOTOS_POR_EQUIPO[nombreEquipo(a.equipo)] = "listo";
+  });
+}
+
 function fotosCargadasDe(equipo){
   return FOTOS_POR_EQUIPO[nombreEquipo(equipo)] === "listo";
 }
@@ -8344,8 +8453,10 @@ function cargarFotosDe(equipo){
     FOTOS_POR_EQUIPO[clave] = "listo";
     return true;
   }).catch(()=>{
-    /* Que falle una foto no rompe nada: se queda el hueco y se sigue. */
-    FOTOS_POR_EQUIPO[clave] = "listo";
+    /* Que falle una foto no rompe nada. Pero NO se marca "listo": antes sí, y
+       el equipo se quedaba sin fotos hasta recargar la página. Así, la
+       siguiente vez que alguien abra una foto de ese equipo, se reintenta. */
+    delete FOTOS_POR_EQUIPO[clave];
     return false;
   });
 
@@ -9268,12 +9379,22 @@ async function verFotoJugador(indice){
   const cuerpo = document.getElementById("fotoModalBody");
   document.getElementById("fotoModal").classList.add("open");
 
+  /* "Este jugador no subió foto" era MENTIRA casi siempre: la foto es
+     obligatoria al darse de alta. Lo que pasaba es que Google tardaba más de
+     lo que la página espera en traer las fotos del equipo, la lectura se
+     rendía y la ventana lo contaba como "no hay foto". La mesa no podía
+     verificar identidad (30 sept 2026). Ahora se distingue: si no llegó, se
+     dice que no llegó y se ofrece reintentar. */
+  let llego = true;
   const pinta = ()=>{
     cuerpo.innerHTML = j.foto
       ? `<img src="${j.foto}" alt="Foto de ${j.nombre}"
               style="max-width:100%;max-height:60vh;border-radius:10px;border:1px solid #333;">
          <p style="margin:12px 0 0;font-size:12px;color:#888;">${j.correo || ""}</p>`
-      : '<div class="empty-state">Este jugador no subió foto.</div>';
+      : !llego
+        ? `<div class="empty-state">No se pudo traer la foto: Google tardó demasiado en contestar.<br><br>
+             <button class="btn-sec" onclick="verFotoJugador(${indice})">Intentar otra vez</button></div>`
+        : '<div class="empty-state">No encontré su foto en el registro de altas. Revisa en el Sheet que esté bien escrito su nombre.</div>';
   };
 
   /* Ya no vienen todas las fotos al arrancar, así que la primera vez que se
@@ -9281,7 +9402,7 @@ async function verFotoJugador(indice){
      inmediato y avisa, en vez de dejar el botón muerto un par de segundos. */
   if(!j.foto && !fotosCargadasDe(j.equipo)){
     cuerpo.innerHTML = '<div class="empty-state">Buscando la foto…</div>';
-    await cargarFotosDe(j.equipo);
+    llego = await cargarFotosDe(j.equipo);
   }
   pinta();
 }
