@@ -1947,13 +1947,16 @@
           <div id="hdAvisoDia" style="font-size:10px;color:#777;margin-top:4px;"></div>
         </div>
         <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
-        <button class="mini-btn" data-solo-admin onclick="hdAbrirPrueba()">🧪 Partido de prueba</button>
+        <!-- Dos pruebas (1 oct 2026): la completa recorre todo, desde ponerle
+             número a cada jugador; la de hoja digital llega directo a capturar. -->
+        <button class="mini-btn" data-solo-admin onclick="hdAbrirPrueba('completa')">🧪 Prueba completa</button>
+        <button class="mini-btn" data-solo-admin onclick="hdAbrirPrueba('hoja')">🧪 Prueba hoja digital</button>
       </div>
       <!-- Modo prueba: para practicar o entrenar a la mesa de control sin
            tocar el rol ni los resultados reales. -->
       <div id="hdPruebaForm" style="display:none;margin-top:14px;padding:14px;
            border:1px solid #5a4410;border-radius:10px;background:#1a1408;">
-        <div style="font-size:11px;font-weight:800;color:#e0a63c;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+        <div id="hdPruebaTitulo" style="font-size:11px;font-weight:800;color:#e0a63c;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
           Partido de prueba — no se guarda nada
         </div>
         <div class="grid-2">
@@ -1971,7 +1974,7 @@
           </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:12px;">
-          <button class="save-btn" style="margin:0;" onclick="hdIniciarPrueba()">Empezar prueba</button>
+          <button class="save-btn" id="hdPruebaBtn" style="margin:0;" onclick="hdIniciarPrueba()">Empezar prueba</button>
           <button class="mini-btn" onclick="document.getElementById('hdPruebaForm').style.display='none'">Cancelar</button>
         </div>
       </div>
@@ -5998,10 +6001,25 @@ function hdTieneCaptura(m){
 }
 
 /* ---------- Modo prueba ---------- */
-function hdAbrirPrueba(){
+/* "completa": arranca en la pantalla de antes del partido, como uno real
+   (números, titulares, iniciar). "hoja": todo eso se pone solo y se llega
+   directo a capturar — para practicar la hoja digital sin teclear 20
+   números cada vez. */
+let HD_PRUEBA_MODO = "completa";
+
+function hdAbrirPrueba(modo){
+  modo = modo === "hoja" ? "hoja" : "completa";
   const form = document.getElementById("hdPruebaForm");
-  form.style.display = form.style.display === "none" ? "block" : "none";
-  if(form.style.display !== "block") return;
+  const abierta = form.style.display !== "none";
+  // Picar el mismo botón otra vez la cierra; picar el otro cambia de modo.
+  if(abierta && modo === HD_PRUEBA_MODO){ form.style.display = "none"; return; }
+  HD_PRUEBA_MODO = modo;
+  form.style.display = "block";
+  document.getElementById("hdPruebaTitulo").textContent = modo === "hoja"
+    ? "Prueba de hoja digital — números y titulares se ponen solos · no se guarda nada"
+    : "Prueba completa — desde ponerle número a cada jugador · no se guarda nada";
+  document.getElementById("hdPruebaBtn").textContent = modo === "hoja"
+    ? "Empezar a capturar" : "Empezar prueba";
   const sel = document.getElementById("hdPruebaCat");
   sel.innerHTML = CONFIG.categorias.map(c=>`<option value="${c}">${c}</option>`).join("");
   hdPruebaLlenarEquipos();
@@ -6039,9 +6057,29 @@ function hdIniciarPrueba(){
   HD.esPrueba = true;
   HD.clave = "PRUEBA|" + cat + "|" + local + "|" + visit;
   hdApagarReloj();
+  if(HD_PRUEBA_MODO === "hoja") hdPrepararPruebaHoja();
   hdGuardarRespaldo();
   document.getElementById("hdPruebaForm").style.display = "none";
   hdRender();
+}
+
+/* La prueba de hoja digital: cada jugador con su número (1, 2, 3… en el
+   orden del roster), los primeros cinco de cada equipo en la cancha, y el
+   partido ya arrancado en el 1er cuarto. Es lo mismo que haría la mesa a
+   mano en la pantalla previa, sin las validaciones (es una prueba). */
+function hdPrepararPruebaHoja(){
+  ["local","visit"].forEach(lado=>{
+    HD.jugadores[lado].forEach((j, i)=>{
+      j.jersey = String(i + 1);
+      j.encancha = i < HD_EN_CANCHA;
+      j.jugo = j.encancha;
+    });
+  });
+  HD.iniciado = true;
+  HD.cuarto = 1;
+  HD.cuartoMax = 1;
+  HD.arranco = hdAhoraHM();
+  hdArrancarReloj();
 }
 
 /* ---------- Selector de partido ----------
