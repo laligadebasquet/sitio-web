@@ -1384,6 +1384,51 @@
     .hd-bf-botones .hd-cuarto-btn{padding:9px 8px;font-size:13px;min-width:38px;}
   }
 
+  /* ================= PANTALLA COMPLETA (hoja digital) =================
+     Pedido de Mauricio el 1 de octubre de 2026, viendo la tablet: un botón
+     que deje SOLO lo de arriba (marcador, faltas, tiempos fuera, periodo),
+     los cinco titulares de cada equipo y las minutas. Los cinco se estiran
+     para llenar el alto, así nunca hay que bajar ni hacer zoom. Se esconde
+     lo demás con estilos: la lógica es la misma, los botones son los
+     mismos, y la ventana de cambio y la de colores siguen funcionando. */
+  /* La hoja usa todo el ancho. Va también con clase en el body porque
+     "main:has()" no lo entienden todos los navegadores: en la tablet de la
+     mesa quedaba una franja vacía a la derecha. */
+  body.vista-hoja main{max-width:none;}
+  .hd-bf-pc{
+    display:block;margin:6px auto 0;padding:7px 12px;border-radius:8px;border:1px solid #555;
+    background:#1a1a1a;color:#eee;font-family:inherit;font-size:11px;font-weight:900;
+    letter-spacing:.6px;text-transform:uppercase;cursor:pointer;white-space:nowrap;
+  }
+  .hd-bf-pc:hover{border-color:#E8365D;}
+  body.hd-pc .hd-bf-pc{border-color:#E8365D;color:#ffb3c2;}
+  body.hd-pc{overflow:hidden;}
+  body.hd-pc header.topbar, body.hd-pc #configWarning{display:none !important;}
+  body.hd-pc main{max-width:none;margin:0;padding:0 8px;}
+  body.hd-pc #view-cedulas > .card{display:none;}
+  body.hd-pc #hdTablero > *:not(.hd-barra-fija):not(.hd-conmarcador):not(.hd-cambio-fondo){display:none !important;}
+  body.hd-pc .hd-barra-fija{display:grid;position:sticky;top:0;margin:0 0 6px;}
+  body.hd-pc .hd-conmarcador{display:block;}
+  body.hd-pc .hd-minuta, body.hd-pc .hd-tablero, body.hd-pc .hd-tiempos{display:none;}
+  body.hd-pc .hd-split{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
+    height:calc(100vh - var(--hd-bf-alto, 100px) - 14px);
+  }
+  body.hd-pc .hd-eq-con-minuta{
+    display:grid;grid-template-columns:minmax(0,1fr) clamp(76px, 8vw, 104px);gap:6px;
+    height:100%;min-height:0;
+  }
+  body.hd-pc .hd-col{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0;overflow:hidden;padding:6px;}
+  body.hd-pc .hd-col > *:not(.hd-jug){display:none;}
+  body.hd-pc .hd-col > .hd-jug:not(.en-cancha){display:none;}
+  body.hd-pc .hd-col > .hd-jug.en-cancha{flex:1 1 0;min-height:0;margin:0;flex-wrap:nowrap;}
+  body.hd-pc .hd-btns{grid-template-columns:repeat(4, clamp(38px, 3.7vw, 50px));}
+  body.hd-pc .hd-jug-nombre{font-size:clamp(13px, 1.35vw, 18px);}
+  body.hd-pc .hd-jug-info{min-width:0;}
+  body.hd-pc .hd-minuta-eq{display:flex;flex-direction:column;position:static;height:100%;min-height:0;}
+  body.hd-pc .hd-minuta-eq .hd-min-col{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
+  body.hd-pc .hd-minuta-eq .hd-min-lista{max-height:none;flex:1 1 auto;overflow-y:auto;}
+
 </style>
 </head>
 <body>
@@ -2450,6 +2495,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     document.querySelectorAll("section.view").forEach(s=>s.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
+    document.body.classList.toggle("vista-hoja", btn.dataset.view === "cedulas");
     if(btn.dataset.view === "rol"){ renderBotonesOliver(); oliverCargarRestricciones(); }
     if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
     if(btn.dataset.view === "asistencia") renderAsistencia();
@@ -6964,6 +7010,10 @@ function hdCerradoHTML(){
 function hdRender(){
   const cont = document.getElementById("hdTablero");
   if(!cont) return;
+  /* La pantalla completa solo existe con el partido en juego: sin partido,
+     antes de arrancar o ya cerrado no hay barra ni botón para salir, así
+     que se sale sola en vez de dejar la pantalla en negro. */
+  if(document.body.classList.contains("hd-pc") && (!HD || HD.cerrado || !hdYaInicio())) hdSalirPantallaCompleta();
   if(!HD){ cont.innerHTML = '<div class="card"><div class="empty-state">Elige un partido arriba.</div></div>'; return; }
 
   /* Cerrado = otra pantalla. Ver hdCerradoHTML. */
@@ -7084,6 +7134,7 @@ function hdRender(){
   html += hdCambioHTML();
 
   cont.innerHTML = html;
+  if(document.body.classList.contains("hd-pc")) requestAnimationFrame(hdMedirBarra);
 }
 
 /* Tablero de la izquierda: cómo va el partido y las faltas de equipo por
@@ -7095,6 +7146,42 @@ function hdRender(){
    franja lo que en la pantalla grande vive en el tablero y en el panel de
    tiempos fuera, con los mismos botones y las mismas reglas: no hay una
    segunda lógica que se pueda desincronizar. */
+/* Pantalla completa: barra de arriba, los cinco de cada equipo y las
+   minutas, nada más (ver el CSS "PANTALLA COMPLETA"). Además se le pide al
+   navegador que esconda sus barras, para ganar alto; si no se puede, igual
+   funciona dentro de la página. */
+function hdPantallaCompleta(){
+  if(document.body.classList.contains("hd-pc")){ hdSalirPantallaCompleta(); hdRender(); return; }
+  document.body.classList.add("hd-pc");
+  try{
+    const raiz = document.documentElement;
+    if(raiz.requestFullscreen && !document.fullscreenElement) raiz.requestFullscreen().catch(()=>{});
+  }catch(e){}
+  hdRender();
+  window.scrollTo(0, 0);
+}
+
+function hdSalirPantallaCompleta(){
+  document.body.classList.remove("hd-pc");
+  try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); }catch(e){}
+}
+
+/* Si la mesa sale con el botón de regresar de la tablet, el navegador deja
+   la pantalla completa: la página la sigue. */
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement && document.body.classList.contains("hd-pc")){
+    document.body.classList.remove("hd-pc");
+    hdRender();
+  }
+});
+
+/* El alto que le queda a los cinco depende de cuánto mida la barra en ESA
+   pantalla; se mide después de pintar en vez de adivinarlo. */
+function hdMedirBarra(){
+  const barra = document.querySelector(".hd-barra-fija");
+  if(barra) document.documentElement.style.setProperty("--hd-bf-alto", barra.offsetHeight + "px");
+}
+
 function hdBarraFijaHTML(){
   const mitad = hdMitadActual();
   const tope = hdTiemposFueraTope(mitad);
@@ -7134,6 +7221,8 @@ function hdBarraFijaHTML(){
     <div class="hd-bf-periodos">
       <div class="hd-bf-per-tit">${HD.cuarto ? hdNombrePeriodo(HD.cuarto) : "Sin iniciar"}</div>
       <div class="hd-bf-botones">${botones}</div>
+      <button class="hd-bf-pc" onclick="hdPantallaCompleta()">${document.body.classList.contains("hd-pc")
+        ? "✕ Salir de pantalla completa" : "⛶ Pantalla completa"}</button>
     </div>
     ${lado("visit")}
   </div>`;
