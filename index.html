@@ -3263,7 +3263,12 @@ function fichaEquipoHTML(equipo){
   if(!jugados.length){
     html += `<div class="ficha-vacia">Todavía no ha jugado.</div>`;
   } else {
-    html += jugados.slice(0, 6).map(m=>{
+    /* Todos los jugados, no los últimos 6. Con el tope de 6, BEETLES (7
+       jugados) perdía el más viejo —el del 17 de agosto vs FEVER— y parecía
+       que le faltaba un partido, aunque el resultado sí estaba y la tabla lo
+       contaba (Mauricio lo notó el 6 de octubre de 2026). Son 8 por
+       temporada como mucho: caben todos. */
+    html += jugados.map(m=>{
       const d = dueloDeEseDia(equipo, m.fecha, m.jornada);
       const marcador = d.hayMarcador
         ? `<span class="ficha-marca">${d.propios} - ${d.ajenos}</span>`
