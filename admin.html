@@ -248,13 +248,13 @@
      pero la fila de jugador adelgazó lo suficiente para pagarlo: los botones
      miden 129px y el panel de equipo ya no desperdicia relleno. */
   .hd-conmarcador{display:grid;grid-template-columns:150px 108px minmax(342px,1fr) 102px;gap:6px;align-items:start;}
-  @media(max-width:1390px){ .hd-conmarcador{grid-template-columns:1fr;gap:10px;} }
+  @media (max-width:1390px), (any-pointer:coarse){ .hd-conmarcador{grid-template-columns:1fr;gap:10px;} }
   /* ---------- La minuta ---------- */
   .hd-minuta{
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1390px){ .hd-minuta{position:static;} }
+  @media (max-width:1390px), (any-pointer:coarse){ .hd-minuta{position:static;} }
   /* Partida en dos: un equipo de cada lado, como la hoja de papel. */
   .hd-min-dos{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px;}
   .hd-min-col{min-width:0;}
@@ -314,7 +314,7 @@
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1390px){ .hd-tablero{position:static;} }
+  @media (max-width:1390px), (any-pointer:coarse){ .hd-tablero{position:static;} }
   /* Los botones de periodo, dentro del tablero */
   .hd-tab-periodos{border-top:1px solid #222;margin-top:10px;padding-top:10px;}
   .hd-tab-botones{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px;}
@@ -327,7 +327,7 @@
     position:sticky;top:12px;background:#0c0c0c;border:1px solid #2a2a2a;
     border-radius:12px;padding:12px 9px;
   }
-  @media(max-width:1390px){ .hd-tiempos{position:static;} }
+  @media (max-width:1390px), (any-pointer:coarse){ .hd-tiempos{position:static;} }
   .hd-tf-eq{padding:10px 0;}
   .hd-tf-eq + .hd-tf-eq{border-top:1px solid #222;}
   .hd-tf-nombre{
@@ -1277,9 +1277,16 @@
      tamaño de un dedo. Los cinco de cancha se ven primero, con barra verde
      y fondo marcado; la banca va más chica y apagada. Arriba de 1390 px se
      queda el acomodo de cuatro columnas de siempre. */
+  /* Tablet = ancho chico O pantalla táctil (any-pointer:coarse). El 7 de
+     octubre de 2026 una de las tablets de la mesa (misma marca y modelo que
+     la de Mauricio) traía la página con zoom alejado en Chrome: así "medía"
+     más de 1390 px, le tocaba el acomodo de computadora y no le salían ni la
+     barra fija ni el botón de pantalla completa. Por el ancho solo, el zoom
+     la engañaba; lo táctil no cambia con el zoom. Una computadora con mouse
+     sigue con el acomodo de cuatro columnas. */
   main:has(#view-cedulas.active){max-width:none;}
   .hd-barra-fija{display:none;}
-  @media(max-width:1389px){
+  @media (max-width:1389px), (any-pointer:coarse){
     .hd-marcador{display:none;}
     .hd-tablero, .hd-tiempos{display:none;}
     .hd-minuta{order:5;}
@@ -1359,7 +1366,7 @@
   /* La minuta de cada equipo pegada a su derecha (solo en la tablet). */
   .hd-eq-con-minuta{display:contents;}
   .hd-minuta-eq{display:none;}
-  @media(max-width:1389px){
+  @media (max-width:1389px), (any-pointer:coarse){
     .hd-minuta{display:none;}
     .hd-eq-con-minuta{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:6px;align-items:start;min-width:0;}
     .hd-minuta-eq{
