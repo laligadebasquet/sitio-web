@@ -1408,6 +1408,35 @@
     font-weight:800;cursor:pointer;
   }
   .po-btn-tabla:hover{background:var(--navy);color:#fff;}
+  /* La ventanita de la tabla, estilo letrero de la NBA. */
+  .modal-box.po-tabla-caja{max-width:860px;max-height:88vh;}
+  .po-tablero{background:linear-gradient(160deg,#1c1c1c,#000);padding:16px;}
+  .po-columnas{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;align-items:start;}
+  .po-col + .po-col{border-left:2px dashed rgba(255,255,255,.35);padding-left:18px;}
+  .po-col-titulo{color:var(--orange);font-weight:900;font-style:italic;text-transform:uppercase;
+    letter-spacing:.5px;font-size:15px;margin-bottom:10px;}
+  .po-ficha{display:flex;align-items:stretch;margin-bottom:8px;border-radius:3px;overflow:hidden;
+    color:#fff;font-weight:800;min-height:46px;}
+  .po-f-num{background:#000;width:40px;display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:900;flex:none;}
+  .po-f-eq{flex:1;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;
+    font-size:13px;line-height:1.15;min-width:0;}
+  .po-f-eq small{font-size:10px;font-weight:600;opacity:.75;}
+  .po-f-rec{display:flex;align-items:center;padding:0 6px;font-size:20px;font-weight:900;
+    font-style:italic;letter-spacing:-.5px;}
+  .po-f-letra{display:flex;align-items:center;width:22px;font-size:16px;font-weight:900;}
+  .po-z-directo .po-f-eq,.po-z-directo .po-f-rec,.po-z-directo .po-f-letra{background:var(--orange);}
+  .po-z-repechaje .po-f-eq,.po-z-repechaje .po-f-rec,.po-z-repechaje .po-f-letra{background:#3a3a3a;}
+  .po-z-fuera .po-f-eq,.po-z-fuera .po-f-rec,.po-z-fuera .po-f-letra{background:#262626;color:#9a9a9a;}
+  .po-leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;margin-top:14px;
+    padding-top:10px;border-top:1px solid rgba(255,255,255,.2);color:#ddd;font-size:11px;
+    font-weight:700;text-transform:uppercase;}
+  .po-leyenda b{color:var(--orange);font-size:13px;text-transform:none;}
+  .po-leyenda em{flex-basis:100%;text-align:center;text-transform:none;font-weight:500;color:#9a9a9a;}
+  /* En el teléfono las columnas van una debajo de otra; la raya va arriba. */
+  @media (max-width:520px){
+    .po-col + .po-col{border-left:none;padding-left:0;border-top:2px dashed rgba(255,255,255,.35);padding-top:12px;}
+  }
   .po-rol-card .team-name{flex-direction:row;align-items:center;flex-wrap:wrap;}
   .po-rol-hoy{display:block;width:100%;font-size:10px;font-weight:600;color:var(--text-soft);margin:1px 0 0 14px;
     text-transform:none;letter-spacing:0;}
@@ -4940,9 +4969,9 @@ function renderRachas(){
        y 4º vs 5º.
 
    Un solo partido por llave y quien pierde se va. Las SEMIFINALES SE
-   REORDENAN POR LUGAR: el mejor lugar que siga vivo contra el peor que
-   siga vivo (Mauricio, 9 oct 2026). Por eso las semis dicen "mejor lugar
-   que siga vivo" y no un rival fijo, y abajo de los cuadros va un letrero
+   REORDENAN POR LUGAR: el mejor lugar que avanzó contra el peor que
+   avanzó (Mauricio, 9 oct 2026). Por eso las semis dicen "mejor lugar
+   que avanzó" y no un rival fijo, y abajo de los cuadros va un letrero
    que lo explica.
 
    Se dibuja como el cuadro de la NCAA que mandó Mauricio: dos mitades en
@@ -4954,11 +4983,12 @@ function renderRachas(){
    Los equipos son los de la tabla AL DÍA: mientras no termine la
    temporada, el letrero de arriba avisa que todavía se mueven.
    ============================================================ */
-const PO_SIGUE_VIVO = {
-  mejor: "Mejor lugar que siga vivo",
-  peor:  "Peor lugar que siga vivo",
-  seg:   "2º mejor lugar que siga vivo",
-  ter:   "3er mejor lugar que siga vivo"
+/* Primero decía "que sigue en pie"; Mauricio prefirió "que avanzó" (9 oct). */
+const PO_AVANZO = {
+  mejor: "Mejor lugar que avanzó",
+  peor:  "Peor lugar que avanzó",
+  seg:   "2º mejor lugar que avanzó",
+  ter:   "3er mejor lugar que avanzó"
 };
 const PLAYOFFS_CUADRO = {
   "Varonil A": {
@@ -4967,10 +4997,10 @@ const PLAYOFFS_CUADRO = {
     repechaje: [],
     izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-04", h:"21:10" },
                  { ronda:"Cuartos", a:4, b:5, f:"2026-11-05", h:"22:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-09", h:"21:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-09", h:"21:10" } },
     der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-04", h:"22:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-02", h:"22:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-09", h:"22:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-09", h:"22:10" } },
     final: { f:"2026-11-14", h:"13:10" }
   },
   "Femenil A": {
@@ -4989,10 +5019,10 @@ const PLAYOFFS_CUADRO = {
                  { ronda:"Repechaje", a:7, b:10, f:"2026-11-03", h:"22:10" } ],
     izq: { r1: [ { ronda:"Cuartos", a:1, b:"Ganador de 8º vs 9º", f:"2026-11-07", h:"12:10" },
                  { ronda:"Cuartos", a:4, b:5, f:"2026-11-07", h:"15:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-11", h:"21:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-11", h:"21:10" } },
     der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador de 7º vs 10º", f:"2026-11-07", h:"13:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-07", h:"14:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-10", h:"22:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"22:10" } },
     final: { f:"2026-11-14", h:"15:10" }
   },
   "Femenil B": {
@@ -5001,10 +5031,10 @@ const PLAYOFFS_CUADRO = {
     repechaje: [],
     izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-03", h:"20:10" },
                  { ronda:"Cuartos", a:4, b:5, f:"2026-11-02", h:"21:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-10", h:"20:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-10", h:"20:10" } },
     der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-05", h:"20:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-05", h:"21:10" } ],
-           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-10", h:"21:10" } },
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"21:10" } },
     final: { f:"2026-11-14", h:"12:10" }
   }
 };
@@ -5078,7 +5108,7 @@ function cuadroDeCategoria(cat){
   html += '<div class="playoffs-note">' + c.dice + '</div>';
   /* Mauricio: "en todas pon un botón para consultar la tabla general de esa
      categoría". El cuadro dice "1º", "8º"…: con un toque se ve de dónde sale. */
-  html += '<button class="po-btn-tabla" onclick="irATablaDe(\'' + cat + '\')">📊 Ver tabla de posiciones de ' + cat + '</button>';
+  html += '<button class="po-btn-tabla" onclick="abrirTablaPO(\'' + cat + '\')">📊 Ver tabla de posiciones de ' + cat + '</button>';
 
   if(tabla.length < c.lugares){
     html += '<div class="empty-state">Faltan equipos con resultados para armar el cuadro de ' + cat +
@@ -5122,17 +5152,128 @@ function cuadroDeCategoria(cat){
   return html;
 }
 
-/* Lleva a la Tabla de Posiciones ya filtrada en esa categoría. Las pestañas
-   no se repintan al cambiar (se pintan al cargar), así que se repinta aquí
-   con el filtro puesto antes de enseñarla. */
-function irATablaDe(cat){
-  CAT_VISTA.tabla = cat;
-  if(typeof renderTabla === "function") renderTabla();
-  const btn = document.querySelector('nav.tabs button[data-view="tabla"]');
-  if(btn) btn.click();
-  const vista = document.getElementById("view-tabla");
-  if(vista && vista.scrollIntoView) vista.scrollIntoView({ behavior: "smooth", block: "start" });
+/* La tabla de esa categoría en una ventanita, encima del cuadro.
+
+   Antes el botón llevaba a la pestaña Tabla de Posiciones, y desde ahí ya no
+   había cómo regresar al cuadro que estabas viendo (Mauricio, 9 oct 2026).
+   La ventanita se cierra y sigues donde estabas.
+
+   Se ve como el letrero de la NBA que mandó Mauricio: una columna por zona
+   (pase directo, repechaje, fuera), cada equipo con su lugar y su récord, y
+   una letra cuando su suerte ya está decidida. La explicación de las letras
+   va abajo, en español. */
+
+/* ¿Qué tiene ya asegurado cada equipo? Igual que la NBA: la letra sale solo
+   cuando ya es SEGURO, no por cómo va hoy.
+
+   Las cuentas son a propósito del lado cauteloso, para nunca poner una letra
+   que después haya que quitar:
+     · Se supone que a todos les quedan tantos partidos como al que más
+       partidos tiene en el rol de su categoría. Si al rol le falta un juego
+       (como el LIMONES vs PISTONS que está por acomodarse), así no se nos
+       escapa.
+     · Un empate cuenta en contra: el desempate es la diferencia de puntos y
+       esa todavía se puede mover.
+     · No se descuenta que dos rivales se enfrenten entre sí; eso solo haría
+       que una letra salga más tarde, nunca de más.
+   Se compara por partidos ganados porque al final todos juegan los mismos. */
+function asegurados(tabla, cat){
+  const enRol = {};
+  (typeof ROL !== "undefined" ? ROL : []).forEach(function(m){
+    if(categoriaDeEquipo(m.local) !== cat) return;
+    [m.local, m.visitante].forEach(function(e){ enRol[e] = (enRol[e] || 0) + 1; });
+  });
+  const total = Math.max.apply(null, [0].concat(Object.values(enRol), tabla.map(function(t){ return t.pj; })));
+  const resta = function(t){ return Math.max(total - t.pj, 0); };
+  const max = function(t){ return t.pg + resta(t); };
+  /* Empatados en ganados: si a los dos ya no les queda nada, la diferencia
+     de puntos ya no se mueve y manda el orden de la tabla. Si a alguno le
+     queda algo, el empate se cuenta en contra. */
+  const arriba = function(o, t){
+    return !resta(o) && !resta(t) && tabla.indexOf(o) < tabla.indexOf(t);
+  };
+  /* ¿Ya no lo pueden sacar de los primeros k? */
+  const dentro = function(t, k){
+    return tabla.filter(function(o){
+      return o !== t && (max(o) > t.pg || (max(o) === t.pg && (resta(o) || resta(t) || arriba(o, t))));
+    }).length < k;
+  };
+  /* ¿Ya no le alcanza para los primeros k? */
+  const fuera = function(t, k){
+    return tabla.filter(function(o){
+      return o !== t && (o.pg > max(t) || (o.pg === max(t) && arriba(o, t)));
+    }).length >= k;
+  };
+  return { dentro: dentro, fuera: fuera };
 }
+
+function tablaDeCategoriaHTML(cat){
+  const c = PLAYOFFS_CUADRO[cat];
+  const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
+  if(!tabla.length) return '<div class="empty-state">Todavía no hay resultados de ' + cat + '.</div>';
+  const lugares  = c ? c.lugares : tabla.length;
+  const conRep   = !!(c && c.repechaje.length);
+  const directos = conRep ? lugares - c.repechaje.length * 2 : lugares;
+  const ya = asegurados(tabla, cat);
+
+  /* La letra de cada uno, como la NBA (Mauricio, 9 oct): "x" clasificado,
+     "r" repechaje y "o" (el circulito) eliminado. "x" pide el lugar que da
+     el pase directo cuando hay repechaje; sin repechaje, basta con entrar. */
+  const letra = function(t){
+    if(ya.dentro(t, directos)) return "x";
+    if(conRep && ya.dentro(t, lugares)) return "r";
+    if(tabla.length > lugares && ya.fuera(t, lugares)) return "o";
+    return "";
+  };
+  const ficha = function(t, i, zona){
+    const l = letra(t);
+    return '<div class="po-ficha po-z-' + zona + '">' +
+      '<span class="po-f-num">' + (i + 1) + '</span>' +
+      '<span class="po-f-eq">' + t.equipo + '<small>Dif ' + (t.dif > 0 ? "+" + t.dif : t.dif) + '</small></span>' +
+      '<span class="po-f-rec">' + t.pg + '-' + t.pp + '</span>' +
+      '<span class="po-f-letra">' + l + '</span></div>';
+  };
+  const columnas = [];
+  columnas.push({ titulo: conRep ? "Pase directo" : "Playoffs", zona: "directo", de: 0, a: directos });
+  if(conRep) columnas.push({ titulo: "Repechaje", zona: "repechaje", de: directos, a: lugares });
+  if(tabla.length > lugares) columnas.push({ titulo: "Fuera", zona: "fuera", de: lugares, a: tabla.length });
+
+  let html = '<div class="po-tablero"><div class="po-columnas">';
+  columnas.forEach(function(col){
+    html += '<div class="po-col"><div class="po-col-titulo">' + col.titulo + '</div>';
+    tabla.slice(col.de, col.a).forEach(function(t, k){ html += ficha(t, col.de + k, col.zona); });
+    html += '</div>';
+  });
+  html += '</div><div class="po-leyenda">' +
+    '<span><b>x</b> · Clasificado ' + (conRep ? "con pase directo" : "a playoffs") + '</span>' +
+    (conRep ? '<span><b>r</b> · Asegura por lo menos el repechaje</span>' : '') +
+    (tabla.length > lugares ? '<span><b>o</b> · Eliminado</span>' : '') +
+    '<em>Sin letra: todavía se puede mover. Las columnas son cómo va hoy.</em>' +
+    '</div></div>';
+  return html;
+}
+
+function abrirTablaPO(cat){
+  let m = document.getElementById("tablaPOModal");
+  if(!m){
+    m = document.createElement("div");
+    m.className = "modal-overlay";
+    m.id = "tablaPOModal";
+    m.addEventListener("click", function(e){ if(e.target === m) cerrarTablaPO(); });
+    document.body.appendChild(m);
+  }
+  m.innerHTML = '<div class="modal-box po-tabla-caja" role="dialog" aria-label="Tabla de posiciones de ' + cat + '">' +
+    '<div class="modal-header"><div><h3>Tabla de posiciones</h3><span>' + cat + ' · así va hoy</span></div>' +
+    '<button class="modal-close" onclick="cerrarTablaPO()" aria-label="Cerrar">✕</button></div>' +
+    tablaDeCategoriaHTML(cat) + '</div>';
+  m.classList.add("open");
+}
+
+function cerrarTablaPO(){
+  const m = document.getElementById("tablaPOModal");
+  if(m) m.classList.remove("open");
+}
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") cerrarTablaPO(); });
 
 /* Los partidos de playoffs como lista plana, para el Rol de Partidos. Salen
    de PLAYOFFS_CUADRO, el mismo dato que el cuadro: no hay una segunda copia
@@ -5170,8 +5311,8 @@ function renderPlayoffs(){
   /* Lo pidió Mauricio: el aviso de cómo se arman las semis va ABAJO de los
      cuadros, porque las líneas del dibujo marcan la ronda, no el rival. */
   html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman las semifinales?</strong> ' +
-          'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que siga ' +
-          'vivo con el mejor lugar juega contra el que siga vivo con el peor lugar, y los otros ' +
+          'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que avanzó ' +
+          'con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros ' +
           'dos se enfrentan entre sí. En Femenil A, el 1º juega contra el ganador del repechaje ' +
           'con peor lugar y el 2º contra el de mejor lugar. Por eso las líneas del cuadro marcan ' +
           'la ronda, no el rival exacto.</div>';
