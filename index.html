@@ -1342,6 +1342,83 @@
     padding:3px 0;
     background:var(--gray-bg);
   }
+  /* ---------- Playoffs estilo NCAA (9 oct 2026) ----------
+     Dos mitades en espejo que se juntan en la final al centro, y los
+     repechajes en una franja arriba, como el "First Four". Las líneas se
+     dibujan con bordes: la mitad derecha usa los mismos bloques volteados. */
+  .po-repechaje{background:var(--navy);border-radius:14px;padding:12px 14px 14px;margin:0 0 16px;}
+  .po-rep-tit{color:#fff;font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;
+    text-align:center;margin-bottom:10px;}
+  .po-rep-tit span{display:block;color:var(--orange);font-size:11px;letter-spacing:.6px;margin-top:2px;}
+  .po-rep-partidos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;max-width:640px;margin:0 auto;}
+  .po-desliza{display:none;font-size:11px;color:var(--text-soft);text-align:right;margin:0 0 6px;}
+  .po-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;}
+  .po-marco{min-width:940px;}
+  .po-marco.po-chico{min-width:640px;}
+  .po-encabezados{display:flex;gap:0;margin-bottom:10px;}
+  .po-enc{flex:1;text-align:center;font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.6px;}
+  .po-enc b{display:block;font-size:12px;color:var(--navy);font-weight:900;letter-spacing:1px;}
+  .po-enc.po-enc-final{flex:0 0 220px;}
+  .po-cuadro{display:flex;align-items:center;}
+  .po-lado{flex:1;display:flex;align-items:center;}
+  .po-der{flex-direction:row-reverse;}
+  .po-col{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .po-centro{flex:0 0 220px;padding:0 10px;}
+  .po-par{display:flex;flex-direction:column;gap:28px;}
+  .po-celda{position:relative;}
+  .po-partido{background:#fff;border:1px solid var(--gray-line);border-radius:10px;overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,64,.05);}
+  .po-repechaje .po-partido{border-color:#333;}
+  .po-cuando{font-size:10px;font-weight:800;color:var(--orange);text-transform:uppercase;letter-spacing:.4px;
+    padding:6px 10px 4px;border-bottom:1px solid var(--gray-line);background:var(--gray-bg);}
+  .po-eq{display:flex;align-items:center;gap:8px;padding:7px 10px;}
+  .po-eq + .po-eq{border-top:1px dashed var(--gray-line);}
+  .po-seed{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .po-seed.po-seed-vacio{background:var(--gray-line);color:var(--text-soft);}
+  .po-nom{font-size:13px;font-weight:800;color:var(--text);line-height:1.2;}
+  .po-nom.po-pend{font-weight:600;color:var(--text-soft);font-style:italic;font-size:12px;}
+  .po-final{background:var(--navy);border:2px solid var(--orange);border-radius:14px;overflow:hidden;color:#fff;}
+  .po-final-tit{font-size:13px;font-weight:900;text-align:center;padding:10px 8px 4px;letter-spacing:.5px;text-transform:uppercase;}
+  .po-final .po-cuando{background:transparent;border:none;text-align:center;padding:0 8px 8px;}
+  .po-final .po-eq + .po-eq{border-top-color:#333;}
+  .po-final .po-nom.po-pend{color:#bbb;}
+  .po-final .po-seed.po-seed-vacio{background:#333;color:#999;}
+  /* Las líneas. Izquierda: salen por la derecha de cada partido. */
+  .po-izq .po-celda{padding-right:16px;}
+  .po-der .po-celda{padding-left:16px;}
+  .po-izq .po-celda::after, .po-der .po-celda::after{content:"";position:absolute;top:50%;width:16px;border-top:2px solid var(--navy);}
+  .po-izq .po-celda::after{right:0;}
+  .po-der .po-celda::after{left:0;}
+  /* El "corchete" que junta dos partidos de cuartos. */
+  .po-r1 .po-celda::before{content:"";position:absolute;}
+  .po-izq .po-r1 .po-celda::before{right:0;border-right:2px solid var(--navy);}
+  .po-der .po-r1 .po-celda::before{left:0;border-left:2px solid var(--navy);}
+  .po-r1 .po-celda:first-child::before{top:50%;bottom:-14px;}
+  .po-r1 .po-celda:last-child::before{top:-14px;bottom:50%;}
+  /* La semifinal recibe la línea de los cuartos por el otro lado. */
+  .po-con-r1.po-izq .po-r2 .po-celda{padding-left:16px;}
+  .po-con-r1.po-der .po-r2 .po-celda{padding-right:16px;}
+  .po-con-r1 .po-r2 .po-celda::before{content:"";position:absolute;top:50%;width:16px;border-top:2px solid var(--navy);}
+  .po-con-r1.po-izq .po-r2 .po-celda::before{left:0;}
+  .po-con-r1.po-der .po-r2 .po-celda::before{right:0;}
+  .po-btn-tabla{
+    display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:9px 14px;border-radius:999px;
+    border:1px solid var(--navy);background:#fff;color:var(--navy);font-family:inherit;font-size:12px;
+    font-weight:800;cursor:pointer;
+  }
+  .po-btn-tabla:hover{background:var(--navy);color:#fff;}
+  .po-rol-card .team-name{flex-direction:row;align-items:center;flex-wrap:wrap;}
+  .po-rol-hoy{display:block;width:100%;font-size:10px;font-weight:600;color:var(--text-soft);margin:1px 0 0 14px;
+    text-transform:none;letter-spacing:0;}
+  .po-rol-pend{font-weight:600;color:var(--text-soft);font-style:italic;}
+  .badge.po-rol-badge{background:var(--navy);color:var(--orange);}
+  .po-reordena{margin:26px 0 8px;background:#fff;border:1px solid var(--gray-line);border-left:4px solid var(--orange);
+    border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.55;color:var(--text-soft);}
+  .po-reordena strong{color:var(--navy);display:block;margin-bottom:4px;}
+  @media (max-width:760px){
+    .po-desliza{display:block;}
+  }
   .playoffs-eliminado{
     margin-top:24px;
     font-size:12px;
@@ -4082,7 +4159,10 @@ function renderRol(){
     return;
   }
 
-  let html = botones;
+  /* Los playoffs van ARRIBA: el rol pone la semana más reciente primero
+     (groupByJornada ordena de mayor a menor), y los playoffs son lo último
+     del calendario. Al final quedaban debajo de la semana 1. */
+  let html = botones + playoffsEnRol(cat);
 
   grouped.forEach(g=>{
     const visibleItems = g.items.filter(m=>
@@ -4131,6 +4211,68 @@ function renderRol(){
   el.innerHTML = (html === botones || html.indexOf("cards-grid") === -1)
     ? botones + `<div class="empty-state">No hay partidos${ROL_EQUIPO ? " de " + ROL_EQUIPO : enCategoria("rol")}.</div>`
     : html;
+}
+
+/* Los playoffs en el Rol de Partidos (Mauricio, 9 oct 2026: "agrega el rol
+   de playoffs también a rol de partidos, pon el lugar en la tabla").
+
+   Cada lado dice el LUGAR ("1º lugar") y, abajo y en chiquito, quién lo
+   ocupa hoy, porque la temporada todavía no cierra. No se escriben en la
+   hoja de Google: los recordatorios a capitanes y la hoja digital necesitan
+   equipos de verdad, y esos se sabrán hasta el 31 de octubre. */
+function playoffsEnRol(cat){
+  const tablas = {};
+  const tablaDe = function(c){
+    if(!tablas[c]) tablas[c] = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === c; });
+    return tablas[c];
+  };
+  const quienHoy = function(lugar, c){
+    if(typeof lugar !== "number") return "";
+    const t = tablaDe(c)[lugar - 1];
+    return t ? t.equipo : "";
+  };
+  const visibles = partidosDePlayoffs().filter(function(p){
+    if(cat !== "general" && p.cat !== cat) return false;
+    const a = quienHoy(p.a, p.cat), b = quienHoy(p.b, p.cat);
+    /* Con un equipo elegido, solo los cruces donde hoy está ese equipo. */
+    if(ROL_EQUIPO && a !== ROL_EQUIPO && b !== ROL_EQUIPO) return false;
+    return matchesSearch(a || String(p.a), b || String(p.b));
+  });
+  if(!visibles.length) return "";
+
+  /* Mismo orden que el resto del rol: lo más reciente primero. */
+  const bloques = [
+    { tit: "Playoffs · Finales",       desde: "2026-11-13", hasta: "9999" },
+    { tit: "Playoffs · Semifinales",   desde: "2026-11-08", hasta: "2026-11-13" },
+    { tit: "Playoffs · Primera ronda", desde: "0000", hasta: "2026-11-08" }
+  ];
+  const lado = function(lugar, c){
+    if(typeof lugar === "number"){
+      const hoy = quienHoy(lugar, c);
+      return '<span class="team-name"><span class="team-dot"></span>' + lugar + 'º lugar' +
+             (hoy ? '<small class="po-rol-hoy">hoy: ' + hoy + '</small>' : '') + '</span>';
+    }
+    return '<span class="team-name po-rol-pend"><span class="team-dot"></span>' + lugar + '</span>';
+  };
+
+  let html = "";
+  bloques.forEach(function(b){
+    const items = visibles.filter(function(p){ return p.f >= b.desde && p.f < b.hasta; });
+    if(!items.length) return;
+    html += '<div class="jornada-heading">' + b.tit + '<span class="line"></span></div>';
+    html += '<div class="cards-grid">';
+    items.forEach(function(p){
+      html += '<div class="match-card po-rol-card">' +
+        '<div class="match-meta"><span>' + fechaCorta(p.f) + ' · ' + horaBonita(p.h) + '</span>' +
+          '<span>' + p.cat + ' · ' + p.ronda + '</span></div>' +
+        '<div class="match-row">' + lado(p.a, p.cat) + '</div>' +
+        '<div class="match-row">' + lado(p.b, p.cat) + '</div>' +
+        '<span class="badge po-rol-badge">Playoffs</span>' +
+      '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
 }
 
 /* La tabla, a partir de una lista de resultados. Por default todos los que
@@ -4785,7 +4927,7 @@ function renderRachas(){
    temporada. Cuando llegue ese momento, se puede quitar este "return" para
    volver a activar el armado automático de llaves de abajo. */
 /* ============================================================
-   PLAYOFFS — el cuadro, con los duelos de hoy
+   PLAYOFFS — el cuadro estilo NCAA, con los duelos de hoy
 
    Cada fuerza clasifica distinto, y eso viene de Mauricio:
 
@@ -4797,119 +4939,215 @@ function renderRachas(){
      · Femenil B — son 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º
        y 4º vs 5º.
 
-   En todas, siempre la mejor posición contra la más baja, un solo partido
-   y quien pierde se va. Los partidos del 1er lugar nunca a las 10:10.
+   Un solo partido por llave y quien pierde se va. Las SEMIFINALES SE
+   REORDENAN POR LUGAR: el mejor lugar que siga vivo contra el peor que
+   siga vivo (Mauricio, 9 oct 2026). Por eso las semis dicen "mejor lugar
+   que siga vivo" y no un rival fijo, y abajo de los cuadros va un letrero
+   que lo explica.
 
-   Lo que se pinta son los cruces COMO VAN HOY, con la tabla al día. La
-   temporada regular todavía no termina, así que esto se mueve; el letrero
-   de arriba lo dice para que nadie lo lea como definitivo.
+   Se dibuja como el cuadro de la NCAA que mandó Mauricio: dos mitades en
+   espejo que se juntan en la final al centro, y los repechajes en una
+   franja arriba, como el "First Four". Las FECHAS YA SON PÚBLICAS (antes
+   no salían: las soltó el 9 de octubre). Son las mismas de
+   rol/playoffs.js; prueba_playoffs.js revisa que no se desfasen.
+
+   Los equipos son los de la tabla AL DÍA: mientras no termine la
+   temporada, el letrero de arriba avisa que todavía se mueven.
    ============================================================ */
-
-const PLAYOFFS_FORMATO = {
+const PO_SIGUE_VIVO = {
+  mejor: "Mejor lugar que siga vivo",
+  peor:  "Peor lugar que siga vivo",
+  seg:   "2º mejor lugar que siga vivo",
+  ter:   "3er mejor lugar que siga vivo"
+};
+const PLAYOFFS_CUADRO = {
   "Varonil A": {
-    directos: 8, repechaje: [],
-    llaves: [[1,8],[2,7],[3,6],[4,5]],
-    nombrePrimera: "Cuartos de Final",
-    dice: "Pasan los 8 primeros de la tabla."
+    lugares: 8,
+    dice: "Pasan los 8 primeros de la tabla.",
+    repechaje: [],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-04", h:"21:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-05", h:"22:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-09", h:"21:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-04", h:"22:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-02", h:"22:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-09", h:"22:10" } },
+    final: { f:"2026-11-14", h:"13:10" }
   },
   "Femenil A": {
-    directos: 2, repechaje: [[3,6],[4,5]],
-    llaves: [["1º","ganador del repechaje con peor posición"],
-             ["2º","ganador del repechaje con mejor posición"]],
-    nombrePrimera: "Repechaje",
-    dice: "El 1º y el 2º pasan directo a semifinal. El 3º vs 6º y el 4º vs 5º se juegan los otros dos lugares."
+    lugares: 6,
+    dice: "El 1º y el 2º pasan directo a semifinal. El 3º vs 6º y el 4º vs 5º se juegan los otros dos lugares en el repechaje.",
+    repechaje: [ { ronda:"Repechaje", a:3, b:6, f:"2026-11-02", h:"20:10" },
+                 { ronda:"Repechaje", a:4, b:5, f:"2026-11-04", h:"20:10" } ],
+    izq: { r1: [], r2: { ronda:"Semifinal", a:1, b:"Ganador del repechaje con peor lugar", f:"2026-11-09", h:"20:10" } },
+    der: { r1: [], r2: { ronda:"Semifinal", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-11", h:"20:10" } },
+    final: { f:"2026-11-14", h:"14:10" }
   },
   "Varonil B": {
-    directos: 6, repechaje: [[7,10],[8,9]],
-    llaves: [["1º","ganador de 8º vs 9º"],["2º","ganador de 7º vs 10º"],[3,6],[4,5]],
-    nombrePrimera: "Repechaje",
-    dice: "Los 6 primeros pasan directo. El 7º vs 10º y el 8º vs 9º se juegan los otros dos lugares de cuartos."
+    lugares: 10,
+    dice: "Los 6 primeros pasan directo a cuartos. El 7º vs 10º y el 8º vs 9º se juegan los otros dos lugares en el repechaje.",
+    repechaje: [ { ronda:"Repechaje", a:8, b:9,  f:"2026-11-03", h:"21:10" },
+                 { ronda:"Repechaje", a:7, b:10, f:"2026-11-03", h:"22:10" } ],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:"Ganador de 8º vs 9º", f:"2026-11-07", h:"12:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-07", h:"15:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-11", h:"21:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador de 7º vs 10º", f:"2026-11-07", h:"13:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-07", h:"14:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-10", h:"22:10" } },
+    final: { f:"2026-11-14", h:"15:10" }
   },
   "Femenil B": {
-    directos: 8, repechaje: [],
-    llaves: [[1,8],[2,7],[3,6],[4,5]],
-    nombrePrimera: "Cuartos de Final",
-    dice: "Pasan las 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º y 4º vs 5º."
+    lugares: 8,
+    dice: "Pasan las 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º y 4º vs 5º.",
+    repechaje: [],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-03", h:"20:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-02", h:"21:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.mejor, b:PO_SIGUE_VIVO.peor, f:"2026-11-10", h:"20:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-05", h:"20:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-05", h:"21:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_SIGUE_VIVO.seg, b:PO_SIGUE_VIVO.ter, f:"2026-11-10", h:"21:10" } },
+    final: { f:"2026-11-14", h:"12:10" }
   }
 };
 
-/* LAS FECHAS DE LOS PLAYOFFS NO VAN EN LA PÁGINA.
+const PO_DIAS  = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const PO_MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
-   Estaban aquí, pegadas a cada ronda, y Mauricio pidió quitarlas: las
-   maneja él y las suelta cuando le convenga. El cuadro sí se queda — lo que
-   la gente quiere ver es contra quién le tocaría hoy, no qué día.
+/* "Mar 3 nov · 8:10 pm". Se arma con números y no con new Date("2026-11-03"):
+   ese formato se lee en UTC y en Monterrey caía un día antes. */
+function poDia(f){
+  const p = String(f).split("-").map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  return PO_DIAS[d.getDay()] + " " + d.getDate() + " " + PO_MESES[d.getMonth()];
+}
+function poCuando(f, h){
+  const H = Number(String(h).slice(0, 2)), M = String(h).slice(3, 5);
+  return poDia(f) + " · " + ((H % 12) || 12) + ":" + M + (H >= 12 ? " pm" : " am");
+}
 
-   Si algún día se vuelven públicas, se le regresa el tercer parámetro a
-   rondaDeCuadro() y vuelven a salir al lado del título de cada ronda. */
-
-/* Una fila del cuadro. "lugar" puede ser un número (ese lugar de la tabla)
+/* Una fila del partido. "lugar" es un número (ese lugar de la tabla de hoy)
    o un texto, cuando todavía no se sabe quién va a llegar ahí. */
-function filaDeCuadro(lugar, tabla){
+function poLugar(lugar, tabla){
   if(typeof lugar === "number"){
     const t = tabla[lugar - 1];
-    return '<div class="bracket-seed-row"><span class="bracket-seed">' + lugar + '</span>' +
-           '<span class="bracket-team">' + (t ? t.equipo : "Por definir") + '</span></div>';
+    return '<div class="po-eq"><span class="po-seed">' + lugar + '</span>' +
+           '<span class="po-nom">' + (t ? t.equipo : "Por definir") + '</span></div>';
   }
-  const n = /^(\d+)º$/.exec(lugar);
-  if(n){
-    const t = tabla[Number(n[1]) - 1];
-    return '<div class="bracket-seed-row"><span class="bracket-seed">' + n[1] + '</span>' +
-           '<span class="bracket-team">' + (t ? t.equipo : "Por definir") + '</span></div>';
-  }
-  return '<div class="bracket-seed-row"><span class="bracket-seed">—</span>' +
-         '<span class="bracket-team por-definir">' + lugar + '</span></div>';
+  return '<div class="po-eq"><span class="po-seed po-seed-vacio">·</span>' +
+         '<span class="po-nom po-pend">' + lugar + '</span></div>';
 }
 
-function duelosDeCuadro(pares, tabla){
-  return '<div class="bracket-grid">' + pares.map(function(p){
-    return '<div class="bracket-match">' + filaDeCuadro(p[0], tabla) +
-           '<div class="bracket-vs">VS</div>' + filaDeCuadro(p[1], tabla) + '</div>';
-  }).join("") + '</div>';
+function poPartido(p, tabla, extra){
+  return '<div class="po-partido' + (extra ? " " + extra : "") + '">' +
+           /* Solo fecha y hora: la ronda ya la dice el encabezado de la
+              columna, y con las dos el renglón se partía en la tarjeta. */
+           '<div class="po-cuando" title="' + p.ronda + '">' + poCuando(p.f, p.h) + '</div>' +
+           poLugar(p.a, tabla) + poLugar(p.b, tabla) +
+         '</div>';
 }
 
-function rondaDeCuadro(titulo, pares, tabla){
-  return '<div class="playoffs-round-label">' + titulo + '</div>' +
-         duelosDeCuadro(pares, tabla);
+/* Una mitad del cuadro. En la derecha el orden de columnas se voltea con
+   CSS (row-reverse): el HTML es el mismo, así las dos mitades no se
+   pueden desfasar. */
+function poLado(lado, tabla, clase){
+  const conR1 = lado.r1 && lado.r1.length;
+  let html = '<div class="po-lado ' + clase + (conR1 ? " po-con-r1" : "") + '">';
+  if(conR1){
+    html += '<div class="po-col po-r1"><div class="po-par">' +
+            lado.r1.map(function(p){ return '<div class="po-celda">' + poPartido(p, tabla) + '</div>'; }).join("") +
+            '</div></div>';
+  }
+  html += '<div class="po-col po-r2"><div class="po-celda">' + poPartido(lado.r2, tabla) + '</div></div>';
+  return html + '</div>';
+}
+
+/* "2–5 nov" o "Sáb 7 nov": lo que dice el encabezado de cada columna. */
+function poRango(partidos){
+  const fs = partidos.map(function(p){ return p.f; }).sort();
+  if(!fs.length) return "";
+  if(fs[0] === fs[fs.length - 1]) return poDia(fs[0]);
+  const a = fs[0].split("-").map(Number), b = fs[fs.length - 1].split("-").map(Number);
+  return a[2] + "–" + b[2] + " " + PO_MESES[b[1] - 1];
 }
 
 function cuadroDeCategoria(cat){
-  const f = PLAYOFFS_FORMATO[cat];
-  if(!f) return "";
-
+  const c = PLAYOFFS_CUADRO[cat];
+  if(!c) return "";
   const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
-  const necesarios = f.directos + f.repechaje.length * 2;
 
   let html = '<div class="section-heading">' + cat + '<span class="line"></span></div>';
-  html += '<div class="playoffs-note">' + f.dice + '</div>';
+  html += '<div class="playoffs-note">' + c.dice + '</div>';
+  /* Mauricio: "en todas pon un botón para consultar la tabla general de esa
+     categoría". El cuadro dice "1º", "8º"…: con un toque se ve de dónde sale. */
+  html += '<button class="po-btn-tabla" onclick="irATablaDe(\'' + cat + '\')">📊 Ver tabla de posiciones de ' + cat + '</button>';
 
-  if(tabla.length < necesarios){
+  if(tabla.length < c.lugares){
     html += '<div class="empty-state">Faltan equipos con resultados para armar el cuadro de ' + cat +
-            ' (hay ' + tabla.length + ' y se necesitan ' + necesarios + ').</div>';
+            ' (hay ' + tabla.length + ' y se necesitan ' + c.lugares + ').</div>';
     return html;
   }
 
-  if(f.repechaje.length){
-    html += rondaDeCuadro("Repechaje", f.repechaje, tabla);
-    html += rondaDeCuadro(cat === "Femenil A" ? "Semifinales" : "Cuartos de Final",
-                          f.llaves, tabla);
-  }else{
-    html += rondaDeCuadro("Cuartos de Final", f.llaves, tabla);
+  if(c.repechaje.length){
+    html += '<div class="po-repechaje"><div class="po-rep-tit">Repechaje' +
+            '<span>' + poRango(c.repechaje) + '</span></div><div class="po-rep-partidos">' +
+            c.repechaje.map(function(p){ return poPartido(p, tabla); }).join("") +
+            '</div></div>';
   }
 
-  if(cat !== "Femenil A"){
-    html += rondaDeCuadro("Semifinales",
-      [["Ganador de la llave 1","Ganador de la llave 4"],
-       ["Ganador de la llave 2","Ganador de la llave 3"]], tabla);
-  }
-  html += rondaDeCuadro("Final",
-    [["Ganador de la semifinal 1","Ganador de la semifinal 2"]], tabla);
+  const conR1 = c.izq.r1.length > 0;
+  const r1 = c.izq.r1.concat(c.der.r1), r2 = [c.izq.r2, c.der.r2];
+  const cols = conR1
+    ? [["Cuartos", poRango(r1)], ["Semifinal", poRango(r2)], ["Final", poDia(c.final.f)], ["Semifinal", poRango(r2)], ["Cuartos", poRango(r1)]]
+    : [["Semifinal", poRango(r2)], ["Final", poDia(c.final.f)], ["Semifinal", poRango(r2)]];
 
-  const fuera = tabla.slice(necesarios);
+  html += '<div class="po-desliza">Desliza para ver todo el cuadro →</div>';
+  html += '<div class="po-scroll"><div class="po-marco' + (conR1 ? "" : " po-chico") + '">';
+  html += '<div class="po-encabezados">' + cols.map(function(x, i){
+            return '<div class="po-enc' + (x[0] === "Final" ? " po-enc-final" : "") + '"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>';
+          }).join("") + '</div>';
+  html += '<div class="po-cuadro">';
+  html += poLado(c.izq, tabla, "po-izq");
+  html += '<div class="po-centro"><div class="po-final">' +
+            '<div class="po-final-tit">🏆 Final · ' + cat + '</div>' +
+            '<div class="po-cuando">' + poCuando(c.final.f, c.final.h) + '</div>' +
+            poLugar("Ganador de semifinal", tabla) + poLugar("Ganador de semifinal", tabla) +
+          '</div></div>';
+  html += poLado(c.der, tabla, "po-der");
+  html += '</div></div></div>';
+
+  const fuera = tabla.slice(c.lugares);
   if(fuera.length){
     html += '<div class="playoffs-eliminado">Hoy quedarían fuera: ' +
             fuera.map(function(t){ return t.equipo; }).join(", ") + '.</div>';
   }
   return html;
+}
+
+/* Lleva a la Tabla de Posiciones ya filtrada en esa categoría. Las pestañas
+   no se repintan al cambiar (se pintan al cargar), así que se repinta aquí
+   con el filtro puesto antes de enseñarla. */
+function irATablaDe(cat){
+  CAT_VISTA.tabla = cat;
+  if(typeof renderTabla === "function") renderTabla();
+  const btn = document.querySelector('nav.tabs button[data-view="tabla"]');
+  if(btn) btn.click();
+  const vista = document.getElementById("view-tabla");
+  if(vista && vista.scrollIntoView) vista.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* Los partidos de playoffs como lista plana, para el Rol de Partidos. Salen
+   de PLAYOFFS_CUADRO, el mismo dato que el cuadro: no hay una segunda copia
+   de fechas que se pueda desfasar. */
+function partidosDePlayoffs(){
+  const lista = [];
+  Object.keys(PLAYOFFS_CUADRO).forEach(function(cat){
+    const c = PLAYOFFS_CUADRO[cat];
+    c.repechaje.concat(c.izq.r1, c.der.r1, [c.izq.r2, c.der.r2]).forEach(function(p){
+      lista.push({ cat: cat, ronda: p.ronda, f: p.f, h: p.h, a: p.a, b: p.b });
+    });
+    lista.push({ cat: cat, ronda: "Final", f: c.final.f, h: c.final.h,
+                 a: "Ganador de semifinal", b: "Ganador de semifinal" });
+  });
+  return lista.sort(function(x, y){ return (x.f + x.h).localeCompare(y.f + y.h); });
 }
 
 function renderPlayoffs(){
@@ -4919,13 +5157,25 @@ function renderPlayoffs(){
              botonesCategoria("playoffs");
 
   html += '<div class="playoffs-note"><strong>Así van los cruces hoy.</strong> ' +
-          'La temporada regular todavía no termina, así que esto se mueve con cada ' +
-          'partido. Las fechas se anuncian después.</div>';
+          'La temporada regular termina el sábado 31 de octubre; hasta entonces los equipos ' +
+          'se mueven con cada partido. Las fechas y horas ya son las oficiales: los playoffs ' +
+          'van del lunes 2 al sábado 14 de noviembre, día de las cuatro finales.</div>';
 
   const cats = (cat === "general") ? CATS_ROL : [cat];
   const cuadros = cats.map(cuadroDeCategoria).filter(Boolean).join("");
-  el.innerHTML = html + (cuadros ||
-    '<div class="empty-state">Todavía no hay resultados para armar los cuadros.</div>');
+  if(!cuadros){
+    el.innerHTML = html + '<div class="empty-state">Todavía no hay resultados para armar los cuadros.</div>';
+    return;
+  }
+  /* Lo pidió Mauricio: el aviso de cómo se arman las semis va ABAJO de los
+     cuadros, porque las líneas del dibujo marcan la ronda, no el rival. */
+  html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman las semifinales?</strong> ' +
+          'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que siga ' +
+          'vivo con el mejor lugar juega contra el que siga vivo con el peor lugar, y los otros ' +
+          'dos se enfrentan entre sí. En Femenil A, el 1º juega contra el ganador del repechaje ' +
+          'con peor lugar y el 2º contra el de mejor lugar. Por eso las líneas del cuadro marcan ' +
+          'la ronda, no el rival exacto.</div>';
+  el.innerHTML = html;
 }
 
 /* Concentrado: resumen general de la temporada. Se llena más adelante con
