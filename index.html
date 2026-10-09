@@ -4377,7 +4377,7 @@ function renderRol(){
   let html = botones;
   const po = playoffsEnRol(cat);
   if(po) html += '<details class="po-plegado"><summary>🏆 Ver partidos de playoffs' +
-                 '<span>Del lunes 2 al sábado 14 de noviembre</span></summary>' + po + '</details>';
+                 '<span>Del lunes 2 al sábado 21 de noviembre</span></summary>' + po + '</details>';
 
   /* Primero esta semana y las que vienen, en orden; luego las que ya se
      jugaron, de la más reciente a la más vieja. Antes iba todo de la última
@@ -5207,6 +5207,9 @@ const PO_AVANZO = {
   seg:   "2º mejor lugar que avanzó",
   ter:   "3er mejor lugar que avanzó"
 };
+/* Finales el sábado 21 de noviembre y no el 14: el 14 al 16 es puente por
+   el Día de la Revolución (lunes 16). Lo decidió Mauricio el 9 de octubre;
+   todo lo demás se quedó igual y la semana del 16 queda de colchón. */
 const PLAYOFFS_CUADRO = {
   "Varonil A": {
     lugares: 8,
@@ -5218,7 +5221,7 @@ const PLAYOFFS_CUADRO = {
     der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-04", h:"22:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-02", h:"22:10" } ],
            r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-09", h:"22:10" } },
-    final: { f:"2026-11-14", h:"13:10" }
+    final: { f:"2026-11-21", h:"13:10" }
   },
   "Femenil A": {
     lugares: 6,
@@ -5227,7 +5230,7 @@ const PLAYOFFS_CUADRO = {
                  { ronda:"Repechaje", a:4, b:5, f:"2026-11-04", h:"20:10" } ],
     izq: { r1: [], r2: { ronda:"Semifinal", a:1, b:"Ganador del repechaje con peor lugar", f:"2026-11-09", h:"20:10" } },
     der: { r1: [], r2: { ronda:"Semifinal", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-11", h:"20:10" } },
-    final: { f:"2026-11-14", h:"14:10" }
+    final: { f:"2026-11-21", h:"14:10" }
   },
   "Varonil B": {
     lugares: 10,
@@ -5244,7 +5247,7 @@ const PLAYOFFS_CUADRO = {
     der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-07", h:"13:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-07", h:"14:10" } ],
            r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"22:10" } },
-    final: { f:"2026-11-14", h:"15:10" }
+    final: { f:"2026-11-21", h:"15:10" }
   },
   "Femenil B": {
     lugares: 8,
@@ -5256,7 +5259,7 @@ const PLAYOFFS_CUADRO = {
     der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-05", h:"20:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-05", h:"21:10" } ],
            r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"21:10" } },
-    final: { f:"2026-11-14", h:"12:10" }
+    final: { f:"2026-11-21", h:"12:10" }
   }
 };
 
@@ -5564,7 +5567,7 @@ function renderPlayoffs(){
   html += '<div class="playoffs-note"><strong>Así van los cruces hoy.</strong> ' +
           'La temporada regular termina el sábado 31 de octubre; hasta entonces los equipos ' +
           'se mueven con cada partido. Las fechas y horas ya son las oficiales: los playoffs ' +
-          'van del lunes 2 al sábado 14 de noviembre, día de las cuatro finales.</div>';
+          'van del lunes 2 al sábado 21 de noviembre, día de las cuatro finales.</div>';
 
   const cats = (cat === "general") ? CATS_ROL : [cat];
   const cuadros = cats.map(cuadroDeCategoria).filter(Boolean).join("");
