@@ -5036,12 +5036,16 @@ const PLAYOFFS_CUADRO = {
   "Varonil B": {
     lugares: 10,
     dice: "Los 6 primeros pasan directo a cuartos. El 7º vs 10º y el 8º vs 9º se juegan los otros dos lugares en el repechaje.",
+    /* Los ganadores del repechaje no tienen rival fijo: siempre el mejor
+       lugar contra el peor. Si gana el 10º, el 10º va contra el 1º. Antes
+       decía "1º vs ganador de 8º vs 9º", y eso le daba al 1º un rival más
+       fuerte que al 2º si avanzaba el 10º (Mauricio, 9 oct). */
     repechaje: [ { ronda:"Repechaje", a:8, b:9,  f:"2026-11-03", h:"21:10" },
                  { ronda:"Repechaje", a:7, b:10, f:"2026-11-03", h:"22:10" } ],
-    izq: { r1: [ { ronda:"Cuartos", a:1, b:"Ganador de 8º vs 9º", f:"2026-11-07", h:"12:10" },
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:"Ganador del repechaje con peor lugar", f:"2026-11-07", h:"12:10" },
                  { ronda:"Cuartos", a:4, b:5, f:"2026-11-07", h:"15:10" } ],
            r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-11", h:"21:10" } },
-    der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador de 7º vs 10º", f:"2026-11-07", h:"13:10" },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-07", h:"13:10" },
                  { ronda:"Cuartos", a:3, b:6, f:"2026-11-07", h:"14:10" } ],
            r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"22:10" } },
     final: { f:"2026-11-14", h:"15:10" }
@@ -5327,10 +5331,10 @@ function partidosDePlayoffs(){
 
 /* Cómo se arman las semis de cada categoría, para el aviso de abajo. */
 const PO_SEMIS = {
-  "Varonil A": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
-  "Femenil A": "En Femenil A, el 1º juega contra el ganador del repechaje con peor lugar y el 2º contra el de mejor lugar.",
-  "Varonil B": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
-  "Femenil B": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí."
+  "Varonil A": "Siempre el mejor lugar contra el peor. En semifinales se reordenan por lugar: al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
+  "Femenil A": "Siempre el mejor lugar contra el peor. En Femenil A, el 1º juega contra el ganador del repechaje con peor lugar y el 2º contra el de mejor lugar.",
+  "Varonil B": "Siempre el mejor lugar contra el peor. En cuartos, el 1º juega contra el ganador del repechaje con peor lugar y el 2º contra el de mejor lugar. En semifinales se reordenan por lugar: al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
+  "Femenil B": "Siempre el mejor lugar contra el peor. En semifinales se reordenan por lugar: al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí."
 };
 
 function renderPlayoffs(){
@@ -5354,13 +5358,18 @@ function renderPlayoffs(){
      cuadros, porque las líneas del dibujo marcan la ronda, no el rival.
      Con una categoría elegida, el aviso habla solo de esa; en General van
      todas (Mauricio, 9 oct: en Varonil B salía la regla de Femenil A). */
+  /* La regla de la casa: siempre el mejor lugar contra el peor (Mauricio,
+     9 oct). Por eso el aviso habla de "cruces" y no solo de semis: en
+     Varonil B también los cuartos dependen de quién gane el repechaje. */
   const reglas = (cat === "general")
-    ? 'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que avanzó ' +
-      'con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros ' +
-      'dos se enfrentan entre sí. ' + PO_SEMIS["Femenil A"] + ' Por eso las líneas del cuadro marcan ' +
-      'la ronda, no el rival exacto.'
+    ? 'Siempre el mejor lugar contra el peor. En semifinales se reordenan por lugar en la tabla: ' +
+      'al terminar la ronda anterior, el equipo que avanzó con el mejor lugar juega contra el que ' +
+      'avanzó con el peor lugar, y los otros dos se enfrentan entre sí. En Femenil A, el 1º juega ' +
+      'contra el ganador del repechaje con peor lugar y el 2º contra el de mejor lugar.' +
+      ' En Varonil B, en cuartos el 1º juega contra el ganador del repechaje con peor lugar y el 2º ' +
+      'contra el de mejor lugar. Por eso las líneas del cuadro marcan la ronda, no el rival exacto.'
     : PO_SEMIS[cat] + ' Por eso las líneas del cuadro marcan la ronda, no el rival exacto.';
-  html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman las semifinales' +
+  html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman los cruces' +
           (cat === "general" ? "" : " de " + cat) + '?</strong> ' + reglas + '</div>';
   el.innerHTML = html;
 }
