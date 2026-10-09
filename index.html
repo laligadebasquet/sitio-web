@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>La Liga de Basquet | Gante San Pedro</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAYFBMVEXxbyUAAAD6diH1lln5fDP4gjxqLg6qShb1fDf6hkL/BwP7a2b//wCIOxH8gTcoGRIJEBn9mx37/f1JKBbwq5W/PzS7eDQzGAoKGV6unmvs1Kny53gA//92ABFoEWhzaHtggaGxAAAAIHRSTlP6AAobp136/mROAQMB/ZCZXA8CrggEA+oGBwYDAQMDBz9mQa0AAATXSURBVHjajVeJcusgDETI2BjwmfS+/v8vnwAJ4yPtY6bTxDHLaiVgpeA83JOO/xC1sTSMRozf9VO4eFmdH6Gjv942qhpN00cQ/BvALQ5WM6qLMZqVaLjfAXSc3qhHw7yD078BeIBe/Tr6FfRDAALHpo7bWk3D2rF+iqDDNYAPYLb3+p1gWCEbcHgFoEGJdo3BRKiMqBwWbcY6DLWFXxbpPwlu0V91cEuc0jclDDwC/MBdGN4h0KKJt6FKMibVUSQCq0iMUe8awDssP32hT4yrYkgxuQU3lVFm8j+tmqKxjyudaqGJCaSfkHHRhQ2A8pcfj5HqFuuxBvKv+dXmnosyATxx/kbQH1jWuCjmyG9hBJOFjACBBWgoOw6wqiSDi6b0bYQQFhAETMkkAOchv3GPMfa7WpA6KkH1xMFlJSmIkAA8B0Cp0WX9NH2eJxrzHNPUFwRKEnIQSwII8lWX+RQszLe261Tbqa5rp1mVOiXmz8wTQyAABzYH4L1GqXaAW9vGj21+0t3okZEEfvjPhtcEFdydJ1EAjaRrpontEGe2ahjadmhfZtnqDbxJEERBcQobCKJFD19Tl1Yn+m370nUxjG6YfsoLshZRUOXjc2D5Yc3zlXohiMiBw5i+GeEenh0v+6yEjJMMIvEn0nF1ntsyXjfDm+jNpRO3RM81pFemAlm9KAEjDEyihSK/ztIbAkjTercwlbfvKb+cJg1DXptJTK/5dQ38eiMAsSxTVBbmgWnXaWQ8CsLmTfPEAKtiINqcCcnDJGGzACJhmylknqtj8VFp3oZCKSmQmHP8g2ykBAob48RFK5uJl5jmkjlRTlUI3ews7ylWUXHkLIGBWR3IdxUCxZDzEIs4cbeZgRYAjBJ0w25pKYP0aMpMrQAY1QtAQlrgdua+URhoU6GcPRkpAyw1QHcCqCicAc4hDN1Jve3TMQRmsBPxUryyoa5FtIURFSInvhu2aQVBSrEvK+ZCaqpCejkDVHKcC4nn0dEipdydAUQWdQOfPwDfRag+94g2leIRoOhSNpODD/5JKNGFkbm8vjwGkAhsvZ3lQAkMyQdKnQX6kmgNczlMqwNle5RPm7eVg6gB0peOypwJ6PDOzMuh6nSQ8/2bD+UjwKTkDgt8JjbpVObzVXumYOEnIQyd2uVhkhOR7uXqWA9BzleP28UyDQcKdL1JtI3SKIeyCwqemcLq5ZqPJ/NMO6ii0LXlYopLPUky4rEuFHpY5MZS5g1eZ74dY0Jv8ysoUy54V7SIlyultFzv8pEcUbQF83SjMc3JIjTCjgwpbh4lXu+eDYPfGQxbGww7FpuqV33PYOizwZCNlM7mpbY4tsc4qtaB+Ad3tDjRo1jh5PeG+2D1aM4ql7jNXpNtHk8iH60fW35yirFg83wKeLN5xaep8Q7RWqO5aDbIAkcPWpxO2FldCT1ZVZLvvR/37Q49W2qjKnZbwQEh+9EkD/a5a+vxDvzQPDLbQAWJm1Ti78tYUs9Q5L2w+ymZY7G0Kxt8GXUppTCvWh6khm0rAXzftVZbv6LG97rvqpuuoKsqimaXei5qXxe7awR7cOFh24dw/6vtw0PveWg8/XUNqMpB+79a37o/O/QsNF2HP5vv1NvisWnJ7l+H/+neScwY5YqkHm2y1P+vCfmq/f8H77UqjUAOqEUAAAAASUVORK5CYII=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2054,6 +2054,97 @@
   }
   .insc-ine-preview img{width:100%;height:100%;object-fit:contain;background:#fff;}
   .insc-ine-preview.lista{border:2px solid var(--orange);}
+
+  /* ============================================================
+     CELULAR (Mauricio, 9 oct 2026: "la vista de celular es la
+     experiencia importante")
+     ============================================================ */
+  .lupa-cel, .barra-cel, .mas-hoja, .mas-fondo, .po-rondas{display:none;}
+  /* Rol: la semana en curso se marca, y lo ya jugado va después. */
+  .esta-semana{background:var(--orange);color:#fff;font-size:10px;font-weight:800;letter-spacing:.5px;
+    text-transform:uppercase;padding:3px 8px;border-radius:999px;margin-left:8px;vertical-align:2px;}
+  .rol-movido{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:var(--orange);
+    text-transform:uppercase;letter-spacing:.3px;}
+  .rol-pasadas{margin:30px 0 4px;font-size:12px;font-weight:800;color:var(--text-soft);text-transform:uppercase;
+    letter-spacing:.6px;text-align:center;}
+  /* Los playoffs en el rol, plegados en un botón. */
+  .po-plegado{margin:0 0 18px;position:relative;}
+  .po-plegado > summary{cursor:pointer;list-style:none;padding:14px 44px 14px 16px;font-weight:900;font-size:14px;
+    text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:2px;
+    background:var(--navy);color:#fff;border-radius:12px;}
+  .po-plegado > summary::-webkit-details-marker{display:none;}
+  .po-plegado > summary span{font-size:11px;font-weight:600;color:var(--orange);text-transform:none;letter-spacing:0;}
+  .po-plegado > summary::after{content:"▾";position:absolute;right:18px;top:16px;font-size:16px;}
+  .po-plegado[open] > summary{margin-bottom:12px;}
+  .po-plegado[open] > summary::after{content:"▴";}
+
+  @media (max-width:720px){
+    /* 6 · Encabezado delgado: logo y lupa en una línea. */
+    header.topbar{padding:10px 16px;border-bottom-width:3px;}
+    .topbar-inner{flex-wrap:wrap;gap:10px;}
+    .brand-logo{height:36px;width:36px;}
+    .brand-nombre{font-size:15px;}
+    .brand-sub{font-size:7.5px;margin-top:3px;}
+    .lupa-cel{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;
+      background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;}
+    header.topbar.buscando .lupa-cel{background:var(--orange);}
+    .search-box{display:none;}
+    header.topbar.buscando .search-box{display:flex;flex-basis:100%;min-width:0;}
+    .search-box input{font-size:16px;} /* con menos de 16px el iPhone hace zoom al escribir */
+    nav.tabs{display:none;}
+
+    /* 1 · La barra de abajo. */
+    body:not(.solo-inicio){padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+    body:not(.solo-inicio) .barra-cel{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;
+      background:#000;border-top:3px solid var(--orange);padding:4px 4px calc(4px + env(safe-area-inset-bottom));}
+    .barra-cel button{flex:1;background:none;border:none;color:var(--on-dark-soft);display:flex;flex-direction:column;
+      align-items:center;gap:3px;padding:6px 0 4px;font-size:10.5px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.3px;cursor:pointer;font-family:inherit;}
+    .barra-cel svg{width:23px;height:23px;}
+    .barra-cel button.active{color:var(--orange);}
+    .mas-fondo.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;}
+    .mas-hoja{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:90;background:#111;
+      border-radius:18px 18px 0 0;padding:8px 12px calc(16px + env(safe-area-inset-bottom));
+      transform:translateY(105%);transition:transform .2s ease;}
+    .mas-hoja.open{transform:none;}
+    .mas-asa{width:40px;height:4px;border-radius:2px;background:#444;margin:4px auto 10px;}
+    .mas-hoja button{background:none;border:none;color:#fff;text-align:left;font-size:15px;font-weight:800;
+      text-transform:uppercase;letter-spacing:.4px;padding:14px 12px;border-radius:10px;font-family:inherit;cursor:pointer;}
+    .mas-hoja button + button{border-top:1px solid #222;}
+    .mas-hoja button.active{color:var(--orange);}
+    .aviso-cookies{bottom:calc(76px + env(safe-area-inset-bottom)) !important;}
+
+    main{margin-top:14px;padding:0 16px;}
+
+    /* 5 · Categorías en una fila que se desliza y se queda pegada arriba. */
+    .rol-cats{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+      position:sticky;top:0;z-index:30;background:var(--gray-bg);margin:0 -16px 14px;padding:10px 16px;}
+    .rol-cats::-webkit-scrollbar{display:none;}
+    .rol-cat-btn{flex:none;padding:9px 15px;}
+
+    /* 2 · La tabla cabe sin deslizar: fuera PF, PC y %. Queda lo que se
+       pregunta: lugar, equipo, jugados, ganados, perdidos y diferencia. */
+    table.standings{font-size:12.5px;}
+    table.standings thead th:nth-child(7), table.standings tbody td:nth-child(7),
+    table.standings thead th:nth-child(8), table.standings tbody td:nth-child(8),
+    table.standings thead th:nth-child(10), table.standings tbody td:nth-child(10){display:none;}
+    table.standings thead th{padding:9px 4px;}
+    table.standings tbody td{padding:10px 4px;}
+
+    /* 4 · Playoffs por rondas, sin deslizar. */
+    .po-desliza, .po-scroll{display:none !important;}
+    .po-rondas{display:block;margin-top:14px;}
+    .po-ronda{margin-bottom:18px;}
+    .po-ronda-tit{display:flex;align-items:baseline;gap:8px;margin:0 0 8px;}
+    .po-ronda-tit b{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:var(--navy);}
+    .po-ronda-tit span{font-size:11px;color:var(--orange);font-weight:800;text-transform:uppercase;}
+    .po-ronda .po-partido{margin-bottom:8px;}
+    .po-ronda-final .po-partido{background:var(--navy);border:2px solid var(--orange);}
+    .po-ronda-final .po-cuando{background:transparent;border-bottom-color:#333;}
+    .po-ronda-final .po-nom.po-pend{color:#bbb;}
+    .po-ronda-final .po-seed.po-seed-vacio{background:#333;color:#999;}
+    .po-ronda-final .po-eq + .po-eq{border-top-color:#333;}
+  }
 </style>
 </head>
 <body>
@@ -2067,6 +2158,11 @@
         <span class="brand-sub">Gante San Pedro</span>
       </div>
     </div>
+    <!-- En celular el buscador se esconde detrás de esta lupa: el encabezado
+         ocupaba casi una cuarta parte de la pantalla (Mauricio, 9 oct). -->
+    <button type="button" class="lupa-cel" onclick="abrirBuscadorCel()" aria-label="Buscar equipo o jugador">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+    </button>
     <div class="search-box">
       <span>🔍</span>
       <input type="text" id="teamSearch" placeholder="Busca tu equipo o tu nombre">
@@ -2133,6 +2229,32 @@
 
 <div class="config-note" id="configNote" style="display:none;">
   <p>⚠️ No se pudo cargar la hoja conectada — mostrando datos de ejemplo. Revisa las URLs en CONFIG dentro del código.</p>
+</div>
+
+<!-- Barra de abajo, solo en celular. Arriba, en el teléfono, solo se veía
+     "Rol de Partidos y Estadística": Playoffs, Ranking, Jugadores y lo demás
+     quedaban escondidos a la derecha sin que nada lo dijera (Mauricio, 9 oct:
+     "la vista de celular es la experiencia importante"). Los botones solo
+     "pican" la pestaña de arriba, así que todo lo demás sigue igual. -->
+<nav class="barra-cel" id="barraCel" aria-label="Secciones">
+  <button type="button" data-ir="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg><span>Inicio</span></button>
+  <button type="button" data-ir="rol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Rol</span></button>
+  <button type="button" data-ir="tabla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Tabla</span></button>
+  <button type="button" data-ir="playoffs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 01-10 0zM7 6H4a3 3 0 003 4M17 6h3a3 3 0 01-3 4M12 14v4M8 21h8"/></svg><span>Playoffs</span></button>
+  <button type="button" data-ir="mas" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Más</span></button>
+</nav>
+<div class="mas-fondo" id="masFondo" onclick="cerrarMasCel()"></div>
+<div class="mas-hoja" id="masHoja" role="menu" aria-label="Más secciones">
+  <div class="mas-asa"></div>
+  <button type="button" data-ir="ranking">Ranking</button>
+  <button type="button" data-ir="tendencias">Tendencias</button>
+  <button type="button" data-ir="credencial">Jugadores</button>
+  <button type="button" data-ir="concentrado">Concentrado</button>
+  <button type="button" data-ir="sanciones">Sanciones</button>
+  <button type="button" data-ir="inscripcion">Inscripción</button>
+  <button type="button" data-ir="reglamento">Reglamento</button>
+  <button type="button" data-ir="dondeestamos">Dónde Estamos</button>
+  <button type="button" data-ir="contacto">Contacto</button>
 </div>
 
 <main>
@@ -3862,12 +3984,61 @@ function filtrarCategoria(vista, cat){
   else if(vista === "jugadores"){ JUGADORES_EQUIPO = null; JUGADOR_SEL = null; renderJugadores(); }
   else if(vista === "ranking")    renderRanking();
   else if(vista === "tendencias") renderRachas();
+  centrarCategoriaElegida();
+}
+
+/* En el celular los botones de categoría van en una fila que se desliza:
+   el elegido se centra para que no quede cortado en la orilla. Se mueve
+   solo la fila, nunca la página. */
+function centrarCategoriaElegida(){
+  document.querySelectorAll(".rol-cats .rol-cat-btn.active").forEach(function(b){
+    const fila = b.parentElement;
+    if(fila.scrollWidth > fila.clientWidth) fila.scrollLeft = b.offsetLeft - (fila.clientWidth - b.offsetWidth) / 2;
+  });
 }
 
 /* Texto para cuando el filtro deja la pantalla vacía. */
 function enCategoria(vista){
   const cat = CAT_VISTA[vista];
   return cat === "general" ? "" : " en " + cat;
+}
+
+/* El rol agrupado por la semana en que de verdad se juega cada partido.
+
+   Con la lluvia del 3 de octubre, varios partidos de la Semana 7 se
+   reprogramaron al 29 y 31 de octubre y seguían saliendo en la Semana 7:
+   esa semana se marcaba como "esta semana" y los partidos reprogramados
+   quedaban escondidos entre lo ya jugado. Ahora cada partido va en la semana
+   de su fecha (lunes a domingo), y esa semana toma el número que tiene la
+   mayoría de sus partidos. El que se movió dice de qué semana venía. */
+function lunesDe(fecha){
+  const p = String(fecha).split("-").map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function semanasDelRol(arr){
+  const votos = {};
+  arr.forEach(m => {
+    if(!m.fecha || porReprogramar(m)) return;
+    const l = lunesDe(m.fecha);
+    votos[l] = votos[l] || {};
+    votos[l][m.jornada] = (votos[l][m.jornada] || 0) + 1;
+  });
+  const numeroDe = {};
+  Object.keys(votos).forEach(l => {
+    numeroDe[l] = Number(Object.keys(votos[l]).sort((a, b) => votos[l][b] - votos[l][a] || a - b)[0]);
+  });
+  const map = {};
+  arr.forEach(m => {
+    const j = (m.fecha && !porReprogramar(m)) ? numeroDe[lunesDe(m.fecha)] : Number(m.jornada);
+    (map[j] = map[j] || []).push(m);
+  });
+  /* Dentro de la semana, por día y hora: al juntar los reprogramados ya no
+     basta con el orden en que vienen en el Sheet. */
+  const cuando = m => String(m.fecha || "9999") + " " + String(m.hora || "").padStart(5, "0");
+  return Object.keys(map).sort((a, b) => b - a)
+    .map(j => ({ jornada: j, items: map[j].slice().sort((x, y) => cuando(x).localeCompare(cuando(y))) }));
 }
 
 function groupByJornada(arr){
@@ -4194,25 +4365,46 @@ function renderRol(){
   const cat = CAT_VISTA["rol"];
   const botones = botonesCategoria("rol") + botonesEquipoRol(cat);
 
-  const grouped = groupByJornada(ROL);
+  const grouped = semanasDelRol(ROL);
   if(grouped.length === 0){
     el.innerHTML = botones + '<div class="empty-state">Todavía no hay partidos programados.</div>';
     return;
   }
 
-  /* Los playoffs van ARRIBA: el rol pone la semana más reciente primero
-     (groupByJornada ordena de mayor a menor), y los playoffs son lo último
-     del calendario. Al final quedaban debajo de la semana 1. */
-  let html = botones + playoffsEnRol(cat);
+  /* Los playoffs van arriba pero PLEGADOS: en el celular eran 15 tarjetas
+     de "Ganador de semifinal" antes de llegar a los partidos de esta semana
+     (Mauricio, 9 oct). Ya tienen su pestaña; aquí basta con un botón. */
+  let html = botones;
+  const po = playoffsEnRol(cat);
+  if(po) html += '<details class="po-plegado"><summary>🏆 Ver partidos de playoffs' +
+                 '<span>Del lunes 2 al sábado 14 de noviembre</span></summary>' + po + '</details>';
 
-  grouped.forEach(g=>{
+  /* Primero esta semana y las que vienen, en orden; luego las que ya se
+     jugaron, de la más reciente a la más vieja. Antes iba todo de la última
+     semana del calendario hacia atrás, y la semana en curso quedaba a media
+     página. */
+  const hoy = hoyISO();
+  const proximo = ROL.filter(m => m.fecha && m.fecha >= hoy && !porReprogramar(m)).map(m => m.fecha).sort()[0];
+  const actual = proximo && grouped.find(g => g.items.some(m => m.fecha === proximo && !porReprogramar(m)));
+  const semanaActual = actual ? Number(actual.jornada) : null;
+  const ordenRol = semanaActual === null ? grouped : grouped
+    .filter(g => Number(g.jornada) >= semanaActual).sort((a, b) => a.jornada - b.jornada)
+    .concat(grouped.filter(g => Number(g.jornada) < semanaActual));
+  let yaDijoPasadas = false;
+
+  ordenRol.forEach(g=>{
     const visibleItems = g.items.filter(m=>
       matchesSearch(m.local, m.visitante) &&
       pasaCategoria("rol", m.local, m.visitante) &&
       (!ROL_EQUIPO || m.local === ROL_EQUIPO || m.visitante === ROL_EQUIPO));
     if(visibleItems.length === 0) return;
 
-    html += `<div class="jornada-heading">Semana ${g.jornada}<span class="line"></span></div>`;
+    if(semanaActual !== null && Number(g.jornada) < semanaActual && !yaDijoPasadas){
+      html += '<div class="rol-pasadas">Semanas que ya se jugaron</div>';
+      yaDijoPasadas = true;
+    }
+    const esActual = Number(g.jornada) === semanaActual;
+    html += `<div class="jornada-heading${esActual ? " actual" : ""}">Semana ${g.jornada}${esActual ? ' <span class="esta-semana">Esta semana</span>' : ""}<span class="line"></span></div>`;
     html += avisoDeSemana(g.jornada);
     html += '<div class="cards-grid">';
 
@@ -4244,6 +4436,7 @@ function renderRol(){
             ${conMarcador ? `<span class="match-pts">${ptsV}</span>` : ""}
           </div>
           <span class="badge ${badgeClass}">${jugado ? "Jugado" : (m.estatus || "Programado")}</span>
+          ${Number(m.jornada) !== Number(g.jornada) ? `<span class="rol-movido">Reprogramado · era de la semana ${m.jornada}</span>` : ""}
         </div>`;
     });
     html += "</div>";
@@ -5127,6 +5320,26 @@ function poRango(partidos){
   return a[2] + "–" + b[2] + " " + PO_MESES[b[1] - 1];
 }
 
+/* En el celular el cuadro NCAA había que deslizarlo de lado y la final se
+   cortaba (Mauricio, 9 oct). Ahí se ven las rondas una debajo de otra, en
+   orden de fecha; el CSS escoge cuál de las dos vistas sale. */
+function rondasCel(c, tabla, cat){
+  const porFecha = function(a, b){ return (a.f + a.h).localeCompare(b.f + b.h); };
+  const r1 = c.izq.r1.concat(c.der.r1).sort(porFecha);
+  const r2 = [c.izq.r2, c.der.r2].sort(porFecha);
+  const ronda = function(titulo, partidos, final){
+    return '<div class="po-ronda' + (final ? " po-ronda-final" : "") + '">' +
+           '<div class="po-ronda-tit"><b>' + titulo + '</b><span>' + poRango(partidos) + '</span></div>' +
+           partidos.map(function(p){ return poPartido(p, tabla); }).join("") + '</div>';
+  };
+  let html = '<div class="po-rondas">';
+  if(r1.length) html += ronda(r1[0].ronda, r1);
+  html += ronda("Semifinal", r2);
+  html += ronda("🏆 Final · " + cat, [{ ronda: "Final", f: c.final.f, h: c.final.h,
+                 a: "Ganador de semifinal", b: "Ganador de semifinal" }], true);
+  return html + '</div>';
+}
+
 function cuadroDeCategoria(cat){
   const c = PLAYOFFS_CUADRO[cat];
   if(!c) return "";
@@ -5171,6 +5384,8 @@ function cuadroDeCategoria(cat){
           '</div></div>';
   html += poLado(c.der, tabla, "po-der");
   html += '</div></div></div>';
+
+  html += rondasCel(c, tabla, cat);
 
   const fuera = tabla.slice(c.lugares);
   if(fuera.length){
@@ -7098,9 +7313,56 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById("view-" + btn.dataset.view).classList.add("active");
     cerrarNavDropdowns();
+    marcarBarraCel(btn.dataset.view);
     vistaAnalitica(btn.dataset.view);
   });
 });
+
+/* ---------- La barra de abajo del celular ----------
+   No tiene lógica propia: pica el botón de la pestaña de arriba (que en el
+   celular está escondido) y así cada vista se pinta igual que siempre. */
+const BARRA_CEL_PRINCIPALES = ["inicio", "rol", "tabla", "playoffs"];
+function irDesdeBarraCel(vista){
+  cerrarMasCel();
+  if(vista === "mas"){ abrirMasCel(); return; }
+  const btn = document.querySelector('nav.tabs button[data-view="' + vista + '"]');
+  if(btn) btn.click();
+  /* En el celular cada sección empieza arriba; si no, se abría a la altura
+     a la que ibas en la anterior. */
+  window.scrollTo(0, 0);
+}
+function marcarBarraCel(vista){
+  const enMas = BARRA_CEL_PRINCIPALES.indexOf(vista) === -1;
+  document.querySelectorAll("#barraCel button").forEach(function(b){
+    b.classList.toggle("active", b.dataset.ir === vista || (enMas && b.dataset.ir === "mas"));
+  });
+  document.querySelectorAll("#masHoja button").forEach(function(b){
+    b.classList.toggle("active", b.dataset.ir === vista);
+  });
+}
+function abrirMasCel(){
+  document.getElementById("masHoja").classList.add("open");
+  document.getElementById("masFondo").classList.add("open");
+}
+function cerrarMasCel(){
+  const h = document.getElementById("masHoja"), f = document.getElementById("masFondo");
+  if(h) h.classList.remove("open");
+  if(f) f.classList.remove("open");
+}
+document.querySelectorAll("#barraCel button, #masHoja button").forEach(function(b){
+  b.addEventListener("click", function(){ irDesdeBarraCel(b.dataset.ir); });
+});
+marcarBarraCel("inicio");
+/* En modo "solo inicio" (antes de abrir la temporada) arriba solo queda
+   Inicio; la barra de abajo no tendría a dónde llevar. */
+if(CONFIG.soloInicio) document.body.classList.add("solo-inicio");
+
+/* La lupa del encabezado en el celular: abre el buscador y pone el cursor ahí. */
+function abrirBuscadorCel(){
+  const h = document.querySelector("header.topbar");
+  const abierto = h.classList.toggle("buscando");
+  if(abierto) document.getElementById("teamSearch").focus();
+}
 
 /* Menús desplegables del nav ("Rol de Partidos y Estadística", "Información").
    El menú usa position:fixed (calculado aquí) en vez de absolute porque
