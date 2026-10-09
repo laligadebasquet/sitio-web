@@ -1424,10 +1424,19 @@
   .po-f-eq small{font-size:10px;font-weight:600;opacity:.75;}
   .po-f-rec{display:flex;align-items:center;padding:0 6px;font-size:20px;font-weight:900;
     font-style:italic;letter-spacing:-.5px;}
-  .po-f-letra{display:flex;align-items:center;width:22px;font-size:16px;font-weight:900;}
-  .po-z-directo .po-f-eq,.po-z-directo .po-f-rec,.po-z-directo .po-f-letra{background:var(--orange);}
-  .po-z-repechaje .po-f-eq,.po-z-repechaje .po-f-rec,.po-z-repechaje .po-f-letra{background:#3a3a3a;}
-  .po-z-fuera .po-f-eq,.po-z-fuera .po-f-rec,.po-z-fuera .po-f-letra{background:#262626;color:#9a9a9a;}
+  .po-z-directo .po-f-eq,.po-z-directo .po-f-rec{background:var(--orange);}
+  .po-z-repechaje .po-f-eq,.po-z-repechaje .po-f-rec{background:#3a3a3a;}
+  .po-z-fuera .po-f-eq,.po-z-fuera .po-f-rec{background:#262626;color:#9a9a9a;}
+  .po-f-rec{padding-right:12px;}
+  /* Las letras de playoffs en la Tabla de Posiciones (x, r, o). */
+  .letra-po{display:inline-block;min-width:18px;padding:0 4px;border-radius:4px;font-size:11px;
+    font-weight:900;line-height:18px;text-align:center;vertical-align:1px;color:#fff;}
+  .letra-x{background:var(--win);}
+  .letra-r{background:var(--orange);}
+  .letra-o{background:#9a9a9a;}
+  .leyenda-po{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 4px 0;font-size:12px;color:var(--text-soft);}
+  .leyenda-po span{display:flex;align-items:center;gap:6px;}
+  .leyenda-po em{flex-basis:100%;font-size:11px;}
   .po-leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;margin-top:14px;
     padding-top:10px;border-top:1px solid rgba(255,255,255,.2);color:#ddd;font-size:11px;
     font-weight:700;text-transform:uppercase;}
@@ -4405,6 +4414,8 @@ function renderTabla(){
       `<div class="empty-state">Todavía no hay resultados para calcular la tabla${enCategoria("tabla")}.</div>`;
     return;
   }
+  /* La letra de playoffs junto al nombre, como la NBA: x, r, o. */
+  const letras = letrasPlayoffs();
   let html = botones + `<table class="standings">
     <thead><tr>
       <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
@@ -4414,12 +4425,22 @@ function renderTabla(){
     html += `<tr>
       <td>${i+1}</td>
       <td class="mov ${mov.clase}" title="${mov.dice}">${mov.signo}</td>
-      <td>${t.equipo}</td><td>${t.pj}</td><td>${t.pg}</td><td>${t.pp}</td>
+      <td>${t.equipo}${letras[t.equipo] ? ` <span class="letra-po letra-${letras[t.equipo]}">${letras[t.equipo]}</span>` : ""}</td><td>${t.pj}</td><td>${t.pg}</td><td>${t.pp}</td>
       <td>${t.pf}</td><td>${t.pc}</td><td>${t.dif > 0 ? "+" + t.dif : t.dif}</td>
       <td>${(t.pct*100).toFixed(1)}%</td>
     </tr>`;
   });
   html += "</tbody></table>";
+  /* La leyenda solo con las letras que pueden salir en lo que se ve: en
+     Varonil A y Femenil B no hay repechaje, así que ahí no hay "r". */
+  const cats = [...new Set(standings.map(t => categoriaDeEquipo(t.equipo)))].filter(c => PLAYOFFS_CUADRO[c]);
+  const hayRep = cats.some(c => PLAYOFFS_CUADRO[c].repechaje.length);
+  html += `<div class="leyenda-po">
+    <span><b class="letra-po letra-x">x</b> Clasificado a playoffs${hayRep ? " (con pase directo, donde hay repechaje)" : ""}</span>
+    ${hayRep ? `<span><b class="letra-po letra-r">r</b> Asegura por lo menos el repechaje</span>` : ""}
+    <span><b class="letra-po letra-o">o</b> Eliminado</span>
+    <em>La letra sale cuando ya es seguro, aunque pierda todo lo que le queda. Sin letra: todavía se puede mover.</em>
+  </div>`;
   el.innerHTML = html;
 }
 
@@ -5207,36 +5228,54 @@ function asegurados(tabla, cat){
   return { dentro: dentro, fuera: fuera };
 }
 
-function tablaDeCategoriaHTML(cat){
+/* La letra de cada equipo, como la NBA (Mauricio, 9 oct): "x" clasificado,
+   "r" repechaje y "o" (el circulito) eliminado. "x" pide el lugar que da el
+   pase directo cuando hay repechaje; sin repechaje, basta con entrar.
+
+   Las letras van en la Tabla de Posiciones, que es donde se consulta eso.
+   La ventanita de Playoffs es nada más para verlo rápido y no las lleva
+   (Mauricio, 9 oct). Devuelve una función equipo → letra. */
+function zonasDeCategoria(cat){
   const c = PLAYOFFS_CUADRO[cat];
   const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
-  if(!tabla.length) return '<div class="empty-state">Todavía no hay resultados de ' + cat + '.</div>';
   const lugares  = c ? c.lugares : tabla.length;
   const conRep   = !!(c && c.repechaje.length);
   const directos = conRep ? lugares - c.repechaje.length * 2 : lugares;
   const ya = asegurados(tabla, cat);
-
-  /* La letra de cada uno, como la NBA (Mauricio, 9 oct): "x" clasificado,
-     "r" repechaje y "o" (el circulito) eliminado. "x" pide el lugar que da
-     el pase directo cuando hay repechaje; sin repechaje, basta con entrar. */
   const letra = function(t){
     if(ya.dentro(t, directos)) return "x";
     if(conRep && ya.dentro(t, lugares)) return "r";
     if(tabla.length > lugares && ya.fuera(t, lugares)) return "o";
     return "";
   };
+  return { tabla: tabla, lugares: lugares, conRep: conRep, directos: directos, letra: letra };
+}
+
+/* Las letras de toda la liga por equipo, cada quien con las cuentas de su
+   categoría (así sirven también en la vista General). */
+function letrasPlayoffs(){
+  const letras = {};
+  Object.keys(PLAYOFFS_CUADRO).forEach(function(cat){
+    const z = zonasDeCategoria(cat);
+    z.tabla.forEach(function(t){ letras[t.equipo] = z.letra(t); });
+  });
+  return letras;
+}
+
+function tablaDeCategoriaHTML(cat){
+  const z = zonasDeCategoria(cat);
+  const tabla = z.tabla;
+  if(!tabla.length) return '<div class="empty-state">Todavía no hay resultados de ' + cat + '.</div>';
   const ficha = function(t, i, zona){
-    const l = letra(t);
     return '<div class="po-ficha po-z-' + zona + '">' +
       '<span class="po-f-num">' + (i + 1) + '</span>' +
       '<span class="po-f-eq">' + t.equipo + '<small>Dif ' + (t.dif > 0 ? "+" + t.dif : t.dif) + '</small></span>' +
-      '<span class="po-f-rec">' + t.pg + '-' + t.pp + '</span>' +
-      '<span class="po-f-letra">' + l + '</span></div>';
+      '<span class="po-f-rec">' + t.pg + '-' + t.pp + '</span></div>';
   };
   const columnas = [];
-  columnas.push({ titulo: conRep ? "Pase directo" : "Playoffs", zona: "directo", de: 0, a: directos });
-  if(conRep) columnas.push({ titulo: "Repechaje", zona: "repechaje", de: directos, a: lugares });
-  if(tabla.length > lugares) columnas.push({ titulo: "Fuera", zona: "fuera", de: lugares, a: tabla.length });
+  columnas.push({ titulo: z.conRep ? "Pase directo" : "Playoffs", zona: "directo", de: 0, a: z.directos });
+  if(z.conRep) columnas.push({ titulo: "Repechaje", zona: "repechaje", de: z.directos, a: z.lugares });
+  if(tabla.length > z.lugares) columnas.push({ titulo: "Fuera", zona: "fuera", de: z.lugares, a: tabla.length });
 
   let html = '<div class="po-tablero"><div class="po-columnas">';
   columnas.forEach(function(col){
@@ -5244,12 +5283,7 @@ function tablaDeCategoriaHTML(cat){
     tabla.slice(col.de, col.a).forEach(function(t, k){ html += ficha(t, col.de + k, col.zona); });
     html += '</div>';
   });
-  html += '</div><div class="po-leyenda">' +
-    '<span><b>x</b> · Clasificado ' + (conRep ? "con pase directo" : "a playoffs") + '</span>' +
-    (conRep ? '<span><b>r</b> · Asegura por lo menos el repechaje</span>' : '') +
-    (tabla.length > lugares ? '<span><b>o</b> · Eliminado</span>' : '') +
-    '<em>Sin letra: todavía se puede mover. Las columnas son cómo va hoy.</em>' +
-    '</div></div>';
+  html += '</div><div class="po-leyenda"><em>Así va hoy. Lo que ya es seguro (x, r, o) lo marca la Tabla de Posiciones.</em></div></div>';
   return html;
 }
 
@@ -5291,6 +5325,14 @@ function partidosDePlayoffs(){
   return lista.sort(function(x, y){ return (x.f + x.h).localeCompare(y.f + y.h); });
 }
 
+/* Cómo se arman las semis de cada categoría, para el aviso de abajo. */
+const PO_SEMIS = {
+  "Varonil A": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
+  "Femenil A": "En Femenil A, el 1º juega contra el ganador del repechaje con peor lugar y el 2º contra el de mejor lugar.",
+  "Varonil B": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí.",
+  "Femenil B": "Se reordenan por lugar en la tabla. Al terminar los cuartos, el equipo que avanzó con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros dos se enfrentan entre sí."
+};
+
 function renderPlayoffs(){
   const el = document.getElementById("view-playoffs");
   const cat = CAT_VISTA["playoffs"];
@@ -5309,13 +5351,17 @@ function renderPlayoffs(){
     return;
   }
   /* Lo pidió Mauricio: el aviso de cómo se arman las semis va ABAJO de los
-     cuadros, porque las líneas del dibujo marcan la ronda, no el rival. */
-  html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman las semifinales?</strong> ' +
-          'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que avanzó ' +
-          'con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros ' +
-          'dos se enfrentan entre sí. En Femenil A, el 1º juega contra el ganador del repechaje ' +
-          'con peor lugar y el 2º contra el de mejor lugar. Por eso las líneas del cuadro marcan ' +
-          'la ronda, no el rival exacto.</div>';
+     cuadros, porque las líneas del dibujo marcan la ronda, no el rival.
+     Con una categoría elegida, el aviso habla solo de esa; en General van
+     todas (Mauricio, 9 oct: en Varonil B salía la regla de Femenil A). */
+  const reglas = (cat === "general")
+    ? 'Se reordenan por lugar en la tabla. Al terminar la ronda anterior, el equipo que avanzó ' +
+      'con el mejor lugar juega contra el que avanzó con el peor lugar, y los otros ' +
+      'dos se enfrentan entre sí. ' + PO_SEMIS["Femenil A"] + ' Por eso las líneas del cuadro marcan ' +
+      'la ronda, no el rival exacto.'
+    : PO_SEMIS[cat] + ' Por eso las líneas del cuadro marcan la ronda, no el rival exacto.';
+  html += cuadros + '<div class="po-reordena"><strong>¿Cómo se arman las semifinales' +
+          (cat === "general" ? "" : " de " + cat) + '?</strong> ' + reglas + '</div>';
   el.innerHTML = html;
 }
 
