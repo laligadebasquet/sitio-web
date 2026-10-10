@@ -438,7 +438,7 @@
   .rank-modo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
   .rank-lista{display:flex;flex-direction:column;gap:6px;}
   .rank-fila{
-    display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;
+    display:grid;grid-template-columns:36px 46px 1fr auto;align-items:center;gap:12px;
     width:100%;text-align:left;background:#fff;cursor:pointer;
     border:1px solid var(--gray-line);border-radius:12px;padding:11px 14px;
     font-family:inherit;
@@ -451,6 +451,12 @@
     background:var(--surface-2, #F2F2F4);color:var(--navy);
     font-weight:900;font-size:14px;
   }
+  .rank-ava{width:46px;height:46px;border-radius:50%;overflow:hidden;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;letter-spacing:.5px;}
+  .rank-ava img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rank-fila.p1 .rank-ava{box-shadow:0 0 0 3px #E8B10A;}
+  .rank-fila.p2 .rank-ava{box-shadow:0 0 0 3px #A9AEB5;}
+  .rank-fila.p3 .rank-ava{box-shadow:0 0 0 3px #C4783C;}
   .rank-fila.p1 .rank-pos{background:#E8B10A;color:#fff;}
   .rank-fila.p2 .rank-pos{background:#A9AEB5;color:#fff;}
   .rank-fila.p3 .rank-pos{background:#C4783C;color:#fff;}
@@ -2118,13 +2124,15 @@
     .inicio-cols{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:28px;align-items:start;}
     .inicio-lateral{display:block;position:sticky;top:120px;}
     .rank-cats{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
-    .rank-cats .rank-fila{grid-template-columns:30px 1fr auto;gap:8px;padding:9px 10px;}
+    .rank-cats .rank-fila{grid-template-columns:24px 38px 1fr auto;gap:8px;padding:9px 10px;}
+    .rank-cats .rank-ava{width:38px;height:38px;font-size:12px;}
     .rank-cats .rank-pos{width:26px;height:26px;font-size:12px;}
     .rank-cats .rank-nom{font-size:12px;}
     .rank-cats .rank-pts b{font-size:17px;}
     .rank-podio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px;}
     .rank-podio .rank-fila{grid-template-columns:1fr;justify-items:center;text-align:center;padding:18px 12px;gap:8px;}
-    .rank-podio .rank-pos{width:44px;height:44px;font-size:18px;}
+    .rank-podio .rank-pos{width:34px;height:34px;font-size:15px;}
+    .rank-podio .rank-ava{width:96px;height:96px;font-size:28px;}
     .rank-podio .rank-nom{font-size:15px;}
     .rank-podio .rank-pts{text-align:center;}
     .rank-podio .rank-pts b{font-size:28px;}
@@ -3717,7 +3725,7 @@ function fichaEquipoHTML(equipo){
       </tr>`;
     }).join("");
     html += `</tbody></table>
-      <div class="ficha-pie">Toca un nombre para ver su foto. PJ = partidos jugados.</div>`;
+      <div class="ficha-pie">Toca un nombre para ver su ficha completa. PJ = partidos jugados.</div>`;
   }
   html += `</div></div>`;
   return html;
@@ -5246,12 +5254,32 @@ function cerrarFichaRanking(){
   document.getElementById("rankModal").classList.remove("open");
 }
 
+/* La foto ya va en el renglón, sin tener que picar el nombre (Mauricio,
+   10 oct 2026). Si todavía no llegó, van las iniciales y se pide; cuando
+   llega, el ranking se vuelve a pintar solo. */
+const RANK_FOTOS_PEDIDAS = {};
+function rankFotoHTML(j){
+  const foto = fotoDeJugador(j.equipo, j.jugador);
+  if(foto) return `<img src="${foto}" alt="" loading="lazy">`;
+  if(!fotosYaCargadas(j.equipo) && !RANK_FOTOS_PEDIDAS[j.equipo]){
+    /* Una sola vez por equipo: si la foto no existe o falla, se quedan
+       las iniciales y no se vuelve a pedir en cada repintada. */
+    RANK_FOTOS_PEDIDAS[j.equipo] = true;
+    cargarFotosDe(j.equipo).then(function(){
+      const v = document.getElementById("view-ranking");
+      if(v && v.classList && v.classList.contains("active")) renderRanking();
+    });
+  }
+  return inicialesDe(j.jugador);
+}
+
 function rankFilaHTML(j){
   const eq = String(j.equipo).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   const nom = String(j.jugador).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   return `<button type="button" class="rank-fila${j.posicion <= 3 ? " p" + j.posicion : ""}"
       onclick="abrirFichaRanking('${eq}','${nom}')">
       <span class="rank-pos">${j.posicion}</span>
+      <span class="rank-ava">${rankFotoHTML(j)}</span>
       <span class="rank-nom">${j.jugador}
         <span class="rank-eq">${j.equipo}</span>
       </span>
@@ -5285,7 +5313,7 @@ function renderRanking(){
              top.map(rankFilaHTML).join("") +
              `</div><button type="button" class="rank-ver" onclick="filtrarCategoria('ranking','${c}')">Ver los 10 de ${c} →</button></div>`;
     }).join("") + '</div>';
-    html += '<div class="rank-nota">Toca un nombre para ver su foto. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
+    html += '<div class="rank-nota">Toca un nombre para ver su ficha completa. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
     el.innerHTML = html;
     return;
   }
@@ -5300,7 +5328,7 @@ function renderRanking(){
     html += `<div class="rank-nota">Hay ${fuera === 1 ? "un jugador más empatado" :
       fuera + " jugadores más empatados"} en el último lugar, pero el ranking es de diez.</div>`;
   }
-  html += '<div class="rank-nota">Toca un nombre para ver su foto. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
+  html += '<div class="rank-nota">Toca un nombre para ver su ficha completa. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
   el.innerHTML = html;
 }
 
