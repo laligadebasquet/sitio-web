@@ -2060,6 +2060,81 @@
      experiencia importante")
      ============================================================ */
   .lupa-cel, .barra-cel, .mas-hoja, .mas-fondo, .po-rondas{display:none;}
+
+  /* ============================================================
+     COMPUTADORA (Mauricio, 10 oct 2026)
+     ============================================================ */
+  /* 2 · Tabla General: una por categoría. */
+  .tablas-grid{display:grid;grid-template-columns:1fr;gap:22px;}
+  .tabla-cat-tit{font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);
+    margin:0 0 8px;display:flex;align-items:center;gap:10px;}
+  .tabla-cat-tit::after{content:"";flex:1;height:1px;background:var(--gray-line);}
+  /* 3 · Flechas de las tiras de días. */
+  .tira-marco{position:relative;}
+  .tira-flecha{display:none;position:absolute;top:0;bottom:24px;width:42px;z-index:2;border:none;cursor:pointer;
+    font-size:26px;font-weight:700;color:var(--navy);font-family:inherit;}
+  .tira-flecha.izq{left:0;background:linear-gradient(90deg,var(--gray-bg) 55%,transparent);text-align:left;padding-left:4px;}
+  .tira-flecha.der{right:0;background:linear-gradient(270deg,var(--gray-bg) 55%,transparent);text-align:right;padding-right:4px;}
+  .tira-flecha:hover{color:var(--orange);}
+  /* 4 · Inicio: "Cómo van". */
+  .inicio-lateral{display:none;}
+  .resumen-tit{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:var(--navy);margin:0 0 12px;}
+  .resumen-cat{background:#fff;border:1px solid var(--gray-line);border-radius:12px;padding:10px 12px;margin-bottom:10px;}
+  .resumen-cat-tit{font-size:10.5px;font-weight:800;color:var(--orange);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+  .resumen-fila{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px;}
+  .resumen-fila + .resumen-fila{border-top:1px dashed var(--gray-line);}
+  .resumen-pos{width:18px;font-weight:900;color:var(--text-soft);}
+  .resumen-eq{flex:1;font-weight:800;color:var(--navy);}
+  .resumen-rec{font-weight:800;color:var(--text);}
+  .resumen-btn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:800;
+    font-size:12px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;font-family:inherit;}
+  .resumen-btn:hover{background:var(--orange);}
+  /* 5 · Ranking. */
+  .rank-cats{display:grid;grid-template-columns:1fr;gap:18px;}
+  .rank-cat-tit{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);margin:0 0 8px;}
+  .rank-ver{margin-top:8px;background:none;border:none;color:var(--orange);font-weight:800;font-size:12px;cursor:pointer;
+    font-family:inherit;padding:4px 0;}
+  .rank-podio{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
+
+  @media (min-width:721px){
+    /* 1 · El encabezado se queda arriba; al bajar se adelgaza. */
+    header.topbar{position:sticky;top:0;z-index:60;transition:padding .15s ease;}
+    header.topbar.compacto{padding-top:8px;}
+    header.topbar.compacto .brand-logo{height:34px;width:34px;}
+    header.topbar.compacto .brand-nombre{font-size:16px;}
+    header.topbar.compacto .brand-sub{display:none;}
+    header.topbar.compacto nav.tabs{margin-top:6px;}
+    header.topbar.compacto nav.tabs button{padding-top:9px;padding-bottom:9px;}
+    .nav-dropdown.con-activa .nav-dropdown-trigger{color:var(--orange);border-bottom-color:var(--orange);}
+    /* 3 · Flechas visibles solo si hay más días de ese lado. */
+    .tira-marco.puede-izq .tira-flecha.izq, .tira-marco.puede-der .tira-flecha.der{display:block;}
+  }
+  @media (min-width:1000px){
+    .tablas-grid{grid-template-columns:1fr 1fr;}
+    /* En la cuadrícula cada tabla es más angosta: PF y PC salen sobrando
+       (la diferencia ya los resume). */
+    .tablas-grid table.standings thead th:nth-child(7), .tablas-grid table.standings tbody td:nth-child(7),
+    .tablas-grid table.standings thead th:nth-child(8), .tablas-grid table.standings tbody td:nth-child(8){display:none;}
+    .inicio-cols{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:28px;align-items:start;}
+    .inicio-lateral{display:block;position:sticky;top:120px;}
+    .rank-cats{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+    .rank-cats .rank-fila{grid-template-columns:30px 1fr auto;gap:8px;padding:9px 10px;}
+    .rank-cats .rank-pos{width:26px;height:26px;font-size:12px;}
+    .rank-cats .rank-nom{font-size:12px;}
+    .rank-cats .rank-pts b{font-size:17px;}
+    .rank-podio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px;}
+    .rank-podio .rank-fila{grid-template-columns:1fr;justify-items:center;text-align:center;padding:18px 12px;gap:8px;}
+    .rank-podio .rank-pos{width:44px;height:44px;font-size:18px;}
+    .rank-podio .rank-nom{font-size:15px;}
+    .rank-podio .rank-pts{text-align:center;}
+    .rank-podio .rank-pts b{font-size:28px;}
+    .rank-resto{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;}
+  }
+  /* 6 · En pantallas grandes la página usa más ancho. */
+  @media (min-width:1360px){
+    .topbar-inner, nav.tabs, main, .config-note{max-width:1280px;}
+    .cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));}
+  }
   /* Rol: la semana en curso se marca, y lo ya jugado va después. */
   .esta-semana{background:var(--orange);color:#fff;font-size:10px;font-weight:800;letter-spacing:.5px;
     text-transform:uppercase;padding:3px 8px;border-radius:999px;margin-left:8px;vertical-align:2px;}
@@ -2291,19 +2366,38 @@
         </div>
       </div>
 
+      <!-- En la computadora, Inicio va en dos columnas: los partidos a la
+           izquierda y "Cómo van" a la derecha (Mauricio, 10 oct 2026). -->
+      <div class="inicio-cols">
+      <div class="inicio-principal">
+
       <!-- Ficha de lo que se buscó: sale aquí arriba, encima de los
            próximos partidos, y desaparece al borrar la búsqueda. -->
       <div id="fichaBusqueda"></div>
 
       <h2 class="rol-inicio-sub" id="tituloProximos">Próximos partidos</h2>
-      <div class="dias-tira" id="rolInicioDias"></div>
+      <!-- Las flechas son para el ratón: con el dedo la tira se desliza
+           sola, pero en la computadora no había cómo llegar a los días que
+           quedaban cortados a la derecha. -->
+      <div class="tira-marco">
+        <button type="button" class="tira-flecha izq" onclick="moverTira('rolInicioDias',-1)" aria-label="Días anteriores">‹</button>
+        <div class="dias-tira" id="rolInicioDias"></div>
+        <button type="button" class="tira-flecha der" onclick="moverTira('rolInicioDias',1)" aria-label="Días siguientes">›</button>
+      </div>
       <div id="rolInicioPartidos"></div>
 
       <!-- Lo que ya se jugó: mismo calendario, pero con marcador, el botón
            para ver el partido en YouTube y el de la estadística completa. -->
       <h2 class="rol-inicio-sub" id="tituloResultados">Resultados recientes</h2>
-      <div class="dias-tira" id="resInicioDias"></div>
+      <div class="tira-marco">
+        <button type="button" class="tira-flecha izq" onclick="moverTira('resInicioDias',-1)" aria-label="Días más recientes">‹</button>
+        <div class="dias-tira" id="resInicioDias"></div>
+        <button type="button" class="tira-flecha der" onclick="moverTira('resInicioDias',1)" aria-label="Días anteriores">›</button>
+      </div>
       <div id="resInicioPartidos"></div>
+      </div>
+      <aside class="inicio-lateral" id="inicioResumen"></aside>
+      </div>
     </div>
 
     <!-- PATROCINADORES EN HOLD: Mauricio pidió quitarlos temporalmente.
@@ -3128,7 +3222,65 @@ function nombreDeTemporada(){
   return "Temporada " + MESES[d.getMonth()] + " " + d.getFullYear();
 }
 
+/* ---------- Inicio: "Cómo van" (columna derecha en la computadora) ----------
+   Los tres primeros de cada categoría, o de la que esté elegida. */
+function renderResumenInicio(){
+  const caja = document.getElementById("inicioResumen");
+  if(!caja) return;
+  const cat = typeof ROL_INICIO_CAT === "string" ? ROL_INICIO_CAT : "general";
+  const cats = cat === "general" ? CATS_ROL : [cat];
+  const letras = letrasPlayoffs();
+  const todos = computeStandings();
+  let html = '<div class="resumen-tit">Cómo van</div>';
+  let alguno = false;
+  cats.forEach(c => {
+    const top = todos.filter(t => categoriaDeEquipo(t.equipo) === c).slice(0, 3);
+    if(!top.length) return;
+    alguno = true;
+    html += `<div class="resumen-cat"><div class="resumen-cat-tit">${c}</div>` +
+      top.map((t, i) => `<div class="resumen-fila"><span class="resumen-pos">${i + 1}</span>` +
+        `<span class="resumen-eq">${t.equipo}${letras[t.equipo] ? ` <span class="letra-po letra-${letras[t.equipo]}">${letras[t.equipo]}</span>` : ""}</span>` +
+        `<span class="resumen-rec">${t.pg}-${t.pp}</span></div>`).join("") + '</div>';
+  });
+  html += `<button type="button" class="resumen-btn" onclick="verTablaDesdeInicio()">Ver tabla completa →</button>`;
+  caja.innerHTML = alguno ? html : "";
+}
+function verTablaDesdeInicio(){
+  if(typeof ROL_INICIO_CAT === "string") CAT_VISTA["tabla"] = ROL_INICIO_CAT;
+  document.querySelector('nav.tabs button[data-view="tabla"]').click();
+  renderTabla();
+  window.scrollTo(0, 0);
+}
+
+/* Las tiras de días: flechas y rueda del ratón para moverlas de lado. */
+function moverTira(id, dir){
+  const t = document.getElementById(id);
+  if(t) t.scrollBy({ left: dir * t.clientWidth * 0.8, behavior: "smooth" });
+}
+function actualizarFlechasTira(t){
+  const marco = t.parentElement;
+  if(!marco || !marco.classList.contains("tira-marco")) return;
+  marco.classList.toggle("puede-izq", t.scrollLeft > 4);
+  marco.classList.toggle("puede-der", t.scrollLeft + t.clientWidth < t.scrollWidth - 4);
+}
+["rolInicioDias", "resInicioDias"].forEach(id => {
+  const t = document.getElementById(id);
+  if(!t) return;
+  t.addEventListener("scroll", () => actualizarFlechasTira(t), { passive: true });
+  /* La rueda mueve la tira de lado mientras tenga para dónde; al llegar a
+     la orilla deja que la página siga bajando normal. */
+  t.addEventListener("wheel", e => {
+    if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const antes = t.scrollLeft;
+    t.scrollLeft += e.deltaY;
+    if(t.scrollLeft !== antes) e.preventDefault();
+  }, { passive: false });
+  new MutationObserver(() => actualizarFlechasTira(t)).observe(t, { childList: true });
+  window.addEventListener("resize", () => actualizarFlechasTira(t));
+});
+
 function renderRolInicio(){
+  renderResumenInicio();
   const titulo  = document.getElementById("rolSemanaTitulo");
   const cats    = document.getElementById("rolInicioCats");
   const dias    = document.getElementById("rolInicioDias");
@@ -4600,19 +4752,10 @@ function movimientoDeEquipo(equipo, ahoraTodos, filtro){
   return { signo: "=", clase: "igual", dice: "No se movió tras su último partido" };
 }
 
-function renderTabla(){
-  const el = document.getElementById("view-tabla");
-  const botones = botonesCategoria("tabla");
-  const filtro = t => matchesSearch(t.equipo, "") && pasaCategoria("tabla", t.equipo);
-  const standings = computeStandings().filter(filtro);
-  if(standings.length === 0){
-    el.innerHTML = botones +
-      `<div class="empty-state">Todavía no hay resultados para calcular la tabla${enCategoria("tabla")}.</div>`;
-    return;
-  }
-  /* La letra de playoffs junto al nombre, como la NBA: x, r, o. */
-  const letras = letrasPlayoffs();
-  let html = botones + `<table class="standings">
+/* Una tabla de posiciones. Sirve para la de una categoría y para cada una
+   de las cuatro de la vista General. */
+function tablaPosicionesHTML(standings, filtro, letras){
+  let html = `<table class="standings">
     <thead><tr>
       <th>Pos</th><th title="Cómo se movió tras su último partido"></th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>PF</th><th>PC</th><th>Dif</th><th>% Ganados</th>
     </tr></thead><tbody>`;
@@ -4626,18 +4769,53 @@ function renderTabla(){
       <td>${(t.pct*100).toFixed(1)}%</td>
     </tr>`;
   });
-  html += "</tbody></table>";
-  /* La leyenda solo con las letras que pueden salir en lo que se ve: en
-     Varonil A y Femenil B no hay repechaje, así que ahí no hay "r". */
-  const cats = [...new Set(standings.map(t => categoriaDeEquipo(t.equipo)))].filter(c => PLAYOFFS_CUADRO[c]);
-  const hayRep = cats.some(c => PLAYOFFS_CUADRO[c].repechaje.length);
-  html += `<div class="leyenda-po">
+  return html + "</tbody></table>";
+}
+
+/* La leyenda solo con las letras que pueden salir en lo que se ve: en
+   Varonil A y Femenil B no hay repechaje, así que ahí no hay "r". */
+function leyendaPlayoffsHTML(cats){
+  const hayRep = cats.filter(c => PLAYOFFS_CUADRO[c]).some(c => PLAYOFFS_CUADRO[c].repechaje.length);
+  return `<div class="leyenda-po">
     <span><b class="letra-po letra-x">x</b> Clasificado a playoffs${hayRep ? " (con pase directo, donde hay repechaje)" : ""}</span>
     ${hayRep ? `<span><b class="letra-po letra-r">r</b> Asegura por lo menos el repechaje</span>` : ""}
     <span><b class="letra-po letra-o">o</b> Eliminado</span>
     <em>La letra sale cuando ya es seguro, aunque pierda todo lo que le queda. Sin letra: todavía se puede mover.</em>
   </div>`;
-  el.innerHTML = html;
+}
+
+function renderTabla(){
+  const el = document.getElementById("view-tabla");
+  const botones = botonesCategoria("tabla");
+  /* La letra de playoffs junto al nombre, como la NBA: x, r, o. */
+  const letras = letrasPlayoffs();
+
+  /* En General ya no va una sola lista de 38 equipos revueltos: ALWAYS
+     BLUE (Femenil A) salía arriba de COSMONAUTICOS (Varonil A), y entre
+     categorías no se juega. Va una tabla por categoría; en la computadora
+     quedan en cuadrícula de 2 × 2 (Mauricio, 10 oct 2026). */
+  if(CAT_VISTA["tabla"] === "general"){
+    const bloques = CATS_ROL.map(c => {
+      const filtroCat = t => matchesSearch(t.equipo, "") && categoriaDeEquipo(t.equipo) === c;
+      const st = computeStandings().filter(filtroCat);
+      if(!st.length) return "";
+      return `<div class="tabla-cat"><div class="tabla-cat-tit">${c}</div>${tablaPosicionesHTML(st, filtroCat, letras)}</div>`;
+    }).join("");
+    el.innerHTML = botones + (bloques
+      ? `<div class="tablas-grid">${bloques}</div>` + leyendaPlayoffsHTML(CATS_ROL)
+      : `<div class="empty-state">Todavía no hay resultados para calcular la tabla.</div>`);
+    return;
+  }
+
+  const filtro = t => matchesSearch(t.equipo, "") && pasaCategoria("tabla", t.equipo);
+  const standings = computeStandings().filter(filtro);
+  if(standings.length === 0){
+    el.innerHTML = botones +
+      `<div class="empty-state">Todavía no hay resultados para calcular la tabla${enCategoria("tabla")}.</div>`;
+    return;
+  }
+  const cats = [...new Set(standings.map(t => categoriaDeEquipo(t.equipo)))];
+  el.innerHTML = botones + tablaPosicionesHTML(standings, filtro, letras) + leyendaPlayoffsHTML(cats);
 }
 
 /* ============================================================
@@ -5068,6 +5246,19 @@ function cerrarFichaRanking(){
   document.getElementById("rankModal").classList.remove("open");
 }
 
+function rankFilaHTML(j){
+  const eq = String(j.equipo).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const nom = String(j.jugador).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  return `<button type="button" class="rank-fila${j.posicion <= 3 ? " p" + j.posicion : ""}"
+      onclick="abrirFichaRanking('${eq}','${nom}')">
+      <span class="rank-pos">${j.posicion}</span>
+      <span class="rank-nom">${j.jugador}
+        <span class="rank-eq">${j.equipo}</span>
+      </span>
+      <span class="rank-pts"><b>${j.puntos}</b><span>Puntos</span></span>
+    </button>`;
+}
+
 function renderRanking(){
   const el = document.getElementById("view-ranking");
   let html = '<div class="section-heading">Ranking<span class="line"></span></div>';
@@ -5082,20 +5273,27 @@ function renderRanking(){
     return;
   }
 
-  html += '<div class="rank-lista">';
-  lista.forEach(j=>{
-    const eq = String(j.equipo).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    const nom = String(j.jugador).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    html += `<button type="button" class="rank-fila${j.posicion <= 3 ? " p" + j.posicion : ""}"
-      onclick="abrirFichaRanking('${eq}','${nom}')">
-      <span class="rank-pos">${j.posicion}</span>
-      <span class="rank-nom">${j.jugador}
-        <span class="rank-eq">${j.equipo}${cat === "general" && j.categoria ? " · " + j.categoria : ""}</span>
-      </span>
-      <span class="rank-pts"><b>${j.puntos}</b><span>Puntos</span></span>
-    </button>`;
-  });
-  html += '</div>';
+  /* En General, los cinco primeros de cada categoría lado a lado: el top
+     diez revuelto ponía a las mujeres contra los hombres y en la
+     computadora era una columna de renglones de punta a punta (Mauricio,
+     10 oct 2026). */
+  if(cat === "general"){
+    html += '<div class="rank-cats">' + CATS_ROL.map(c => {
+      const top = topDiez(c).slice(0, 5);
+      if(!top.length) return "";
+      return `<div class="rank-cat"><div class="rank-cat-tit">${c}</div><div class="rank-lista">` +
+             top.map(rankFilaHTML).join("") +
+             `</div><button type="button" class="rank-ver" onclick="filtrarCategoria('ranking','${c}')">Ver los 10 de ${c} →</button></div>`;
+    }).join("") + '</div>';
+    html += '<div class="rank-nota">Toca un nombre para ver su foto. Los puntos son los de la temporada regular capturados hasta hoy.</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  /* Con una categoría: los tres primeros en podio y el resto en dos
+     columnas (en el celular todo sigue en una sola lista). */
+  html += '<div class="rank-podio">' + lista.filter(j => j.posicion <= 3).map(rankFilaHTML).join("") + '</div>';
+  html += '<div class="rank-lista rank-resto">' + lista.filter(j => j.posicion > 3).map(rankFilaHTML).join("") + '</div>';
 
   const fuera = hayEmpateEnElCorte(cat);
   if(fuera){
@@ -7316,10 +7514,29 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById("view-" + btn.dataset.view).classList.add("active");
     cerrarNavDropdowns();
+    marcarMenuActivo();
     marcarBarraCel(btn.dataset.view);
     vistaAnalitica(btn.dataset.view);
   });
 });
+
+/* ---------- El menú de la computadora ----------
+   Rol y Tabla viven dentro de "Rol de Partidos y Estadística": si estabas
+   en una de ellas, arriba no se marcaba nada y no sabías dónde estabas. */
+function marcarMenuActivo(){
+  document.querySelectorAll("nav.tabs .nav-dropdown").forEach(function(d){
+    d.classList.toggle("con-activa", !!d.querySelector("button[data-view].active"));
+  });
+}
+/* Al bajar, el encabezado se queda pegado arriba y se adelgaza, para no
+   tener que regresar hasta arriba a cambiar de sección. Los menús que se
+   abren hacia abajo se cierran: están calculados para donde estaba el
+   botón. */
+window.addEventListener("scroll", function(){
+  const h = document.querySelector("header.topbar");
+  if(h) h.classList.toggle("compacto", window.scrollY > 90);
+  cerrarNavDropdowns();
+}, { passive: true });
 
 /* ---------- La barra de abajo del celular ----------
    No tiene lógica propia: pica el botón de la pestaña de arriba (que en el
