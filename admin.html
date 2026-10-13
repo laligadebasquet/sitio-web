@@ -1009,6 +1009,14 @@
     letter-spacing:1px;font-size:11px;padding:6px 8px;
   }
   .rol-tabla td.rol-cat{font-weight:700;white-space:nowrap;}
+  .rol-tabla tr.sep-dia td{background:#141414;color:#bbb;font-weight:700;font-size:11px;text-align:left;
+    padding:5px 10px;text-transform:capitalize;}
+  .dia-libre{color:#7fd39a;text-transform:none;}
+  .dia-lleno{color:#e2544a;text-transform:none;}
+  .tag-movido{display:inline-block;margin-left:5px;font-size:9px;font-weight:800;color:#F37228;
+    border:1px solid #F37228;border-radius:4px;padding:0 4px;text-transform:uppercase;}
+  .dia-resumen{margin:4px 0 12px;font-size:12px;line-height:1.6;color:#ccc;}
+  .dia-resumen:empty{display:none;}
   /* Lápiz para editar un partido: discreto hasta que le pasas encima. */
   .btn-editar-partido{
     background:transparent; border:1px solid transparent; border-radius:4px;
@@ -1629,7 +1637,7 @@
         </div>
         <div>
           <label for="f_fecha">Fecha</label>
-          <input type="date" id="f_fecha">
+          <input type="date" id="f_fecha" onchange="alCambiarFechaNueva()">
         </div>
         <div>
           <label for="f_hora_h">Hora</label>
@@ -1670,6 +1678,9 @@
           <select id="f_visit"></select>
         </div>
       </div>
+      <!-- Al escoger la fecha: qué partidos hay ese día y qué horarios
+           quedan libres, para no encimar (Mauricio, 12 oct 2026). -->
+      <div class="dia-resumen" id="f_diaResumen"></div>
       <button class="save-btn" id="scheduleBtn" onclick="agregarPartido()">Agregar partido</button>
       <div class="msg" id="scheduleMsg"></div>
     </div>
@@ -3054,7 +3065,8 @@ function renderScheduleList(){
     el.innerHTML = '<div class="empty-state">Todavía no hay partidos en el calendario.</div>';
     return;
   }
-  const ordenado = [...MATCHES].sort((a,b)=> a.jornada - b.jornada);
+  const ordenado = [...MATCHES].sort((a,b)=> String(a.fecha).localeCompare(String(b.fecha)) ||
+    String(a.hora).localeCompare(String(b.hora)));
   el.innerHTML = ordenado.map(m=>{
     const badgeClass = m.estatus === "Jugado" ? "jugado" : "programado";
     return `<div class="schedule-row">
@@ -3208,6 +3220,62 @@ function fechaBonita(iso){
 /* ---------- IZQUIERDA: rol de partidos, TODAS las categorías ----------
    Siempre muestra todo, agrupado por semana. Es la lista que se va
    sumando conforme se rolan partidos. */
+/* ---------- El rol por semana REAL ----------
+   Antes el Admin agrupaba por el número de semana guardado en cada partido.
+   Los reprogramados conservan el suyo (LIMONES vs PISTONS sigue siendo
+   "semana 7" aunque se juega el sáb 24 oct), así que el sábado 24 salía
+   repartido en tres semanas: en la 10 solo se veían 12:10, 1:10 y 2:10, el
+   de las 3:10 estaba en la 7 y el de las 4:10 en la 8 (Mauricio, 12 oct
+   2026). La página ya agrupaba por fecha real desde el 9 de octubre; el
+   Admin se quedó atrás. Ahora los dos usan la misma regla: cada partido va
+   en la semana (lunes a domingo) de su fecha, y esa semana toma el número
+   que tiene la mayoría de sus partidos. */
+function lunesDe(fecha){
+  const p = String(fecha).split("-").map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function sinFechaAdmin(m){
+  return !String(m.fecha || "").trim() || /reprogramar/i.test(String(m.estatus || ""));
+}
+/* lunes → número de semana que le toca (el de la mayoría de sus partidos). */
+function numerosDeSemana(partidos){
+  const votos = {};
+  partidos.forEach(m => {
+    if(sinFechaAdmin(m)) return;
+    const l = lunesDe(String(m.fecha).slice(0, 10));
+    votos[l] = votos[l] || {};
+    votos[l][m.jornada] = (votos[l][m.jornada] || 0) + 1;
+  });
+  const num = {};
+  Object.keys(votos).forEach(l => {
+    num[l] = Number(Object.keys(votos[l]).sort((a, b) => votos[l][b] - votos[l][a] || a - b)[0]);
+  });
+  return num;
+}
+function semanaReal(m, num){
+  return sinFechaAdmin(m) ? Number(m.jornada) : (num[lunesDe(String(m.fecha).slice(0, 10))] || Number(m.jornada));
+}
+
+/* Los horarios de siempre. Sirven para decir qué espacios quedan libres en
+   un día; el formulario deja poner cualquier otra hora. */
+const HORAS_NOCHE = ["20:10", "21:10", "22:10"];
+const HORAS_SABADO = ["12:10", "13:10", "14:10", "15:10", "16:10", "17:10"];
+function horasDelDia(fecha){
+  const p = String(fecha).split("-").map(Number);
+  const dia = new Date(p[0], p[1] - 1, p[2]).getDay();
+  return dia === 6 ? HORAS_SABADO : (dia >= 1 && dia <= 4 ? HORAS_NOCHE : []);
+}
+function horaCorta(h){
+  const [H, M] = String(h).split(":").map(Number);
+  return ((H % 12) || 12) + ":" + String(M || 0).padStart(2, "0") + (H >= 12 ? " pm" : " am");
+}
+function libresDelDia(fecha, partidos){
+  const tomadas = partidos.filter(m => String(m.fecha).slice(0, 10) === fecha).map(m => String(m.hora || "").slice(0, 5));
+  return horasDelDia(fecha).filter(h => tomadas.indexOf(h) === -1);
+}
+
 function renderRolSemanal(){
   const el = document.getElementById("rolSemanal");
   if(!el) return;
@@ -3216,28 +3284,44 @@ function renderRolSemanal(){
     el.innerHTML = '<div class="empty-state">Todavía no hay partidos en el rol.</div>';
     return;
   }
+  const num = numerosDeSemana(MATCHES);
+  const cuando = m => String(m.fecha || "9999") + " " + String(m.hora || "").padStart(5, "0");
   const orden = [...MATCHES].sort((a,b)=>
-    (a.jornada - b.jornada) ||
-    String(a.fecha).localeCompare(String(b.fecha)) ||
-    String(a.hora).localeCompare(String(b.hora)));
+    (semanaReal(a, num) - semanaReal(b, num)) || cuando(a).localeCompare(cuando(b)));
 
   let html = `<table class="rol-tabla"><tr>
       <th>categoría</th><th>instancia</th><th>semana</th>
       <th>fecha</th><th>hora</th><th>equipo 1</th><th>equipo 2</th><th></th></tr>`;
-  let semanaPrevia = null;
+  let semanaPrevia = null, diaPrevio = null;
   orden.forEach(m=>{
-    if(m.jornada !== semanaPrevia){
-      html += `<tr class="sep-semana"><td colspan="8">Semana ${m.jornada}</td></tr>`;
-      semanaPrevia = m.jornada;
+    const sem = semanaReal(m, num);
+    if(sem !== semanaPrevia){
+      html += `<tr class="sep-semana"><td colspan="8">Semana ${sem}</td></tr>`;
+      semanaPrevia = sem; diaPrevio = null;
+    }
+    /* Un renglón por día con cuántos partidos hay y qué horarios quedan
+       libres: es lo que se necesita ver para agregar uno. */
+    const dia = sinFechaAdmin(m) ? "sin fecha" : String(m.fecha).slice(0, 10);
+    if(dia !== diaPrevio){
+      const delDia = MATCHES.filter(x => (sinFechaAdmin(x) ? "sin fecha" : String(x.fecha).slice(0, 10)) === dia);
+      const libres = dia === "sin fecha" ? [] : libresDelDia(dia, MATCHES);
+      html += `<tr class="sep-dia"><td colspan="8">${dia === "sin fecha" ? "Sin fecha todavía" : fechaBonita(dia)}` +
+        ` · ${delDia.length} ${delDia.length === 1 ? "partido" : "partidos"}` +
+        (dia === "sin fecha" || !horasDelDia(dia).length ? "" :
+          libres.length ? ` · <span class="dia-libre">libre: ${libres.map(horaCorta).join(", ")}</span>`
+                        : ' · <span class="dia-lleno">lleno</span>') +
+        `</td></tr>`;
+      diaPrevio = dia;
     }
     const ref = JSON.stringify({
       semana: m.jornada, local: m.local || "", visit: m.visit || "",
       fecha: m.fecha || "", hora: m.hora || "", categoria: m.categoria || ""
     }).replace(/"/g, "&quot;");
-    html += `<tr>
+    const movido = Number(m.jornada) !== sem;
+    html += `<tr${movido ? ' class="rol-movido"' : ""}>
       <td class="rol-cat">${(m.categoria || "").toUpperCase()}</td>
       <td>${m.instancia || "temporada regular"}</td>
-      <td>${m.jornada}</td>
+      <td>${m.jornada}${movido ? '<span class="tag-movido" title="Se reprogramó: sigue siendo partido de la semana ' + m.jornada + '">reprog.</span>' : ""}</td>
       <td>${fechaBonita(m.fecha)}</td>
       <td>${m.hora || ""}</td>
       <td>${m.local || ""}</td>
@@ -3396,7 +3480,11 @@ async function borrarPartido(p){
    ============================================================ */
 
 const RP_HORAS_SEMANA = ["20:10", "21:10", "22:10"];
-const RP_HORAS_SABADO = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+/* Los sábados se juega a las :10 (12:10 a 4:10, y 5:10 si hace falta).
+   Antes decía 12:00, 13:00…: ninguno coincidía con un partido real, así
+   que la ventana de reprogramar enseñaba los sábados como libres aunque
+   estuvieran llenos (encontrado el 12 oct 2026). */
+const RP_HORAS_SABADO = ["12:10", "13:10", "14:10", "15:10", "16:10", "17:10"];
 
 /* Todo el estado del modal en un solo objeto: así reiniciarlo es una línea y
    no quedan restos de la vez pasada. */
@@ -4014,6 +4102,26 @@ function renderCrucesCategoria(){
   }
 }
 
+/* Al escoger fecha en "Agregar partido": se pone sola la semana de esa
+   fecha (la que tiene el rol ese lunes a domingo) y se ven los partidos de
+   ese día con sus horarios libres. Antes había que adivinar el número de
+   semana, y con los reprogramados un mismo sábado traía tres números. */
+function alCambiarFechaNueva(){
+  const fecha = document.getElementById("f_fecha").value;
+  const caja = document.getElementById("f_diaResumen");
+  if(!fecha){ caja.innerHTML = ""; return; }
+  const num = numerosDeSemana(MATCHES);
+  const sem = num[lunesDe(fecha)];
+  if(sem) document.getElementById("f_semana").value = sem;
+  const delDia = MATCHES.filter(m => String(m.fecha).slice(0, 10) === fecha)
+    .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+  const libres = libresDelDia(fecha, MATCHES);
+  caja.innerHTML = `<b>${fechaBonita(fecha)}</b>${sem ? " · semana " + sem : ""}: ` +
+    (delDia.length ? delDia.map(m => `${horaCorta(m.hora)} ${m.local} vs ${m.visit}`).join(" · ") : "todavía sin partidos") +
+    (horasDelDia(fecha).length ? `<br><span class="dia-libre">${libres.length ? "Libre: " + libres.map(horaCorta).join(", ") : "Ese día ya está lleno."}</span>` : "");
+  if(libres.length && !leerHoraDelPar("f_hora")) ponerHoraEnPar("f_hora", libres[0]);
+}
+
 async function agregarPartido(){
   const semana = document.getElementById("f_semana").value;
   const fecha = document.getElementById("f_fecha").value;
@@ -4060,7 +4168,8 @@ async function agregarPartido(){
       renderCrucesCategoria();
       // Se deja la semana y la categoría puestas: normalmente se cargan
       // varios partidos seguidos de la misma semana y categoría.
-      document.getElementById("f_fecha").value = "";
+      renderRolSemanal();
+      alCambiarFechaNueva();   // el resumen del día ya incluye el que se acaba de agregar
       ponerHoraEnPar("f_hora", "");
     }else{
       throw new Error(data.error || "Error desconocido");
