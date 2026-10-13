@@ -103,6 +103,56 @@
   .eq-chip-boton{cursor:pointer;}
   .eq-chip-boton:hover{border-color:var(--accent);}
 
+  /* ---------- Casacas y Efectivo ---------- */
+  .ca-equipos, .ca-formas{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:6px 0 16px;}
+  .ca-opcion{background:#0c0c0c;border:1px solid #333;border-radius:8px;padding:12px;color:#fff;text-align:left;cursor:pointer;
+    font-family:inherit;display:flex;flex-direction:column;gap:3px;}
+  .ca-opcion span{font-size:11px;color:var(--text-soft);text-transform:none;letter-spacing:0;}
+  .ca-opcion.active{border-color:var(--accent);background:#2a0d14;}
+  .ca-colores{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px;}
+  .ca-color{background:#0c0c0c;border:2px solid #333;border-radius:10px;padding:10px 14px;cursor:pointer;color:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;font-size:11px;min-width:92px;}
+  .ca-color.active{border-color:#fff;background:#1d1d20;}
+  .ca-cantidad{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px;}
+  .ca-num{width:46px;height:46px;border-radius:8px;border:1px solid #333;background:#0c0c0c;color:#fff;font-weight:900;font-size:16px;cursor:pointer;font-family:inherit;}
+  .ca-num.active{background:var(--accent);border-color:var(--accent);}
+  .ca-cobro{margin:0 0 16px;font-size:14px;}
+  .ca-cobro b{color:var(--accent);font-size:18px;}
+  .ca-cobro span{color:var(--text-soft);font-size:11px;}
+  .ca-total{font-size:14px;margin-bottom:8px;}
+  .ca-total b{font-size:24px;color:var(--accent);}
+  .hoy-lista li svg{vertical-align:middle;}
+  .carmen-btn{margin-top:14px;width:100%;padding:16px;border:none;border-radius:10px;background:#F3A128;color:#000;
+    font-weight:900;font-size:16px;letter-spacing:.12em;cursor:pointer;font-family:inherit;}
+  .carmen-btn:disabled{opacity:.35;cursor:default;}
+  .modal-box.carmen-caja{max-width:560px;padding:24px;}
+  .carmen-colores{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+  .carmen-color{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .carmen-color b{font-size:20px;}
+  .carmen-color span{font-size:11px;color:var(--text-soft);}
+  .carmen-pagar{margin:20px 0 14px;padding:16px;border-radius:10px;background:#0c0c0c;border:1px solid #333;text-align:center;}
+  .carmen-pagar span{display:block;color:var(--text-soft);font-size:13px;}
+  .carmen-pagar b{display:block;font-size:36px;color:#F3A128;}
+  .carmen-pagar em{font-size:11px;color:var(--text-soft);}
+  .carmen-botones{display:flex;gap:10px;}
+  .carmen-botones > *{flex:1;}
+  .ef-datos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+  .ef-dato{background:#0c0c0c;border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;}
+  .ef-dato span{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);}
+  .ef-dato b{font-size:22px;}
+  .ef-dato em{font-size:11px;color:var(--text-soft);font-style:normal;}
+  .ef-dato.ef-alerta b{color:var(--accent);}
+  .ef-dato.ef-gasto b{color:#F3A128;}
+  .ef-dato.ef-total{border-color:var(--win);}
+  .ef-corte{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .ef-corte input{flex:1;min-width:160px;}
+  .ef-corte .save-btn{width:auto;margin:0;padding:0 22px;}
+  .ca-caja{display:flex;flex-direction:column;gap:2px;border-left:4px solid var(--win) !important;}
+  .ca-caja span{font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);}
+  .ca-caja b{font-size:30px;color:var(--win);}
+  .ca-caja em{font-size:11px;color:var(--text-soft);font-style:normal;}
+  .ef-dato.ef-total b{color:var(--win);}
+
   /* ---------- Pagos ---------- */
   .pagos-resumen{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:4px 0 14px;}
   .pr-dato{background:#0c0c0c;border:1px solid var(--line);border-radius:6px;padding:10px 14px;}
@@ -1572,6 +1622,11 @@
     <button data-view="pagos">Pagos<span class="nav-badge" id="badge-pagos"></span></button>
     <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
     <button data-view="staffpagos" style="display:none;">Pagos</button>
+    <!-- Casacas: solo Juan Pablo las registra (13 oct 2026). El dinero de
+         casacas y lo que se le paga a Doña Carmen lo ve solo Mauricio, en
+         Efectivo. -->
+    <button data-view="casacas" style="display:none;">Casacas</button>
+    <button data-view="efectivo">Efectivo<span class="nav-badge" id="badge-efectivo"></span></button>
     <div class="nav-grupo">Disciplina</div>
     <button data-view="sanciones">Sanciones<span class="nav-badge" id="badge-sanciones"></span></button>
     <div class="nav-grupo">Comunicación</div>
@@ -2017,6 +2072,12 @@
        Cuatro preguntas y ya. Lo que se captura aquí NO entra a los números
        del equipo: queda esperando a que Mauricio lo apruebe en
        Admin > Pagos > Pagos JP. -->
+  <!-- ============ TAB: CASACAS (staff) ============ -->
+  <section class="view" id="view-casacas"><div id="caCuerpo"></div></section>
+
+  <!-- ============ TAB: EFECTIVO (solo Admin) ============ -->
+  <section class="view" id="view-efectivo"><div id="efCuerpo"><div class="empty-state">Cargando…</div></div></section>
+
   <section class="view" id="view-staff-pagos">
     <div class="card">
       <h2>Registrar un pago</h2>
@@ -2570,7 +2631,7 @@ function aplicarModoStaff(){
 
   /* Cada permiso prende sus pestañas. Lo que no esté aquí no se enseña. */
   const PESTANAS_POR_PERMISO = {
-    pagos:   ["staffpagos"],
+    pagos:   ["staffpagos", "casacas"],
     cedulas: ["cedulas"],
     links:   ["links"],
     minuta:  ["minuta"],
@@ -2665,6 +2726,9 @@ async function cargarHoy(){
     .then(d => { CEDULAS = d.cedulas || []; if(STAFF) CEDULAS = CEDULAS.filter(c => Number(c.semana) >= LINKS_DESDE_SEMANA); }));
   if(!STAFF) tareas.push(postAppsScript({ action: "leerPagosPendientes", clave: CONFIG.adminPassword })
     .then(d => { PAGOS_JP = d.pendientes || []; }));
+  if(!STAFF) tareas.push(postAppsScript({ action: "leerCasacas", clave: CONFIG.adminPassword })
+    .then(d => { EF.casacas = (d.casacas && d.casacas.casacas) || []; EF.cortes = (d.casacas && d.casacas.cortes) || [];
+                 EF.retiros = (d.casacas && d.casacas.retiros) || []; EF.caja = d.casacas ? Number(d.casacas.caja) || 0 : 0; EF.cargado = true; }));
   if(puede("sanciones")) tareas.push(postAppsScript({ action: "leerSanciones", clave: CONFIG.adminPassword })
     .then(d => { SANCIONES = d.sanciones || []; }));
   await Promise.allSettled(tareas);
@@ -2741,7 +2805,20 @@ function renderHoy(){
         : '<span class="hoy-gris">Nada pendiente.</span>',
       sin && sin.length ? `<button class="hoy-btn" onclick="irA('sanciones')">Describir →</button>` : "", sin && sin.length ? "alerta" : (sin ? "ok" : ""));
   }
+  if(!STAFF){
+    const porConfirmar = EF.cargado ? EF.casacas.filter(c => c.forma === "Transferencia" && c.estado !== "Confirmado") : null;
+    ponerBadge("badge-efectivo", porConfirmar ? porConfirmar.length : 0);
+    if(EF.cargado){
+      const n = efNumeros();
+      html += tarjeta("Efectivo · casacas", pesos(n.saldo),
+        `<span class="hoy-gris">Cobrado ${pesos(n.entradas)} · Doña Carmen ${pesos(n.carmen)}</span>` +
+        (porConfirmar.length ? `<br><b>${porConfirmar.length}</b> ${porConfirmar.length === 1 ? "transferencia espera" : "transferencias esperan"} tu OK (${pesos(porConfirmar.reduce((t, c) => t + c.monto, 0))})` : ""),
+        `<button class="hoy-btn" onclick="irA('efectivo')">Ver Efectivo →</button>`, porConfirmar.length ? "alerta" : "");
+    }
+  }
   if(STAFF && permisoStaff("pagos")){
+    html += tarjeta("Casacas", null, '<span class="hoy-gris">Registra las casacas que usó un equipo y paga a Doña Carmen.</span>',
+      `<button class="hoy-btn" onclick="irA('casacas')">Registrar casacas →</button>`, "accion");
     html += tarjeta("Capturar un pago", null, '<span class="hoy-gris">Registra lo que te pagó un equipo; Mauricio lo aprueba.</span>',
       `<button class="hoy-btn" onclick="irA('staffpagos')">Capturar →</button>`, "accion");
   }
@@ -2751,6 +2828,276 @@ function renderHoy(){
   }
   html += "</div>";
   caja.innerHTML = html;
+}
+
+/* ============================================================
+   CASACAS (Juan Pablo) y EFECTIVO (Mauricio) — 13 oct 2026
+
+   Cobro al equipo: 3 casacas o menos $50; 4 o más $100.
+   Doña Carmen: $50 por cada 10 casacas o fracción (5 → $50, 13 → $100).
+   La regla vive también en el Apps Script (cobroCasacas_, pagoDonaCarmen_):
+   aquí es para enseñarla; allá es la que cuenta.
+   ============================================================ */
+const CA_COLORES = { "Celeste": "#4FC3F7", "Amarillo": "#FFD600", "Naranja": "#FF8C1A", "Verde fosfo": "#76FF03" };
+const CA = { equipo: "", color: "", cantidad: 0, forma: "", guardando: false, msg: null, pendientes: [], caja: null, cargado: false };
+const EF = { casacas: [], cortes: [], retiros: [], caja: 0, cargado: false };
+
+function caCobro(n){ return n <= 3 ? 50 : 100; }
+function caCarmen(n){ return n > 0 ? Math.ceil(n / 10) * 50 : 0; }
+
+/* Los equipos que jugaron hoy. Al día siguiente siguen saliendo hasta las
+   12 del día, para registrar lo de la noche anterior. */
+function caPartidosDisponibles(){
+  const ahora = new Date();
+  const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const fechas = [iso(ahora)];
+  if(ahora.getHours() < 12){ const ayer = new Date(ahora); ayer.setDate(ayer.getDate() - 1); fechas.push(iso(ayer)); }
+  return MATCHES.filter(m => fechas.indexOf(String(m.fecha).slice(0, 10)) > -1)
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(a.hora).localeCompare(String(b.hora)));
+}
+
+/* Una casaca dibujada, del color que toca. */
+function caCasacaSVG(color, tam){
+  return `<svg viewBox="0 0 64 64" width="${tam}" height="${tam}" aria-hidden="true"><path d="M20 6 L28 6 Q32 14 36 6 L44 6 L46 18 Q46 26 52 30 L52 58 L12 58 L12 30 Q18 26 18 18 Z" fill="${CA_COLORES[color] || "#888"}" stroke="#000" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+
+async function caCargar(){
+  try{
+    const d = await postAppsScript({ action: "leerCasacas", clave: CONFIG.adminPassword });
+    CA.pendientes = (d.casacas && d.casacas.casacas) || [];
+    CA.caja = d.casacas ? Number(d.casacas.caja) || 0 : null;
+  }catch(e){ CA.msg = { tipo: "err", texto: "No se pudo leer lo registrado: " + e.message }; }
+  CA.cargado = true;
+  renderCasacas();
+}
+function caIniciar(){ renderCasacas(); caCargar(); }
+function caElegir(campo, valor){ CA[campo] = valor; CA.msg = null; renderCasacas(); }
+
+function renderCasacas(){
+  const caja = document.getElementById("caCuerpo");
+  if(!caja) return;
+  const partidos = caPartidosDisponibles();
+  const esc = t => String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  /* Lo que Juan tiene en mano: lo cobrado en efectivo, menos Doña Carmen,
+     menos lo que Mauricio ya recogió (13 oct 2026). */
+  let html = CA.caja === null ? "" :
+    `<div class="card ca-caja"><span>Efectivo que tienes</span><b>${pesos(CA.caja)}</b>
+      <em>casacas cobradas en efectivo, menos Doña Carmen, menos lo que Mauricio ya recogió</em></div>`;
+  html += '<div class="card"><h2>Registrar casacas</h2>';
+  if(!partidos.length){
+    html += '<div class="empty-state" style="text-align:left;">Hoy no hay partidos. Los equipos de la noche aparecen aquí el mismo día y al día siguiente hasta las 12.</div>';
+  }else{
+    html += '<label>Equipo que usó casacas</label><div class="ca-equipos">' +
+      partidos.map(m => [m.local, m.visit].map(eq => {
+        const v = esc(eq + "|" + String(m.fecha).slice(0, 10) + "|" + (m.categoria || ""));
+        return `<button type="button" class="ca-opcion${CA.equipo === eq + "|" + String(m.fecha).slice(0, 10) + "|" + (m.categoria || "") ? " active" : ""}" onclick="caElegir('equipo', this.dataset.v)" data-v="${v}">
+          <b>${esc(eq)}</b><span>${horaCorta(m.hora)} · ${fechaBonita(String(m.fecha).slice(0, 10))}</span></button>`;
+      }).join("")).join("") + '</div>';
+    html += '<label>Color</label><div class="ca-colores">' + Object.keys(CA_COLORES).map(c =>
+      `<button type="button" class="ca-color${CA.color === c ? " active" : ""}" onclick="caElegir('color','${c}')">${caCasacaSVG(c, 34)}<span>${c}</span></button>`).join("") + '</div>';
+    html += '<label>¿Cuántas casacas usaron?</label><div class="ca-cantidad">' +
+      [1,2,3,4,5,6,7,8,9,10,11,12].map(n => `<button type="button" class="ca-num${CA.cantidad === n ? " active" : ""}" onclick="caElegir('cantidad', ${n})">${n}</button>`).join("") + '</div>';
+    if(CA.cantidad) html += `<div class="ca-cobro">Se cobran <b>${pesos(caCobro(CA.cantidad))}</b> <span>(3 o menos: $50 · 4 o más: $100)</span></div>`;
+    html += '<label>¿Cómo pagaron?</label><div class="ca-formas">' + ["Efectivo", "Transferencia"].map(f =>
+      `<button type="button" class="ca-opcion${CA.forma === f ? " active" : ""}" onclick="caElegir('forma','${f}')"><b>${f === "Efectivo" ? "💵 Efectivo" : "🏦 Transferencia"}</b></button>`).join("") + '</div>';
+    html += `<button class="save-btn" onclick="caRegistrar()"${CA.guardando ? " disabled" : ""}>${CA.guardando ? "Guardando…" : "Registrar casacas"}</button>`;
+  }
+  if(CA.msg) html += `<div class="msg ${CA.msg.tipo === "ok" ? "ok" : "err"}" style="display:block;">${esc(CA.msg.texto)}</div>`;
+  html += '</div>';
+
+  // Lo que va desde el último corte, y el botón de Doña Carmen.
+  const pend = CA.pendientes;
+  const total = pend.reduce((n, c) => n + c.cantidad, 0);
+  html += '<div class="card"><h2>Desde el último corte de Doña Carmen</h2>';
+  if(!CA.cargado){ html += '<div class="empty-state">Cargando…</div>'; }
+  else if(!pend.length){ html += '<div class="empty-state" style="text-align:left;">Todavía no se registran casacas desde el último corte.</div>'; }
+  else{
+    html += `<div class="ca-total"><b>${total}</b> casacas usadas</div><ul class="hoy-lista">` +
+      pend.slice().reverse().map(c => `<li>${caCasacaSVG(c.color, 18)} <b>${esc(c.equipo)}</b> · ${c.cantidad} ${esc(c.color.toLowerCase())} · ${pesos(c.monto)} ${esc(c.forma.toLowerCase())} <span class="hoy-gris">${fechaBonita(c.fecha)}</span></li>`).join("") + '</ul>';
+  }
+  html += `<button class="carmen-btn" onclick="caAbrirCarmen()"${!pend.length ? " disabled" : ""}>DOÑA CARMEN</button></div>`;
+  caja.innerHTML = html;
+}
+
+async function caRegistrar(){
+  if(!CA.equipo){ CA.msg = { tipo: "err", texto: "Escoge el equipo." }; renderCasacas(); return; }
+  if(!CA.color){ CA.msg = { tipo: "err", texto: "Escoge el color." }; renderCasacas(); return; }
+  if(!CA.cantidad){ CA.msg = { tipo: "err", texto: "Escoge cuántas casacas usaron." }; renderCasacas(); return; }
+  if(!CA.forma){ CA.msg = { tipo: "err", texto: "Escoge si pagaron en efectivo o por transferencia." }; renderCasacas(); return; }
+  const [equipo, fecha, categoria] = CA.equipo.split("|");
+  CA.guardando = true; CA.msg = null; renderCasacas();
+  try{
+    const r = await postAppsScript({ action: "registrarCasacas", clave: CONFIG.adminPassword,
+      equipo, fecha, categoria, color: CA.color, cantidad: CA.cantidad, forma: CA.forma });
+    CA.msg = { tipo: "ok", texto: `Listo: ${equipo}, ${CA.cantidad} ${CA.color.toLowerCase()}, ${pesos(r.casaca.monto)} ${CA.forma === "Efectivo" ? "en efectivo" : "por transferencia (Mauricio la confirma)"}.` };
+    CA.equipo = ""; CA.color = ""; CA.cantidad = 0; CA.forma = "";
+    await caCargar();
+  }catch(e){
+    CA.msg = { tipo: "err", texto: "No se pudo guardar: " + e.message };
+  }
+  CA.guardando = false; renderCasacas();
+}
+
+/* Doña Carmen: las casacas desde el último corte, en dibujo, y lo que se le
+   paga. "Pagado" hace el corte y la cuenta vuelve a cero; "Cancelar" solo
+   cierra. */
+function caAbrirCarmen(){
+  const pend = CA.pendientes;
+  const total = pend.reduce((n, c) => n + c.cantidad, 0);
+  if(!total) return;
+  const porColor = {};
+  pend.forEach(c => { porColor[c.color] = (porColor[c.color] || 0) + c.cantidad; });
+  let m = document.getElementById("carmenModal");
+  if(!m){
+    m = document.createElement("div");
+    m.className = "modal-overlay"; m.id = "carmenModal";
+    m.addEventListener("click", e => { if(e.target === m) m.classList.remove("open"); });
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `<div class="modal-box carmen-caja">
+    <h2 style="margin:0 0 4px;">Doña Carmen</h2>
+    <p class="hoy-gris" style="margin:0 0 16px;">Casacas usadas desde el último corte</p>
+    <div class="carmen-colores">${Object.keys(porColor).map(c => `<div class="carmen-color">${caCasacaSVG(c, 74)}<b>× ${porColor[c]}</b><span>${c}</span></div>`).join("")}</div>
+    <div class="carmen-pagar"><span>${total} casacas</span><b>${pesos(caCarmen(total))}</b><em>$50 por cada 10 casacas</em></div>
+    <div class="msg" id="carmenMsg"></div>
+    <div class="carmen-botones">
+      <button class="save-btn" id="carmenPagado" onclick="caPagarCarmen(${total})">Pagado</button>
+      <button class="btn-sec" onclick="document.getElementById('carmenModal').classList.remove('open')">Cancelar</button>
+    </div></div>`;
+  m.classList.add("open");
+}
+
+async function caPagarCarmen(total){
+  const b = document.getElementById("carmenPagado"), msg = document.getElementById("carmenMsg");
+  b.disabled = true; b.textContent = "Guardando…";
+  try{
+    const r = await postAppsScript({ action: "corteDonaCarmen", clave: CONFIG.adminPassword, casacasVistas: total });
+    document.getElementById("carmenModal").classList.remove("open");
+    CA.msg = { tipo: "ok", texto: `Corte hecho: ${r.corte.casacas} casacas, ${pesos(r.corte.monto)} a Doña Carmen. La cuenta empieza de cero.` };
+    await caCargar();
+  }catch(e){
+    msg.className = "msg err"; msg.style.display = "block"; msg.textContent = e.message;
+    b.disabled = false; b.textContent = "Pagado";
+  }
+}
+
+/* ---------- EFECTIVO (solo Admin) ---------- */
+function efNumeros(){
+  const cs = EF.casacas;
+  const suma = l => l.reduce((n, c) => n + c.monto, 0);
+  const efectivo = suma(cs.filter(c => c.forma === "Efectivo"));
+  const transfOk = suma(cs.filter(c => c.forma === "Transferencia" && c.estado === "Confirmado"));
+  const transfPend = cs.filter(c => c.forma === "Transferencia" && c.estado !== "Confirmado");
+  const carmen = EF.cortes.reduce((n, c) => n + c.monto, 0);
+  const entradas = efectivo + transfOk;
+  const retiros = EF.retiros.reduce((n, r) => n + r.monto, 0);
+  // Lo que Juan tiene en mano (el servidor da el mismo número).
+  const caja = efectivo - carmen - retiros;
+  const lavadas = EF.cortes.reduce((n, c) => n + c.casacas, 0);
+  const sinCorte = cs.filter(c => !c.corte).reduce((n, c) => n + c.cantidad, 0);
+  return { efectivo, transfOk, transfPend, carmen, entradas, saldo: entradas - carmen, retiros, caja,
+           usadas: cs.reduce((n, c) => n + c.cantidad, 0), lavadas, sinCorte, usos: cs.length };
+}
+
+async function cargarEfectivo(){
+  try{
+    const d = await postAppsScript({ action: "leerCasacas", clave: CONFIG.adminPassword });
+    EF.casacas = (d.casacas && d.casacas.casacas) || [];
+    EF.cortes = (d.casacas && d.casacas.cortes) || [];
+    EF.retiros = (d.casacas && d.casacas.retiros) || [];
+    EF.caja = d.casacas ? Number(d.casacas.caja) || 0 : 0;
+    EF.cargado = true;
+  }catch(e){
+    const caja = document.getElementById("efCuerpo");
+    if(caja) caja.innerHTML = '<div class="empty-state" style="color:#F37228;">No se pudo leer: ' + e.message + '</div>';
+    return;
+  }
+  renderEfectivo();
+}
+
+function renderEfectivo(){
+  const caja = document.getElementById("efCuerpo");
+  if(!caja || !EF.cargado) return;
+  const n = efNumeros();
+  ponerBadge("badge-efectivo", n.transfPend.length);
+  const esc = t => String(t).replace(/</g, "&lt;");
+  const dato = (titulo, valor, nota, tono) => `<div class="ef-dato${tono ? " ef-" + tono : ""}"><span>${titulo}</span><b>${valor}</b>${nota ? `<em>${nota}</em>` : ""}</div>`;
+  let html = '<div class="card"><h2>Efectivo · casacas</h2><div class="ef-datos">' +
+    dato("Efectivo", pesos(n.efectivo), "cobrado en efectivo") +
+    dato("Transferencias", pesos(n.transfOk), "ya confirmadas") +
+    dato("Total", pesos(n.entradas), "efectivo + transferencias", "total") +
+    dato("Por confirmar", pesos(n.transfPend.reduce((t, c) => t + c.monto, 0)), n.transfPend.length + " transferencias", n.transfPend.length ? "alerta" : "") +
+    dato("Doña Carmen", "− " + pesos(n.carmen), EF.cortes.length + " cortes", "gasto") +
+    dato("Queda", pesos(n.saldo), "total − Doña Carmen") + '</div></div>';
+
+  /* El efectivo que tiene Juan y los cortes de Mauricio ("hice corte"):
+     lo que se agarra se resta de lo que Juan tiene (13 oct 2026). */
+  html += `<div class="card"><h2>Efectivo con Juan</h2><div class="ef-datos">` +
+    dato("Juan tiene", pesos(n.caja), "efectivo − Doña Carmen − tus cortes", "total") +
+    dato("Ya agarraste", pesos(n.retiros), EF.retiros.length + (EF.retiros.length === 1 ? " corte" : " cortes")) + '</div>' +
+    `<div class="ef-corte"><input type="number" min="1" step="1" id="efRetiroMonto" placeholder="¿Cuánto agarraste?">
+      <input type="text" id="efRetiroNota" placeholder="Nota (opcional)">
+      <button class="save-btn" onclick="efHiceCorte()"${n.caja > 0 ? "" : " disabled"}>Hice corte</button></div>
+    <div class="msg" id="efRetiroMsg"></div>` +
+    (EF.retiros.length ? '<table class="fin-tabla" style="margin-top:12px;"><tr><th>Fecha</th><th>Agarraste</th><th>Nota</th></tr>' +
+      EF.retiros.slice().reverse().map(r => `<tr><td>${esc(r.registro)}</td><td>${pesos(r.monto)}</td><td>${esc(r.nota)}</td></tr>`).join("") + '</table>' : "") +
+    '</div>';
+
+  // Transferencias esperando el OK.
+  html += '<div class="card"><h2>Transferencias por confirmar</h2>' + (n.transfPend.length
+    ? n.transfPend.map(c => `<div class="pago-linea"><span>${caCasacaSVG(c.color, 20)} <b>${esc(c.equipo)}</b> · ${pesos(c.monto)} · ${c.cantidad} ${esc(c.color.toLowerCase())}<br>
+        <span class="hoy-gris" style="font-size:12px;">partido del ${fechaBonita(c.fecha)} · registró ${esc(c.capturo)} el ${esc(c.registro)}</span></span>
+        <button class="mini-btn" onclick="efConfirmar('${c.id}')">OK, ya pagaron</button></div>`).join("")
+    : '<div class="empty-state" style="text-align:left;">Ninguna por confirmar.</div>') + '</div>';
+
+  // Casacas: cuántas se usan y cuánto cuestan.
+  const porColor = {};
+  EF.casacas.forEach(c => { porColor[c.color] = (porColor[c.color] || 0) + c.cantidad; });
+  html += '<div class="card"><h2>Casacas</h2><div class="ef-datos">' +
+    dato("Usadas", n.usadas, n.usos + " veces que un equipo las pidió") +
+    dato("Lavadas", n.lavadas, "entraron a un corte") +
+    dato("Sin lavar", n.sinCorte, n.sinCorte ? "próximo corte: " + pesos(caCarmen(n.sinCorte)) : "") +
+    dato("Lavar cuesta", n.lavadas ? pesos(n.carmen / n.lavadas) : "—", "por casaca, en promedio") + '</div>' +
+    '<div class="carmen-colores" style="justify-content:flex-start;margin-top:14px;">' + Object.keys(CA_COLORES).map(c =>
+      `<div class="carmen-color">${caCasacaSVG(c, 46)}<b>${porColor[c] || 0}</b><span>${c}</span></div>`).join("") + '</div></div>';
+
+  // Cortes de Doña Carmen.
+  html += '<div class="card"><h2>Cortes de Doña Carmen</h2>' + (EF.cortes.length
+    ? '<table class="fin-tabla"><tr><th>Fecha</th><th>Casacas</th><th>Por color</th><th>Pagado</th><th>Registró</th></tr>' +
+      EF.cortes.slice().reverse().map(c => `<tr><td>${esc(c.registro)}</td><td>${c.casacas}</td><td>${Object.keys(c.porColor).map(k => k + " " + c.porColor[k]).join(" · ")}</td><td>${pesos(c.monto)}</td><td>${esc(c.capturo)}</td></tr>`).join("") + '</table>'
+    : '<div class="empty-state" style="text-align:left;">Todavía no hay cortes.</div>') + '</div>';
+
+  // Todo lo registrado.
+  html += '<div class="card"><h2>Registros de casacas</h2>' + (EF.casacas.length
+    ? '<table class="fin-tabla"><tr><th>Partido</th><th>Equipo</th><th>Casacas</th><th>Cobro</th><th>Forma</th><th>Estado</th></tr>' +
+      EF.casacas.slice().reverse().map(c => `<tr><td>${fechaBonita(c.fecha)}</td><td>${esc(c.equipo)}</td><td>${caCasacaSVG(c.color, 16)} ${c.cantidad}</td><td>${pesos(c.monto)}</td><td>${c.forma}</td><td>${c.estado}</td></tr>`).join("") + '</table>'
+    : '<div class="empty-state" style="text-align:left;">Todavía no hay casacas registradas.</div>') + '</div>';
+  caja.innerHTML = html;
+}
+
+async function efHiceCorte(){
+  const monto = Math.round(Number(document.getElementById("efRetiroMonto").value) || 0);
+  const nota = document.getElementById("efRetiroNota").value.trim();
+  const msg = document.getElementById("efRetiroMsg");
+  const n = efNumeros();
+  if(!(monto > 0)){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "Escribe cuánto agarraste."; return; }
+  if(monto > n.caja){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "Juan solo tiene " + pesos(n.caja) + "."; return; }
+  if(!confirm(`Registrar que agarraste ${pesos(monto)} del efectivo de Juan.\n\nA Juan le quedarían ${pesos(n.caja - monto)}. ¿Todo bien?`)) return;
+  try{
+    await postAppsScript({ action: "registrarRetiro", clave: CONFIG.adminPassword, monto, nota });
+    await cargarEfectivo();
+  }catch(e){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "No se pudo: " + e.message; }
+}
+
+async function efConfirmar(id){
+  const c = EF.casacas.find(x => x.id === id);
+  if(!c) return;
+  if(!confirm(`Confirmar la transferencia de ${c.equipo} por ${pesos(c.monto)}.\n\nQuiere decir que ya te llegó el dinero. ¿Todo bien?`)) return;
+  try{
+    await postAppsScript({ action: "confirmarCasaca", clave: CONFIG.adminPassword, id });
+    c.estado = "Confirmado";
+    renderEfectivo();
+  }catch(e){ alert("No se pudo: " + e.message); }
 }
 
 /* Los títulos de grupo del menú que se quedan sin botones (al staff le
@@ -2788,7 +3135,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -2797,6 +3144,8 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
     document.body.classList.toggle("vista-hoja", btn.dataset.view === "cedulas");
     if(btn.dataset.view === "hoy"){ renderHoy(); cargarHoy(); }
+    if(btn.dataset.view === "casacas") caIniciar();
+    if(btn.dataset.view === "efectivo") cargarEfectivo();
     /* El rol se pinta al abrir la pestaña: desde que el Admin arranca en
        "Hoy", nadie más lo pintaba y se quedaba en "Cargando datos…". */
     if(btn.dataset.view === "rol"){ renderBotonesOliver(); oliverCargarRestricciones();
