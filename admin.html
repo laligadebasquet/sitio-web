@@ -2991,9 +2991,12 @@ function efNumeros(){
   const transfPend = cs.filter(c => c.forma === "Transferencia" && c.estado !== "Confirmado");
   const carmen = EF.cortes.reduce((n, c) => n + c.monto, 0);
   const entradas = efectivo + transfOk;
-  const retiros = EF.retiros.reduce((n, r) => n + r.monto, 0);
+  // Cortes y ajustes restan igual (ver ajustarEfectivo en el Apps Script);
+  // "Ya agarraste" cuenta solo los cortes.
+  const retiros = EF.retiros.filter(r => !r.ajuste).reduce((n, r) => n + r.monto, 0);
+  const ajustes = EF.retiros.filter(r => r.ajuste).reduce((n, r) => n + r.monto, 0);
   // Lo que Juan tiene en mano (el servidor da el mismo número).
-  const caja = efectivo - carmen - retiros;
+  const caja = efectivo - carmen - retiros - ajustes;
   const lavadas = EF.cortes.reduce((n, c) => n + c.casacas, 0);
   const sinCorte = cs.filter(c => !c.corte).reduce((n, c) => n + c.cantidad, 0);
   return { efectivo, transfOk, transfPend, carmen, entradas, saldo: entradas - carmen, retiros, caja,
@@ -3022,6 +3025,7 @@ function renderEfectivo(){
   const n = efNumeros();
   ponerBadge("badge-efectivo", n.transfPend.length);
   const esc = t => String(t).replace(/</g, "&lt;");
+  const nCortes = EF.retiros.filter(r => !r.ajuste).length;
   const dato = (titulo, valor, nota, tono) => `<div class="ef-dato${tono ? " ef-" + tono : ""}"><span>${titulo}</span><b>${valor}</b>${nota ? `<em>${nota}</em>` : ""}</div>`;
   let html = '<div class="card"><h2>Efectivo · casacas</h2><div class="ef-datos">' +
     dato("Efectivo", pesos(n.efectivo), "cobrado en efectivo") +
@@ -3035,13 +3039,19 @@ function renderEfectivo(){
      lo que se agarra se resta de lo que Juan tiene (13 oct 2026). */
   html += `<div class="card"><h2>Efectivo con Juan</h2><div class="ef-datos">` +
     dato("Juan tiene", pesos(n.caja), "efectivo − Doña Carmen − tus cortes", "total") +
-    dato("Ya agarraste", pesos(n.retiros), EF.retiros.length + (EF.retiros.length === 1 ? " corte" : " cortes")) + '</div>' +
+    dato("Ya agarraste", pesos(n.retiros), nCortes + (nCortes === 1 ? " corte" : " cortes")) + '</div>' +
     `<div class="ef-corte"><input type="number" min="1" step="1" id="efRetiroMonto" placeholder="¿Cuánto agarraste?">
       <input type="text" id="efRetiroNota" placeholder="Nota (opcional)">
       <button class="save-btn" onclick="efHiceCorte()"${n.caja > 0 ? "" : " disabled"}>Hice corte</button></div>
-    <div class="msg" id="efRetiroMsg"></div>` +
-    (EF.retiros.length ? '<table class="fin-tabla" style="margin-top:12px;"><tr><th>Fecha</th><th>Agarraste</th><th>Nota</th></tr>' +
-      EF.retiros.slice().reverse().map(r => `<tr><td>${esc(r.registro)}</td><td>${pesos(r.monto)}</td><td>${esc(r.nota)}</td></tr>`).join("") + '</table>' : "") +
+    <div class="msg" id="efRetiroMsg"></div>
+    <div class="ef-corte" style="margin-top:10px;"><input type="number" min="0" step="1" id="efAjusteTotal" placeholder="¿Cuánto hay contado?">
+      <input type="text" id="efAjusteNota" placeholder="Nota (opcional)">
+      <button class="mini-btn" onclick="efAjustar()">Poner el total</button></div>
+    <div class="msg" id="efAjusteMsg"></div>` +
+    (EF.retiros.length ? '<table class="fin-tabla" style="margin-top:12px;"><tr><th>Fecha</th><th>Movimiento</th><th>Nota</th></tr>' +
+      EF.retiros.slice().reverse().map(r => `<tr><td>${esc(r.registro)}</td><td>${r.ajuste
+        ? "Ajuste " + (r.monto > 0 ? "− " + pesos(r.monto) : "+ " + pesos(-r.monto))
+        : "Agarraste " + pesos(r.monto)}</td><td>${esc(r.nota)}</td></tr>`).join("") + '</table>' : "") +
     '</div>';
 
   // Transferencias esperando el OK.
@@ -3086,6 +3096,22 @@ async function efHiceCorte(){
   if(!confirm(`Registrar que agarraste ${pesos(monto)} del efectivo de Juan.\n\nA Juan le quedarían ${pesos(n.caja - monto)}. ¿Todo bien?`)) return;
   try{
     await postAppsScript({ action: "registrarRetiro", clave: CONFIG.adminPassword, monto, nota });
+    await cargarEfectivo();
+  }catch(e){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "No se pudo: " + e.message; }
+}
+
+/* "Poner el total": lo que de verdad hay contado (ver ajustarEfectivo). */
+async function efAjustar(){
+  const campo = document.getElementById("efAjusteTotal");
+  const total = Math.round(Number(campo.value));
+  const nota = document.getElementById("efAjusteNota").value.trim();
+  const msg = document.getElementById("efAjusteMsg");
+  const n = efNumeros();
+  if(campo.value.trim() === "" || !(total >= 0)){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "Escribe cuánto efectivo hay contado (puede ser 0)."; return; }
+  if(total === n.caja){ msg.className = "msg ok"; msg.style.display = "block"; msg.textContent = "Ya cuadra: Juan tiene " + pesos(total) + "."; return; }
+  if(!confirm(`El sistema dice que Juan tiene ${pesos(n.caja)}.\n\n¿Lo pongo en ${pesos(total)}? Queda anotado el ajuste de ${pesos(Math.abs(n.caja - total))}.`)) return;
+  try{
+    await postAppsScript({ action: "ajustarEfectivo", clave: CONFIG.adminPassword, total, nota });
     await cargarEfectivo();
   }catch(e){ msg.className = "msg err"; msg.style.display = "block"; msg.textContent = "No se pudo: " + e.message; }
 }
