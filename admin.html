@@ -51,6 +51,91 @@
     transition:background .15s ease, color .15s ease;
   }
   nav.tabs button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  /* Ya no se sale de la pantalla: los botones bajan de renglón. */
+  nav.tabs{flex-wrap:wrap;}
+  .nav-grupo{display:none;}
+  .nav-badge:empty{display:none;}
+  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    margin-left:6px;padding:0 5px;border-radius:9px;background:var(--accent);color:#fff;font-size:10px;font-weight:900;}
+  nav.tabs button.active .nav-badge{background:#fff;color:var(--accent);}
+
+  /* ---------- Hoy ---------- */
+  .hoy-saludo{font-size:22px;font-weight:900;margin:0 0 16px;}
+  .hoy-saludo span{color:var(--text-soft);font-weight:700;font-size:16px;text-transform:capitalize;}
+  .hoy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .hoy-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid #444;border-radius:6px;padding:16px;
+    display:flex;flex-direction:column;gap:10px;}
+  .hoy-card.hoy-alerta{border-left-color:var(--accent);}
+  .hoy-card.hoy-ok{border-left-color:var(--win);}
+  .hoy-card.hoy-accion{border-left-color:#F3A128;}
+  .hoy-tit{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:900;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--text-soft);}
+  .hoy-tit b{font-size:26px;color:var(--text);letter-spacing:0;}
+  .hoy-cuerpo{font-size:13px;line-height:1.5;flex:1;}
+  .hoy-lista{margin:0;padding:0;list-style:none;}
+  .hoy-lista li{padding:5px 0;border-bottom:1px solid var(--line);}
+  .hoy-lista li:last-child{border-bottom:none;}
+  .hoy-mas, .hoy-gris{color:var(--text-soft);}
+  .hoy-btn{align-self:flex-start;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:9px 14px;
+    font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;}
+
+  /* ---------- Rol: herramientas plegadas ---------- */
+  .rol-herramientas{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:16px;}
+  .rol-herramientas > .card{margin:0;}
+  .herramienta:not(.abierta) > :not(.herr-titulo){display:none !important;}
+  .herramienta:not(.abierta){padding:14px 16px;cursor:pointer;}
+  .herramienta.abierta{grid-column:1 / -1;}
+  .herramienta.abierta > h2:first-of-type, .herramienta.abierta .oliver-intro h2{display:none;}
+  .herr-titulo{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;width:100%;
+    cursor:pointer;font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--text);}
+  .herramienta.abierta .herr-titulo{color:var(--accent);margin-bottom:14px;}
+  .herramienta.abierta .herr-flecha{transform:rotate(180deg);}
+  .btn-pasadas{background:none;border:1px dashed #444;color:#bbb;border-radius:6px;padding:7px 12px;cursor:pointer;
+    font-family:inherit;font-weight:800;font-size:11px;width:100%;}
+  .rol-tabla tr.sep-pasadas td{padding:8px 0;}
+
+  /* ---------- Asistencia ---------- */
+  .asis-controles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+  .asis-buscar{flex:1;min-width:220px;padding:9px 12px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;font-size:13px;}
+  .asis-orden{width:auto !important;padding:9px 10px;background:#000;border:1px solid #444;border-radius:6px;color:#fff;font-size:12px;}
+  tr.asis-equipo{cursor:pointer;background:#141414;}
+  tr.asis-equipo:hover td{background:#1c1c1c;}
+  .eq-chip-boton{cursor:pointer;}
+  .eq-chip-boton:hover{border-color:var(--accent);}
+
+  /* ---------- Pagos ---------- */
+  .pagos-resumen{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:4px 0 14px;}
+  .pr-dato{background:#0c0c0c;border:1px solid var(--line);border-radius:6px;padding:10px 14px;}
+  .pr-dato b{display:block;font-size:20px;}
+  .pr-dato span{font-size:11px;color:var(--text-soft);}
+  .pr-dato.pr-alerta b{color:var(--accent);}
+  .pr-filtros{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  #pagosTable td{padding-top:5px;padding-bottom:5px;}
+  #pagosTable .fin-cuota{padding:4px 8px;width:110px !important;}
+
+  /* ============================================================
+     COMPUTADORA (12 oct 2026): menú fijo a la izquierda y todo el ancho.
+     Solo con ratón: la tablet de la mesa se queda como estaba.
+     ============================================================ */
+  @media (min-width:1100px) and (hover:hover) and (pointer:fine){
+    body{padding-left:224px;}
+    body.hd-pc{padding-left:0;}
+    header.topbar{position:fixed;top:0;left:0;bottom:0;width:224px;overflow-y:auto;z-index:60;
+      border-bottom:none;border-right:1px solid var(--line);padding:18px 12px 24px;background:var(--bg);}
+    .topbar-inner{max-width:none;}
+    .topbar-inner h1{font-size:19px;}
+    .topbar-inner span:not(.accent-dot){display:none;}
+    nav.tabs{flex-direction:column;flex-wrap:nowrap;max-width:none;margin:14px 0 0;gap:1px;padding:0;}
+    nav.tabs button{display:flex;align-items:center;justify-content:space-between;text-align:left;
+      background:transparent;border:1px solid transparent;border-radius:6px;padding:8px 11px;font-size:11px;}
+    nav.tabs button:not(.active):hover{background:var(--surface);border-color:transparent;}
+    .nav-grupo{display:block;font-size:9.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+      color:#5c5c63;margin:14px 11px 4px;}
+    /* "body main" y no "main": las reglas viejas de 820 px van más abajo en
+       este mismo <style> y con el mismo peso le ganaban a esta. */
+    body main{max-width:1440px;margin:22px auto 60px;padding:0 28px;}
+    body .rol-split{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
+  }
   nav.tabs button:not(.active):hover{border-color:var(--accent);}
   main{max-width:820px; margin:24px auto 60px auto; padding:0 24px;}
   section.view{display:none;}
@@ -991,6 +1076,8 @@
     border-radius:6px;color:#fff;font-size:13px;font-weight:700;text-align:right;
   }
   .rol-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;}
+  /* La tabla del rol no se encima sobre los cruces si no cabe: se desliza. */
+  .rol-col{overflow-x:auto;}
   @media(max-width:1100px){ .rol-split{grid-template-columns:1fr;} }
   .rol-col{min-width:0;}
   .rol-col-titulo{
@@ -1463,22 +1550,34 @@
     <h1>ADMIN<span class="accent-dot">.</span>LIGA</h1>
     <span>Armar el rol de partidos · capturar resultado y asistencia</span>
   </div>
+  <!-- En la computadora el menú es una columna fija a la izquierda, por
+       grupos (Mauricio, 12 oct 2026). Eran 13 pestañas en una fila y las
+       últimas (Correos, Pruebas) se salían de la pantalla. En tablet sigue
+       siendo la fila de botones, ahora en varios renglones. Los títulos de
+       grupo son <div>: todo lo que busca "nav.tabs button" no los ve. -->
   <nav class="tabs">
-    <button data-view="rol" class="active">Rol de Partidos</button>
+    <button data-view="hoy" class="active">Hoy</button>
+    <div class="nav-grupo">Partidos</div>
+    <button data-view="rol">Rol de Partidos</button>
+    <button data-view="cruces">Cruces</button>
+    <button data-view="cedulas">Cédulas<span class="nav-badge" id="badge-cedulas"></span></button>
+    <button data-view="pasado">Editar</button>
+    <button data-view="links">Link y Pendientes<span class="nav-badge" id="badge-links"></span></button>
+    <button data-view="minuta">Minuta</button>
+    <div class="nav-grupo">Equipos</div>
     <button data-view="equipos">Equipos</button>
     <button data-view="asistencia">Asistencia</button>
-    <button data-view="pasado">Editar</button>
-    <button data-view="cruces">Cruces</button>
-    <button data-view="pagos">Pagos</button>
-    <button data-view="cedulas">Cédulas</button>
-    <button data-view="links">Link y Pendientes</button>
     <button data-view="inscripciones">Inscripciones</button>
-    <button data-view="minuta">Minuta</button>
-    <button data-view="sanciones">Sanciones</button>
-    <button data-view="correos">Correos</button>
-    <button data-view="pruebas">Pruebas</button>
+    <div class="nav-grupo">Dinero</div>
+    <button data-view="pagos">Pagos<span class="nav-badge" id="badge-pagos"></span></button>
     <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
     <button data-view="staffpagos" style="display:none;">Pagos</button>
+    <div class="nav-grupo">Disciplina</div>
+    <button data-view="sanciones">Sanciones<span class="nav-badge" id="badge-sanciones"></span></button>
+    <div class="nav-grupo">Comunicación</div>
+    <button data-view="correos">Correos</button>
+    <div class="nav-grupo">Sistema</div>
+    <button data-view="pruebas">Pruebas</button>
   </nav>
 </header>
 
@@ -1487,8 +1586,20 @@
     ⚠️ Falta configurar <code>CONFIG.appsScriptUrl</code> en el código de esta página (la URL del Web App de Apps Script). Mientras tanto puedes revisar el formulario, pero "Guardar" no va a funcionar.
   </div>
 
+  <!-- ============ TAB: HOY ============ -->
+  <!-- Lo primero que se ve al entrar: qué hay que hacer hoy. Antes se caía
+       directo en "Generar el rol" (Mauricio, 12 oct 2026). Cada staff ve
+       solo lo suyo. -->
+  <section class="view active" id="view-hoy">
+    <div id="hoyCuerpo"><div class="empty-state">Cargando…</div></div>
+  </section>
+
   <!-- ============ TAB: ROL DE PARTIDOS ============ -->
-  <section class="view active" id="view-rol-admin">
+  <section class="view" id="view-rol-admin">
+
+    <!-- Las cuatro herramientas plegadas en un renglón: la tabla del rol, que
+         es lo que más se consulta, empezaba cuatro pantallas abajo. -->
+    <div class="rol-herramientas">
 
     <!-- OLIVER: arma el rol con la lógica de Mauricio. Primero enseña una
          vista previa; nada toca la hoja hasta que él confirma. -->
@@ -1684,6 +1795,7 @@
       <button class="save-btn" id="scheduleBtn" onclick="agregarPartido()">Agregar partido</button>
       <div class="msg" id="scheduleMsg"></div>
     </div>
+    </div><!-- /rol-herramientas -->
 
     <div class="card">
       <h2>Calendario</h2>
@@ -1715,10 +1827,6 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>Calendario actual (lista)</h2>
-      <div id="scheduleList"></div>
-    </div>
   </section>
 
   <!-- ============ TAB: ASISTENCIA ============ -->
@@ -1736,6 +1844,7 @@
 
     <div class="card">
       <h3 style="margin:0 0 10px 0;" id="asistenciaTitulo">Jugadores</h3>
+      <div class="asis-controles" id="asisControles"></div>
       <div class="cruces-scroll">
         <table class="cruces-table" id="asistenciaTable"></table>
       </div>
@@ -1790,6 +1899,7 @@
           desde cualquier dispositivo.
         </div>
         <div class="cat-botones" id="catBotonesPagos"></div>
+        <div id="pagosResumen"></div>
         <div class="cruces-scroll">
           <table class="cruces-table" id="pagosTable"></table>
         </div>
@@ -2468,6 +2578,8 @@ function aplicarModoStaff(){
   };
   const suyas = [];
   STAFF.permisos.forEach(p=>{ (PESTANAS_POR_PERMISO[p] || []).forEach(t=>suyas.push(t)); });
+  /* Todos arrancan en "Hoy", con solo lo que les toca. */
+  if(suyas.length) suyas.unshift("hoy");
 
   const botones = [...document.querySelectorAll("nav.tabs button")];
   botones.forEach(b=>{
@@ -2489,6 +2601,7 @@ function aplicarModoStaff(){
     return;
   }
 
+  ocultarGruposVacios();
   const primera = botones.find(b=>b.dataset.view === suyas[0]);
   if(primera) primera.click();
 }
@@ -2509,7 +2622,173 @@ if(PORTAL_STAFF){
   }
 }
 
-const VIEW_ID_BY_TAB = { rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
+/* ============================================================
+   HOY — la pantalla de entrada (Mauricio, 12 oct 2026)
+
+   Junta en un vistazo lo pendiente: partidos de hoy, resultados por
+   capturar, links, pagos del staff por aprobar, sanciones sin descripción
+   y lo que falta por cobrar. Cada quien ve solo lo que le toca: el staff
+   entra aquí también, con sus pendientes nada más.
+
+   Tres cosas se piden aparte (links, pagos del staff y sanciones) porque
+   no vienen en la carga inicial; se piden juntas, una vez, al abrir "Hoy".
+   ============================================================ */
+const HOY = { pedido: false, cargando: false };
+
+function puede(permiso){ return !STAFF || permisoStaff(permiso); }
+
+function irA(vista){
+  const b = document.querySelector('nav.tabs button[data-view="' + vista + '"]');
+  if(b) b.click();
+  window.scrollTo(0, 0);
+}
+
+function hoyLocal(){
+  const d = new Date(), dos = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate());
+}
+
+/* Partidos que ya pasaron y no tienen resultado capturado. */
+function porCapturar(){
+  const hoy = hoyLocal();
+  const conResultado = new Set(RESULTADOS.map(r => [r.local, r.visit].join("|")));
+  return MATCHES.filter(m => !sinFechaAdmin(m) && String(m.fecha).slice(0, 10) < hoy &&
+    !conResultado.has([m.local, m.visit].join("|")))
+    .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+}
+
+async function cargarHoy(){
+  if(HOY.cargando) return;
+  HOY.cargando = true; HOY.pedido = true;
+  const tareas = [];
+  if(puede("links") || puede("cedulas")) tareas.push(postAppsScript({ action: "leerCedulas", clave: CONFIG.adminPassword })
+    .then(d => { CEDULAS = d.cedulas || []; if(STAFF) CEDULAS = CEDULAS.filter(c => Number(c.semana) >= LINKS_DESDE_SEMANA); }));
+  if(!STAFF) tareas.push(postAppsScript({ action: "leerPagosPendientes", clave: CONFIG.adminPassword })
+    .then(d => { PAGOS_JP = d.pendientes || []; }));
+  if(puede("sanciones")) tareas.push(postAppsScript({ action: "leerSanciones", clave: CONFIG.adminPassword })
+    .then(d => { SANCIONES = d.sanciones || []; }));
+  await Promise.allSettled(tareas);
+  HOY.cargando = false;
+  renderHoy();
+}
+
+function ponerBadge(id, n){
+  const b = document.getElementById(id);
+  if(b) b.textContent = n ? String(n) : "";
+}
+
+function renderHoy(){
+  const caja = document.getElementById("hoyCuerpo");
+  if(!caja) return;
+  if(CARGANDO){ caja.innerHTML = '<div class="empty-state">Cargando datos…</div>'; return; }
+  const hoy = hoyLocal();
+  const d = new Date();
+  const fechaTxt = _DIAS[d.getDay()] + " " + d.getDate() + " de " + _MESES[d.getMonth()];
+  const nombre = STAFF ? STAFF.nombre : "Mauricio";
+  const tarjeta = (titulo, n, cuerpo, boton, tono) =>
+    `<div class="hoy-card${tono ? " hoy-" + tono : ""}"><div class="hoy-tit"><span>${titulo}</span>${n !== null ? `<b>${n}</b>` : ""}</div>` +
+    `<div class="hoy-cuerpo">${cuerpo}</div>${boton || ""}</div>`;
+  const lista = (items, max, pinta) => items.length
+    ? '<ul class="hoy-lista">' + items.slice(0, max).map(pinta).join("") + (items.length > max ? `<li class="hoy-mas">y ${items.length - max} más</li>` : "") + '</ul>'
+    : "";
+  const cargandoTxt = '<span class="hoy-gris">Revisando…</span>';
+  let html = `<div class="hoy-saludo">Hola, ${nombre} · <span>${fechaTxt}</span></div><div class="hoy-grid">`;
+
+  if(puede("cedulas")){
+    const deHoy = MATCHES.filter(m => String(m.fecha).slice(0, 10) === hoy).sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+    ponerBadge("badge-cedulas", deHoy.length);
+    html += tarjeta("Partidos de hoy", deHoy.length,
+      deHoy.length ? lista(deHoy, 8, m => `<li><b>${horaCorta(m.hora)}</b> ${m.local} vs ${m.visit} <span class="hoy-gris">${m.categoria || ""}</span></li>`)
+                   : '<span class="hoy-gris">Hoy no hay partidos.</span>',
+      deHoy.length ? `<button class="hoy-btn" onclick="irA('cedulas')">Abrir la hoja digital →</button>` : "", deHoy.length ? "accion" : "");
+    const faltan = porCapturar();
+    html += tarjeta("Resultados por capturar", faltan.length,
+      faltan.length ? lista(faltan, 6, m => `<li>${fechaBonita(String(m.fecha).slice(0, 10))} · ${m.local} vs ${m.visit}</li>`)
+                    : '<span class="hoy-gris">Todo capturado.</span>',
+      faltan.length ? `<button class="hoy-btn" onclick="irA('cedulas')">Capturar en la hoja digital →</button>` : "", faltan.length ? "alerta" : "ok");
+  }
+  if(puede("links")){
+    const pend = HOY.pedido && !HOY.cargando ? CEDULAS.filter(c => !c.enviado) : null;
+    ponerBadge("badge-links", pend ? pend.length : 0);
+    html += tarjeta("Links y cédulas pendientes", pend ? pend.length : null,
+      !pend ? cargandoTxt : pend.length
+        ? lista(pend.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))), 5, c => `<li>${fechaBonita(String(c.fecha).slice(0, 10))} · ${c.local} vs ${c.visit} <span class="hoy-gris">${c.totalPendientes > 0 ? "faltan puntos" : "falta el link"}</span></li>`)
+        : '<span class="hoy-gris">Nada pendiente.</span>',
+      pend && pend.length ? `<button class="hoy-btn" onclick="irA('links')">Ir a Links →</button>` : "", pend && pend.length ? "alerta" : (pend ? "ok" : ""));
+  }
+  if(!STAFF){
+    const jp = HOY.pedido && !HOY.cargando ? PAGOS_JP.filter(p => String(p["Estado"]).trim() === "Pendiente") : null;
+    ponerBadge("badge-pagos", jp ? jp.length : 0);
+    html += tarjeta("Pagos del staff por aprobar", jp ? jp.length : null,
+      !jp ? cargandoTxt : jp.length
+        ? lista(jp, 5, p => `<li>${p["Equipo"]} · ${pesos(p["Monto"])} <span class="hoy-gris">capturó ${p["Capturó"] || ""}</span></li>`)
+        : '<span class="hoy-gris">Nada por aprobar.</span>',
+      jp && jp.length ? `<button class="hoy-btn" onclick="irA('pagos'); pagosSubTab('jp');">Revisar →</button>` : "", jp && jp.length ? "alerta" : (jp ? "ok" : ""));
+    const saldo = eq => cuotaDe(eq) - PAGOS.filter(p => p.equipo === eq).reduce((n, p) => n + montoDePago(p.monto), 0);
+    const deben = INSCRIPCIONES.map(i => i.equipo).filter(eq => cuotaDe(eq) && saldo(eq) > 0).sort((a, b) => saldo(b) - saldo(a));
+    const total = deben.reduce((n, eq) => n + saldo(eq), 0);
+    html += tarjeta("Por cobrar", pesos(total),
+      deben.length ? lista(deben, 5, eq => `<li>${eq} <span class="hoy-gris">${pesos(saldo(eq))}</span></li>`)
+                   : '<span class="hoy-gris">Todos al corriente.</span>',
+      deben.length ? `<button class="hoy-btn" onclick="PAGOS_FILTRO = 'deben'; irA('pagos');">Ver los que deben →</button>` : "", deben.length ? "" : "ok");
+  }
+  if(puede("sanciones")){
+    const sin = HOY.pedido && !HOY.cargando ? SANCIONES.filter(s => !String(s.descripcion || "").trim()) : null;
+    ponerBadge("badge-sanciones", sin ? sin.length : 0);
+    html += tarjeta("Sanciones sin descripción", sin ? sin.length : null,
+      !sin ? cargandoTxt : sin.length
+        ? lista(sin, 5, s => `<li>${s.jugador || ""} <span class="hoy-gris">${s.equipo || ""}</span></li>`)
+        : '<span class="hoy-gris">Nada pendiente.</span>',
+      sin && sin.length ? `<button class="hoy-btn" onclick="irA('sanciones')">Describir →</button>` : "", sin && sin.length ? "alerta" : (sin ? "ok" : ""));
+  }
+  if(STAFF && permisoStaff("pagos")){
+    html += tarjeta("Capturar un pago", null, '<span class="hoy-gris">Registra lo que te pagó un equipo; Mauricio lo aprueba.</span>',
+      `<button class="hoy-btn" onclick="irA('staffpagos')">Capturar →</button>`, "accion");
+  }
+  if(STAFF && permisoStaff("minuta")){
+    html += tarjeta("Minuta", null, '<span class="hoy-gris">Quién dirigió cada partido, tiempos fuera y jugada por jugada.</span>',
+      `<button class="hoy-btn" onclick="irA('minuta')">Abrir →</button>`, "");
+  }
+  html += "</div>";
+  caja.innerHTML = html;
+}
+
+/* Los títulos de grupo del menú que se quedan sin botones (al staff le
+   tocan uno o dos) se esconden. */
+function ocultarGruposVacios(){
+  const hijos = [...document.querySelectorAll("nav.tabs > *")];
+  hijos.forEach((el, i) => {
+    if(!el.classList.contains("nav-grupo")) return;
+    let hay = false;
+    for(let k = i + 1; k < hijos.length && !hijos[k].classList.contains("nav-grupo"); k++){
+      if(hijos[k].style.display !== "none") hay = true;
+    }
+    el.style.display = hay ? "" : "none";
+  });
+}
+
+/* Las herramientas del rol, plegadas: se abre una a la vez. */
+function prepararHerramientasRol(){
+  document.querySelectorAll(".rol-herramientas > .card").forEach(card => {
+    if(card.querySelector(".herr-titulo")) return;
+    card.classList.add("herramienta");
+    const h2 = card.querySelector("h2");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "herr-titulo";
+    b.innerHTML = "<span>" + (h2 ? h2.textContent.trim() : "Herramienta") + '</span><span class="herr-flecha">▾</span>';
+    b.addEventListener("click", () => {
+      const abrir = !card.classList.contains("abierta");
+      document.querySelectorAll(".herramienta.abierta").forEach(c => c.classList.remove("abierta"));
+      if(abrir) card.classList.add("abierta");
+    });
+    card.insertBefore(b, card.firstChild);
+  });
+}
+prepararHerramientasRol();
+ocultarGruposVacios();
+
+const VIEW_ID_BY_TAB = { hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -2517,7 +2796,11 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
     document.body.classList.toggle("vista-hoja", btn.dataset.view === "cedulas");
-    if(btn.dataset.view === "rol"){ renderBotonesOliver(); oliverCargarRestricciones(); }
+    if(btn.dataset.view === "hoy"){ renderHoy(); cargarHoy(); }
+    /* El rol se pinta al abrir la pestaña: desde que el Admin arranca en
+       "Hoy", nadie más lo pintaba y se quedaba en "Cargando datos…". */
+    if(btn.dataset.view === "rol"){ renderBotonesOliver(); oliverCargarRestricciones();
+      renderRolSemanal(); renderCrucesCategoria(); }
     if(btn.dataset.view === "equipos") renderEquiposPorCategoria();
     if(btn.dataset.view === "asistencia") renderAsistencia();
     if(btn.dataset.view === "cedulas") renderCedulas();
@@ -2541,7 +2824,8 @@ function repintarVistaActual(){
   const activo = document.querySelector("nav.tabs button.active");
   const vista = activo ? activo.dataset.view : null;
   try{
-    if(vista === "cedulas") renderCedulas();
+    if(vista === "hoy"){ renderHoy(); if(!HOY.pedido) cargarHoy(); }
+    else if(vista === "cedulas") renderCedulas();
     else if(vista === "equipos") renderEquiposPorCategoria();
     else if(vista === "asistencia") renderAsistencia();
     else if(vista === "cruces") renderCruces();
@@ -3061,6 +3345,9 @@ function programarReintentoAutomatico(){
 
 function renderScheduleList(){
   const el = document.getElementById("scheduleList");
+  /* La lista se quitó el 12 oct 2026: repetía la tabla del rol en otras
+     6,600 px. La función se queda porque varias partes la llaman. */
+  if(!el) return;
   if(MATCHES.length === 0){
     el.innerHTML = '<div class="empty-state">Todavía no hay partidos en el calendario.</div>';
     return;
@@ -3276,6 +3563,8 @@ function libresDelDia(fecha, partidos){
   return horasDelDia(fecha).filter(h => tomadas.indexOf(h) === -1);
 }
 
+let ROL_VER_PASADAS = false;
+
 function renderRolSemanal(){
   const el = document.getElementById("rolSemanal");
   if(!el) return;
@@ -3292,9 +3581,20 @@ function renderRolSemanal(){
   let html = `<table class="rol-tabla"><tr>
       <th>categoría</th><th>instancia</th><th>semana</th>
       <th>fecha</th><th>hora</th><th>equipo 1</th><th>equipo 2</th><th></th></tr>`;
+  /* Las semanas que ya pasaron, plegadas: la tabla arrancaba en la semana 1
+     de agosto y había que bajar todo para llegar a la de hoy. */
+  const hoy = new Date().toISOString().slice(0, 10);
+  const proximas = orden.filter(m => !sinFechaAdmin(m) && String(m.fecha).slice(0, 10) >= hoy);
+  const actual = proximas.length ? semanaReal(proximas[0], num) : null;
+  const pasadas = actual === null ? [] : [...new Set(orden.map(m => semanaReal(m, num)).filter(x => x < actual))];
+  if(pasadas.length){
+    html += `<tr class="sep-pasadas"><td colspan="8"><button type="button" class="btn-pasadas" onclick="ROL_VER_PASADAS = !ROL_VER_PASADAS; renderRolSemanal();">` +
+      (ROL_VER_PASADAS ? "▾ Ocultar semanas pasadas" : `▸ Ver semanas pasadas (${pasadas[0]} a ${pasadas[pasadas.length - 1]})`) + `</button></td></tr>`;
+  }
   let semanaPrevia = null, diaPrevio = null;
   orden.forEach(m=>{
     const sem = semanaReal(m, num);
+    if(!ROL_VER_PASADAS && actual !== null && sem < actual) return;
     if(sem !== semanaPrevia){
       html += `<tr class="sep-semana"><td colspan="8">Semana ${sem}</td></tr>`;
       semanaPrevia = sem; diaPrevio = null;
@@ -9744,7 +10044,7 @@ function renderAsistencia(){
     <div class="eq-chip"><div class="n">${equipos.size}</div><div class="t">Equipos</div></div>
     <div class="eq-chip"><div class="n">${lista.length}</div><div class="t">Jugadores dados de alta</div></div>
     <div class="eq-chip"><div class="n">${pctGeneral}%</div><div class="t">Constancia</div></div>
-    <div class="eq-chip${flojos ? " alerta" : ""}"><div class="n">${flojos}</div><div class="t">Abajo del 50%</div></div>
+    <div class="eq-chip${flojos ? " alerta" : ""} eq-chip-boton" onclick="ASIS.flojos = true; renderAsistencia(); document.getElementById('asisControles').scrollIntoView({behavior:'smooth'});" title="Ver solo a estos jugadores"><div class="n">${flojos}</div><div class="t">Abajo del 50% →</div></div>
     <div class="eq-chip"><div class="n">${v.partidos}</div><div class="t">Partidos jugados</div></div>
     <div class="eq-chip"><div class="n">${v.porPartido}</div><div class="t">Jugadores por partido</div></div>
     <div class="eq-chip"><div class="n">${v.porDia}</div><div class="t">Juegan por día</div></div>
@@ -9772,6 +10072,88 @@ function renderAsistencia(){
       </table>`;
   }
 
+  renderControlesAsistencia(lista);
+  ASIS.lista = lista;
+  renderTablaAsistencia();
+}
+
+/* ---------- Asistencia: buscar, filtrar y plegar ----------
+   Eran 456 renglones (15,000 px) sin buscador ni orden (12 oct 2026).
+   Ahora: sin filtros se ve un renglón por equipo y se abre el que se pique;
+   con búsqueda, "abajo del 50%" u otro orden, la lista sale directa. */
+const ASIS = { q: "", flojos: false, orden: "equipo", abiertos: {}, lista: [] };
+
+function renderControlesAsistencia(lista){
+  const caja = document.getElementById("asisControles");
+  if(!caja) return;
+  const flojos = lista.filter(r => r.pct < 50).length;
+  caja.innerHTML = `
+    <input type="search" id="asisBuscar" class="asis-buscar" placeholder="Buscar jugador o equipo…"
+           value="${ASIS.q.replace(/"/g, "&quot;")}" oninput="ASIS.q = this.value; renderTablaAsistencia();">
+    <button type="button" class="cat-btn${ASIS.flojos ? "" : " active"}" onclick="ASIS.flojos = false; renderAsistencia();">Todos</button>
+    <button type="button" class="cat-btn${ASIS.flojos ? " active" : ""}" onclick="ASIS.flojos = true; renderAsistencia();">Abajo del 50% (${flojos})</button>
+    <select class="asis-orden" onchange="ASIS.orden = this.value; renderTablaAsistencia();">
+      <option value="equipo"${ASIS.orden === "equipo" ? " selected" : ""}>Por equipo</option>
+      <option value="bajo"${ASIS.orden === "bajo" ? " selected" : ""}>% de menor a mayor</option>
+      <option value="alto"${ASIS.orden === "alto" ? " selected" : ""}>% de mayor a menor</option>
+    </select>`;
+}
+
+function filaAsistencia(r, conEquipo){
+  const color = r.pct >= 80 ? "#4caf74" : r.pct >= 50 ? "#e0a63c" : "#e2544a";
+  return `<tr>
+      <td>${conEquipo ? "<strong>" + r.equipo + "</strong>" : ""}</td>
+      <td>${r.jugador}</td>
+      <td style="font-weight:800;">${r.si}</td>
+      <td style="color:${r.no ? "#e2544a" : "#666"};">${r.no}</td>
+      <td style="color:#888;">${r.partidos}</td>
+      <td style="font-weight:900;color:${color};">${r.pct}%</td>
+    </tr>`;
+}
+
+function renderTablaAsistencia(){
+  const tabla = document.getElementById("asistenciaTable");
+  if(!tabla) return;
+  const norm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const q = norm(ASIS.q.trim());
+  let lista = ASIS.lista.filter(r => (!ASIS.flojos || r.pct < 50) &&
+    (!q || norm(r.jugador).indexOf(q) > -1 || norm(r.equipo).indexOf(q) > -1));
+  let html = `<tr><th>Equipo</th><th>Jugador</th><th>Asistió</th><th>Faltó</th><th>Partidos</th><th>%</th></tr>`;
+  if(!lista.length){
+    tabla.innerHTML = html + '<tr><td colspan="6" class="empty-state">Nadie coincide con la búsqueda.</td></tr>';
+    return;
+  }
+  if(ASIS.orden !== "equipo"){
+    lista = lista.slice().sort((a, b) => ASIS.orden === "bajo" ? a.pct - b.pct : b.pct - a.pct);
+    tabla.innerHTML = html + lista.map(r => filaAsistencia(r, true)).join("");
+    return;
+  }
+  /* Por equipo. Sin filtros, cada equipo plegado; con filtro, abiertos. */
+  const plegar = !q && !ASIS.flojos;
+  const equipos = [...new Set(lista.map(r => r.equipo))];
+  equipos.forEach(eq => {
+    const suyos = lista.filter(r => r.equipo === eq);
+    if(plegar){
+      const si = suyos.reduce((n, r) => n + r.si, 0), tot = suyos.reduce((n, r) => n + r.si + r.no, 0);
+      const pct = tot ? Math.round(si / tot * 100) : 0;
+      const bajos = suyos.filter(r => r.pct < 50).length;
+      const abierto = !!ASIS.abiertos[eq];
+      html += `<tr class="asis-equipo" onclick="ASIS.abiertos['${eq.replace(/'/g, "\\'")}'] = ${!abierto}; renderTablaAsistencia();">
+        <td><strong>${abierto ? "▾" : "▸"} ${eq}</strong></td>
+        <td style="color:#888;">${suyos.length} jugadores${bajos ? ` · <span style="color:#e2544a;">${bajos} abajo del 50%</span>` : ""}</td>
+        <td></td><td></td><td></td>
+        <td style="font-weight:900;color:${pct >= 80 ? "#4caf74" : pct >= 50 ? "#e0a63c" : "#e2544a"};">${pct}%</td></tr>`;
+      if(abierto) html += suyos.map(r => filaAsistencia(r, false)).join("");
+    }else{
+      html += suyos.map((r, i) => filaAsistencia(r, i === 0)).join("");
+    }
+  });
+  tabla.innerHTML = html;
+}
+
+/* Lo que sigue era el pedazo viejo que pintaba los 456 renglones. Se deja
+   solo para que no se rompa quien lo llame. */
+function _asistenciaVieja(lista, tabla){
   let html = `<tr><th>Equipo</th><th>Jugador</th><th>Asistió</th><th>Faltó</th><th>Partidos</th><th>%</th></tr>`;
   let equipoAnterior = null;
   lista.forEach(r=>{
@@ -10153,14 +10535,38 @@ function cuotaDe(equipo){
   return puesta > 0 ? puesta : 0;
 }
 
+let PAGOS_FILTRO = "todos";
+
 function renderPagos(){
   renderBotonesCategoriaPagos();
   const tabla = document.getElementById("pagosTable");
   if(!tabla) return;
 
-  const lista = INSCRIPCIONES
+  let lista = INSCRIPCIONES
     .filter(i => CATEGORIA_PAGOS === "todas" || (i.categoria || "") === CATEGORIA_PAGOS)
     .map(i => i.equipo);
+
+  /* Arriba, lo que importa: cuánto falta por cobrar y de cuántos equipos.
+     Con "Deben" la lista sale ordenada del que más debe al que menos
+     (12 oct 2026). */
+  const saldoDe = eq => cuotaDe(eq) - PAGOS.filter(p => p.equipo === eq).reduce((n, p) => n + montoDePago(p.monto), 0);
+  const deben = lista.filter(eq => cuotaDe(eq) && saldoDe(eq) > 0);
+  const porCobrar = deben.reduce((n, eq) => n + saldoDe(eq), 0);
+  const cuotas = lista.reduce((n, eq) => n + (cuotaDe(eq) || 0), 0);
+  const resumen = document.getElementById("pagosResumen");
+  if(resumen){
+    resumen.innerHTML = lista.length ? `
+      <div class="pagos-resumen">
+        <div class="pr-dato${porCobrar ? " pr-alerta" : ""}"><b>${pesos(porCobrar)}</b><span>por cobrar · ${deben.length} ${deben.length === 1 ? "equipo" : "equipos"}</span></div>
+        <div class="pr-dato"><b>${pesos(cuotas - porCobrar)}</b><span>cobrado de ${pesos(cuotas)}${cuotas ? " (" + Math.round((cuotas - porCobrar) / cuotas * 100) + "%)" : ""}</span></div>
+        <div class="pr-filtros">
+          ${[["todos", "Todos"], ["deben", "Solo los que deben"], ["pagados", "Pagados"]].map(([v, t]) =>
+            `<button type="button" class="cat-btn${PAGOS_FILTRO === v ? " active" : ""}" onclick="PAGOS_FILTRO = '${v}'; renderPagos();">${t}</button>`).join("")}
+        </div>
+      </div>` : "";
+  }
+  if(PAGOS_FILTRO === "deben") lista = deben.slice().sort((a, b) => saldoDe(b) - saldoDe(a));
+  else if(PAGOS_FILTRO === "pagados") lista = lista.filter(eq => cuotaDe(eq) && saldoDe(eq) <= 0);
 
   if(lista.length === 0){
     tabla.innerHTML = CARGANDO ? FILA_CARGANDO
