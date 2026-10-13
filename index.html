@@ -2067,6 +2067,28 @@
      ============================================================ */
   .lupa-cel, .barra-cel, .mas-hoja, .mas-fondo, .po-rondas{display:none;}
 
+  /* Pestaña Video. */
+  #view-video{max-width:640px;}
+  .vid-intro{color:var(--text-soft);font-size:14px;margin:0 0 18px;}
+  .vid-paso{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);
+    margin:18px 0 8px;display:flex;align-items:center;gap:8px;}
+  .vid-paso b{width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:12px;}
+  .vid-select, .vid-correo{width:100%;padding:12px 14px;border:1px solid var(--gray-line);border-radius:10px;
+    background:#fff;font-size:16px;font-family:inherit;color:var(--text);}
+  .vid-equipos{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .vid-equipo{padding:14px 10px;border:1px solid var(--gray-line);border-radius:10px;background:#fff;
+    font-weight:900;font-size:13px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--navy);}
+  .vid-equipo.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .vid-aviso{margin:18px 0 10px;background:#fff;border:1px solid var(--gray-line);border-left:4px solid var(--orange);
+    border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.5;}
+  .vid-aviso-ok{border-left-color:var(--win);background:#F1FAF3;}
+  .vid-aviso-err{border-left-color:var(--loss);background:#FDF2F1;}
+  .vid-generar{margin-top:14px;width:100%;padding:15px;border:none;border-radius:12px;background:var(--orange);
+    color:#fff;font-weight:900;font-size:15px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;font-family:inherit;}
+  .vid-generar:disabled{opacity:.6;cursor:default;}
+  .vid-nota{font-size:12px;color:var(--text-soft);text-align:center;margin:8px 0 0;}
+
   /* ============================================================
      COMPUTADORA (Mauricio, 10 oct 2026)
      ============================================================ */
@@ -2298,6 +2320,9 @@
     <!-- Por dentro la vista se sigue llamando "credencial" (así estaba desde
          el principio); en pantalla ahora dice Jugadores. -->
     <button data-view="credencial">Jugadores</button>
+    <!-- Video: cada quien pide el video con sus canastas de un partido y le
+         llega por correo (Mauricio, 11 oct 2026). -->
+    <button data-view="video">Video</button>
     <button data-view="inscripcion">Inscripción</button>
     <div class="nav-dropdown" id="navDropInfo">
       <button type="button" class="nav-dropdown-trigger" onclick="toggleNavDropdown('navDropInfo')">Información <span class="nav-caret">&#9662;</span></button>
@@ -2332,6 +2357,7 @@
   <button type="button" data-ir="ranking">Ranking</button>
   <button type="button" data-ir="tendencias">Tendencias</button>
   <button type="button" data-ir="credencial">Jugadores</button>
+  <button type="button" data-ir="video">Video</button>
   <button type="button" data-ir="concentrado">Concentrado</button>
   <button type="button" data-ir="sanciones">Sanciones</button>
   <button type="button" data-ir="inscripcion">Inscripción</button>
@@ -2471,6 +2497,7 @@
   <section class="view" id="view-dondeestamos"></section>
   <section class="view" id="view-contacto"></section>
   <section class="view" id="view-inscripcion"></section>
+  <section class="view" id="view-video"></section>
 </main>
 
 <div class="modal-overlay" id="rosterModal" onclick="if(event.target===this) cerrarRoster()">
@@ -2650,6 +2677,10 @@ const CONFIG = {
   // de que arranque la temporada, solo para abrir inscripciones.
   // Cuando la temporada esté lista, cambia esto a false para mostrar todo.
   soloInicio: false,
+  /* La pestaña Video está construida pero APAGADA: Mauricio la dejó en
+     pendientes el 11 oct 2026. Para prenderla: publicar el Apps Script con
+     VIDEO_CLAVE, instalar el trabajador (video/) y poner esto en true. */
+  videosActivos: false,
 };
 
 /* Logo del club, reutilizado dentro de la credencial (frente). */
@@ -3029,9 +3060,46 @@ function aplicarDatos(datos){
 /* Repinta todo lo que depende del Sheet. Reglamento, Inscripción, Dónde
    Estamos y Contacto quedan fuera a propósito: ya se pintaron al arrancar y
    volver a pintarlas borraría la categoría que eligió el deep-link. */
+/* ---------- "Ver el partido" desde la cédula ----------
+   Desde el 13 oct 2026 la cédula sale en cuanto la mesa cierra el partido,
+   antes de que el video esté en YouTube (Scorecam lo deja privado y hay que
+   editarlo a mano). Su botón trae ?partido=FECHA|LOCAL|VISITANTE: si el
+   partido ya tiene link, de aquí se va directo al video; si todavía no,
+   se avisa que viene en camino. El mismo botón sirve antes y después. */
+let PARTIDO_DEL_LINK_HECHO = false;
+function revisarPartidoDelLink(){
+  if(PARTIDO_DEL_LINK_HECHO) return;
+  let pedido = "";
+  try{ pedido = new URLSearchParams(location.search).get("partido") || ""; }catch(e){ return; }
+  if(!pedido){ PARTIDO_DEL_LINK_HECHO = true; return; }
+  // Sin las cédulas todavía no se sabe si hay link: no hay que avisar
+  // "no está listo" de un partido que sí tiene video.
+  if(!CEDULAS_PUB.length) return;
+  const [fecha, local, visit] = pedido.split("|");
+  const p = partidosJugados().find(x => String(x.fecha).slice(0, 10) === fecha &&
+    x.local === nombreEquipo(local) && x.visitante === nombreEquipo(visit));
+  if(!p) return;   // todavía no llegan los datos: se vuelve a revisar con la siguiente tanda
+  PARTIDO_DEL_LINK_HECHO = true;
+  if(p.link){ location.replace(p.link); return; }
+  const ref = JSON.stringify({ semana: p.jornada, fecha: p.fecha, local: p.local, visit: p.visitante }).replace(/"/g, "&quot;");
+  const m = document.createElement("div");
+  m.className = "modal-overlay open";
+  m.addEventListener("click", e => { if(e.target === m) m.remove(); });
+  m.innerHTML = `<div class="modal-box" style="max-width:420px;">
+    <div class="modal-header"><div><h3>${p.local} ${p.ptsLocal} - ${p.ptsVisitante} ${p.visitante}</h3><span>${fechaCorta(p.fecha)}</span></div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+    <div style="padding:18px 20px 20px;font-size:14px;line-height:1.55;">
+      <p style="margin:0 0 14px;"><b>🎥 El video de este partido todavía no está listo.</b><br>
+      Suele subirse unas horas después del partido. Abre este mismo link más tarde y te llevará directo al video.</p>
+      <button type="button" class="res-btn res-btn-stat" onclick='this.closest(".modal-overlay").remove(); verEstadistica(${ref})'>Ver la estadística del partido</button>
+    </div></div>`;
+  document.body.appendChild(m);
+}
+
 function pintarTodoDelSheet(){
   _cacheJugadoresQuery = null;
   _cacheJugadoresSet = null;
+  try{ revisarPartidoDelLink(); }catch(e){ console.warn(e); }
   renderProximos();
   renderResultados();
   renderRol();
@@ -3040,6 +3108,7 @@ function pintarTodoDelSheet(){
   renderRanking();
   renderRachas();
   renderPlayoffs();
+  renderVideo();
   renderConcentrado();
   renderSanciones();
   renderJugadores();
@@ -7548,6 +7617,152 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
   });
 });
 
+/* ============================================================
+   VIDEO — "pide el video de tus canastas" (Mauricio, 11 oct 2026)
+
+   Se escoge partido (solo los que tienen link de YouTube), equipo y jugador.
+   La página no corta nada: deja el pedido en el Sheet y la computadora de la
+   liga lo corta y lo manda por correo (ver video/trabajador.py). Por eso el
+   mensaje final dice "en unos minutos" y no "ya".
+
+   El correo del jugador nunca llega completo a la página: el Apps Script
+   solo devuelve la versión tapada (j***@gmail.com), porque la página es
+   pública.
+   ============================================================ */
+const VID = { cat: "general", partido: "", equipo: "", jugador: "", info: null, cargando: false, msg: null };
+
+function vidPartidos(){
+  return partidosJugados()
+    .filter(p => p.link && (VID.cat === "general" || p.categoria === VID.cat))
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+function vidClave(p){ return [p.fecha, p.local, p.visitante].join("|"); }
+function vidPartido(){ return vidPartidos().find(p => vidClave(p) === VID.partido) || null; }
+
+/* Los jugadores del equipo que anotaron en ese partido (si no anotó, no hay
+   canastas que cortar). Si la estadística de ese partido no está, el roster. */
+function vidJugadores(p, equipo){
+  const anotaron = ESTADISTICAS.filter(e => e.fecha === p.fecha && e.equipo === equipo && e.total > 0)
+    .sort((a, b) => b.total - a.total).map(e => ({ nombre: e.jugador, pts: e.total }));
+  if(anotaron.length) return anotaron;
+  return (ROSTERS[equipo] || []).map(j => ({ nombre: j.nombre, pts: null }));
+}
+
+function vidElegir(campo, valor){
+  VID[campo] = valor;
+  const orden = ["cat", "partido", "equipo", "jugador"];
+  orden.slice(orden.indexOf(campo) + 1).forEach(c => { VID[c] = ""; });
+  VID.info = null; VID.msg = null;
+  renderVideo();
+  if(campo === "jugador" && valor) vidPedirInfo();
+}
+
+async function vidPedirInfo(){
+  const p = vidPartido();
+  if(!p || !VID.equipo || !VID.jugador) return;
+  VID.cargando = true; renderVideo();
+  try{
+    const r = await intentarEnviarAlSheet({ action: "infoVideo", fecha: p.fecha, local: p.local, visit: p.visitante,
+      equipo: VID.equipo, jugador: VID.jugador === "TODO" ? "" : VID.jugador });
+    VID.info = r.info;
+  }catch(e){
+    VID.msg = { tipo: "err", texto: "No se pudo revisar: " + e.message };
+  }
+  VID.cargando = false; renderVideo();
+}
+
+async function vidGenerar(){
+  const p = vidPartido();
+  if(!p) return;
+  const otro = (document.getElementById("vidCorreo") || {}).value || "";
+  const todo = VID.jugador === "TODO";
+  if(todo && !otro.trim()){
+    VID.msg = { tipo: "err", texto: "Escribe a qué correo mandamos el video del equipo." }; renderVideo(); return;
+  }
+  VID.cargando = true; VID.msg = null; renderVideo();
+  try{
+    const r = await intentarEnviarAlSheet({ action: "pedirVideo", fecha: p.fecha, local: p.local, visit: p.visitante,
+      equipo: VID.equipo, jugador: todo ? "" : VID.jugador, correoOtro: otro.trim() });
+    VID.msg = { tipo: "ok", texto: "¡Listo! El video llegará a " + r.pedido.tapado +
+      " en unos minutos. Si la computadora de la liga está apagada, puede tardar un poco más. " +
+      "Ojo: el archivo se borra a los 7 días, descárgalo si lo quieres guardar." };
+    VID.info = null;
+  }catch(e){
+    VID.msg = { tipo: "err", texto: e.message };
+  }
+  VID.cargando = false; renderVideo();
+}
+
+function renderVideo(){
+  const el = document.getElementById("view-video");
+  if(!el) return;
+  const esc = t => String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const jsq = t => String(t).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  let html = '<div class="section-heading">Video de tus canastas<span class="line"></span></div>' +
+    '<p class="vid-intro">Escoge un partido y un jugador, y te mandamos por correo un video con <b>solo sus canastas</b>.</p>';
+
+  html += '<div class="vid-paso"><b>1</b> Categoría</div><div class="rol-cats">' +
+    [["general", "Todas"]].concat(CATS_ROL.map(c => [c, c])).map(([v, t]) =>
+      `<button type="button" class="rol-cat-btn${VID.cat === v ? " active" : ""}" onclick="vidElegir('cat','${v}')">${t}</button>`).join("") +
+    '</div>';
+
+  const partidos = vidPartidos();
+  html += '<div class="vid-paso"><b>2</b> Partido</div>';
+  if(!partidos.length){
+    html += '<div class="empty-state">Todavía no hay partidos con video' + (VID.cat === "general" ? "" : " en " + VID.cat) + '.</div>';
+    el.innerHTML = html; return;
+  }
+  html += '<select class="vid-select" onchange="vidElegir(\'partido\', this.value)"><option value="">Escoge el partido…</option>' +
+    partidos.map(p => {
+      const k = vidClave(p);
+      return `<option value="${esc(k)}"${VID.partido === k ? " selected" : ""}>${fechaCorta(p.fecha)} · ${esc(p.local)} ${p.ptsLocal}-${p.ptsVisitante} ${esc(p.visitante)}</option>`;
+    }).join("") + '</select>';
+
+  const p = vidPartido();
+  if(p){
+    html += '<div class="vid-paso"><b>3</b> Equipo</div><div class="vid-equipos">' +
+      [p.local, p.visitante].map(e =>
+        `<button type="button" class="vid-equipo${VID.equipo === e ? " active" : ""}" onclick="vidElegir('equipo','${jsq(e)}')">${esc(e)}</button>`).join("") +
+      '</div>';
+  }
+  if(p && VID.equipo){
+    const js = vidJugadores(p, VID.equipo);
+    html += '<div class="vid-paso"><b>4</b> Jugador</div>' +
+      '<select class="vid-select" onchange="vidElegir(\'jugador\', this.value)"><option value="">Escoge el jugador…</option>' +
+      `<option value="TODO"${VID.jugador === "TODO" ? " selected" : ""}>Todo el equipo (todas sus canastas)</option>` +
+      js.map(j => `<option value="${esc(j.nombre)}"${VID.jugador === j.nombre ? " selected" : ""}>${esc(j.nombre)}${j.pts !== null ? " · " + j.pts + " pts" : ""}</option>`).join("") +
+      '</select>';
+  }
+
+  if(VID.jugador){
+    const i = VID.info, todo = VID.jugador === "TODO";
+    if(VID.cargando && !i && !VID.msg){
+      html += '<div class="vid-aviso">Revisando…</div>';
+    }else if(todo || i){
+      let bloqueado = false;
+      if(i && i.yaPedido){
+        bloqueado = true;
+        html += `<div class="vid-aviso vid-aviso-err">Este video ya se pidió y se manda a <b>${esc(i.yaPedido.tapado)}</b>. Es uno por jugador por partido.</div>`;
+      }else if(!todo && i && !i.hayMinuta){
+        bloqueado = true;
+        html += '<div class="vid-aviso vid-aviso-err">Este partido se capturó en papel, así que no sabemos qué canasta fue de quién. Puedes pedir el video de <b>todo el equipo</b>.</div>';
+      }else if(!todo && i && i.tapado){
+        html += `<div class="vid-aviso"><b>Aviso:</b> este video se mandará al correo con el que te diste de alta, <b>${esc(i.tapado)}</b>. Si lo quieres enviar a otro correo, escríbelo aquí:</div>` +
+          '<input id="vidCorreo" class="vid-correo" type="email" placeholder="otro@correo.com (opcional)">';
+      }else{
+        html += '<div class="vid-aviso">' + (todo ? "¿A qué correo mandamos el video del equipo?" : "No tenemos correo de este jugador. ¿A qué correo lo mandamos?") + '</div>' +
+          '<input id="vidCorreo" class="vid-correo" type="email" placeholder="tu@correo.com">';
+      }
+      if(!bloqueado){
+        html += `<button type="button" class="vid-generar" onclick="vidGenerar()"${VID.cargando ? " disabled" : ""}>${VID.cargando ? "Enviando…" : "🎬 Generar video"}</button>` +
+          '<p class="vid-nota">Un video por jugador por partido. El archivo se borra a los 7 días.</p>';
+      }
+    }
+  }
+  if(VID.msg) html += `<div class="vid-aviso ${VID.msg.tipo === "ok" ? "vid-aviso-ok" : "vid-aviso-err"}">${esc(VID.msg.texto)}</div>`;
+  el.innerHTML = html;
+}
+
 /* ---------- El menú de la computadora ----------
    Rol y Tabla viven dentro de "Rol de Partidos y Estadística": si estabas
    en una de ellas, arriba no se marcaba nada y no sabías dónde estabas. */
@@ -7604,6 +7819,10 @@ marcarBarraCel("inicio");
 /* En modo "solo inicio" (antes de abrir la temporada) arriba solo queda
    Inicio; la barra de abajo no tendría a dónde llevar. */
 if(CONFIG.soloInicio) document.body.classList.add("solo-inicio");
+/* Mientras la pestaña Video esté apagada, no sale en ningún menú. */
+if(!CONFIG.videosActivos){
+  document.querySelectorAll('[data-view="video"], [data-ir="video"]').forEach(b => { b.style.display = "none"; });
+}
 
 /* La lupa del encabezado en el celular: abre el buscador y pone el cursor ahí. */
 function abrirBuscadorCel(){
