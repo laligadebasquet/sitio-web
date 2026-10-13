@@ -2773,7 +2773,7 @@ function renderHoy(){
   }
   if(puede("links")){
     // Pendiente = le falta el link o le faltan puntos (la cédula ya sale sin link).
-    const pend = HOY.pedido && !HOY.cargando ? CEDULAS.filter(c => !String(c.link || "").trim() || c.totalPendientes > 0) : null;
+    const pend = HOY.pedido && !HOY.cargando ? CEDULAS.filter(c => (!String(c.link || "").trim() && !c.sinVideo) || c.totalPendientes > 0) : null;
     ponerBadge("badge-links", pend ? pend.length : 0);
     html += tarjeta("Links y cédulas pendientes", pend ? pend.length : null,
       !pend ? cargandoTxt : pend.length
@@ -9184,8 +9184,9 @@ function renderLinks(){
     return;
   }
 
-  // Primero los que están detenidos; los ya completos (cédula y link) hasta abajo.
-  const completo = c => c.enviado && !!String(c.link || "").trim();
+  // Primero los que están detenidos; los ya completos (cédula y link, o
+  // marcados "sin video") hasta abajo.
+  const completo = c => c.sinVideo || (c.enviado && !!String(c.link || "").trim());
   const orden = [...CEDULAS].sort((a,b)=>{
     const pa = completo(a) ? 1 : 0, pb = completo(b) ? 1 : 0;
     if(pa !== pb) return pa - pb;
@@ -9200,10 +9201,14 @@ function tarjetaCedula(c){
      el video. Así que "listo" ya no es "se mandó la cédula": es que además
      tenga link. Una cédula enviada sin link sigue aquí para que Marcelo le
      ponga el video (el botón del correo empieza a llevar a YouTube solo). */
-  const listo = c.enviado && !!String(c.link || "").trim();
   const faltanPuntos = c.totalPendientes > 0;
-  const color = listo ? "#33E08A" : (faltanPuntos ? "#FF4D5E" : "#F3A128");
-  const estado = listo ? "CÉDULA ENVIADA"
+  /* "Sin video": partido que no se transmitió. Ya no espera nada (ver
+     marcarSinVideo en el Apps Script). Si le faltan puntos, eso manda. */
+  const sinVideo = !!c.sinVideo && !faltanPuntos;
+  const listo = sinVideo || (c.enviado && !!String(c.link || "").trim());
+  const color = sinVideo ? "#9A9AA2" : listo ? "#33E08A" : (faltanPuntos ? "#FF4D5E" : "#F3A128");
+  const estado = sinVideo ? "SIN VIDEO"
+               : listo ? "CÉDULA ENVIADA"
                : (faltanPuntos ? "FALTAN " + c.totalPendientes + " PUNTOS POR ASIGNAR"
                                : (c.enviado ? "CÉDULA ENVIADA · FALTA EL LINK" : "SOLO FALTA EL LINK"));
 
@@ -9226,6 +9231,7 @@ function tarjetaCedula(c){
         <input id="link_${c.fila}" type="text" style="flex:1;min-width:240px;"
                placeholder="https://www.youtube.com/watch?v=…" value="${c.link || ""}">
         <button class="save-btn" style="padding:8px 16px;" onclick="guardarLink(${c.fila})">Guardar link</button>
+        <button class="mini-btn" style="padding:8px 12px;" onclick="marcarSinVideo(${c.fila})" title="No se transmitió: sale de pendientes y no manda correo">No hay video</button>
       </div>
     </div>`}
 
@@ -9316,6 +9322,25 @@ async function guardarLink(fila){
   }catch(err){
     msg.className = "msg err";
     msg.textContent = "No se pudo guardar: " + err.message;
+  }
+}
+
+/* Partido que no se transmitió: sale de pendientes y su cédula, si no
+   había salido, ya no sale (ver marcarSinVideo en el Apps Script). */
+async function marcarSinVideo(fila){
+  const c = CEDULAS.find(x => x.fila === fila) || {};
+  const msg = document.getElementById("msgCedula_" + fila);
+  if(!confirm(`¿${c.local} vs ${c.visit} no tiene video?\n\nSale de pendientes y su cédula ya no se manda por correo. El resultado no cambia.`)) return;
+  msg.className = "msg";
+  msg.textContent = "Guardando…";
+  try{
+    await postAppsScript({ action: "marcarSinVideo", clave: CONFIG.adminPassword, fila });
+    msg.className = "msg ok";
+    msg.textContent = "Marcado sin video.";
+    await cargarCedulas();
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo marcar: " + err.message;
   }
 }
 
