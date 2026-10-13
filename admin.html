@@ -3790,7 +3790,30 @@ const RP_HORAS_SABADO = ["12:10", "13:10", "14:10", "15:10", "16:10", "17:10"];
    no quedan restos de la vez pasada. */
 let RP = null;
 
+/* Una celda de "hora sola" del Sheet llega como una FECHA del 30 de
+   diciembre de 1899 ("Sat Dec 30 1899 14:18:44 GMT-0641…" o
+   "1899-12-30T21:00:00.000Z"). Para 1899 el navegador usa la hora local
+   antigua de Monterrey (−6:41:16) y salía "14:18:44" donde el Sheet dice
+   3:00 pm (encontrado el 12 oct 2026 en las reprogramaciones de JOE'S vs
+   WOLVES). Lo confiable es la hora UTC menos 6, que es como la guarda el
+   Sheet. Devuelve "HH:MM", o lo que llegó si ya era una hora. */
+function horaDeCelda(v){
+  const t = String(v == null ? "" : v).trim();
+  if(!t) return "";
+  const hm = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(t);
+  if(hm) return hm[1].padStart(2, "0") + ":" + hm[2];
+  if(!/1899/.test(t)) return t;
+  const d = new Date(t);
+  if(isNaN(d.getTime())) return t;
+  // Se redondea al minuto: el texto "GMT-0641" pierde los 16 segundos de
+  // la diferencia vieja y sin redondear salía 2:59 en vez de 3:00.
+  const utc = Math.round((d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds()) / 60);
+  const min = ((utc - 360) % 1440 + 1440) % 1440;
+  return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0");
+}
+
 function rpHoraBonita(h){
+  h = horaDeCelda(h);
   const p = String(h || "").split(":");
   if(p.length !== 2) return h || "";
   let hh = Number(p[0]);
