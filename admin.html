@@ -2772,7 +2772,8 @@ function renderHoy(){
       faltan.length ? `<button class="hoy-btn" onclick="irA('cedulas')">Capturar en la hoja digital →</button>` : "", faltan.length ? "alerta" : "ok");
   }
   if(puede("links")){
-    const pend = HOY.pedido && !HOY.cargando ? CEDULAS.filter(c => !c.enviado) : null;
+    // Pendiente = le falta el link o le faltan puntos (la cédula ya sale sin link).
+    const pend = HOY.pedido && !HOY.cargando ? CEDULAS.filter(c => !String(c.link || "").trim() || c.totalPendientes > 0) : null;
     ponerBadge("badge-links", pend ? pend.length : 0);
     html += tarjeta("Links y cédulas pendientes", pend ? pend.length : null,
       !pend ? cargandoTxt : pend.length
@@ -9183,9 +9184,10 @@ function renderLinks(){
     return;
   }
 
-  // Primero los que están detenidos; los ya enviados hasta abajo.
+  // Primero los que están detenidos; los ya completos (cédula y link) hasta abajo.
+  const completo = c => c.enviado && !!String(c.link || "").trim();
   const orden = [...CEDULAS].sort((a,b)=>{
-    const pa = a.enviado ? 1 : 0, pb = b.enviado ? 1 : 0;
+    const pa = completo(a) ? 1 : 0, pb = completo(b) ? 1 : 0;
     if(pa !== pb) return pa - pb;
     return String(b.fecha).localeCompare(String(a.fecha));
   });
@@ -9194,12 +9196,16 @@ function renderLinks(){
 }
 
 function tarjetaCedula(c){
-  const listo = c.enviado;
+  /* Desde el 13 oct 2026 la cédula sale al cerrar el partido, sin esperar
+     el video. Así que "listo" ya no es "se mandó la cédula": es que además
+     tenga link. Una cédula enviada sin link sigue aquí para que Marcelo le
+     ponga el video (el botón del correo empieza a llevar a YouTube solo). */
+  const listo = c.enviado && !!String(c.link || "").trim();
   const faltanPuntos = c.totalPendientes > 0;
   const color = listo ? "#33E08A" : (faltanPuntos ? "#FF4D5E" : "#F3A128");
   const estado = listo ? "CÉDULA ENVIADA"
                : (faltanPuntos ? "FALTAN " + c.totalPendientes + " PUNTOS POR ASIGNAR"
-                               : "SOLO FALTA EL LINK");
+                               : (c.enviado ? "CÉDULA ENVIADA · FALTA EL LINK" : "SOLO FALTA EL LINK"));
 
   return `
   <div class="card" style="margin-bottom:14px;border-left:4px solid ${color};">
