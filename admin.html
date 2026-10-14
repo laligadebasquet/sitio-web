@@ -2914,10 +2914,24 @@ function renderCasacas(){
   else if(!pend.length){ html += '<div class="empty-state" style="text-align:left;">Todavía no se registran casacas desde el último corte.</div>'; }
   else{
     html += `<div class="ca-total"><b>${total}</b> casacas usadas</div><ul class="hoy-lista">` +
-      pend.slice().reverse().map(c => `<li>${caCasacaSVG(c.color, 18)} <b>${esc(c.equipo)}</b> · ${c.cantidad} ${esc(c.color.toLowerCase())} · ${pesos(c.monto)} ${esc(c.forma.toLowerCase())} <span class="hoy-gris">${fechaBonita(c.fecha)}</span></li>`).join("") + '</ul>';
+      pend.slice().reverse().map(c => `<li>${caCasacaSVG(c.color, 18)} <b>${esc(c.equipo)}</b> · ${c.cantidad} ${esc(c.color.toLowerCase())} · ${pesos(c.monto)} ${esc(c.forma.toLowerCase())} <span class="hoy-gris">${fechaBonita(c.fecha)}</span>${STAFF ? "" : ` <button class="mini-btn" onclick="caBorrar('${c.id}')">Borrar</button>`}</li>`).join("") + '</ul>';
   }
   html += `<button class="carmen-btn" onclick="caAbrirCarmen()"${!pend.length ? " disabled" : ""}>DOÑA CARMEN</button></div>`;
   caja.innerHTML = html;
+}
+
+/* Borrar un registro de casacas: solo Admin (ver eliminarCasaca en el Apps
+   Script). Sirve desde Casacas y desde Efectivo; se recargan las dos. */
+async function caBorrar(id){
+  const c = (EF.casacas || []).find(x => x.id === id) || (CA.pendientes || []).find(x => x.id === id);
+  if(!c) return;
+  const aviso = c.corte ? "\n\nYa entró a un corte de Doña Carmen: ese pago no cambia, solo deja de contarse este cobro." : "";
+  if(!confirm(`Borrar el registro de ${c.equipo}: ${c.cantidad} casacas ${c.color.toLowerCase()}, ${pesos(c.monto)} en ${c.forma.toLowerCase()} (${fechaBonita(c.fecha)}).${aviso}\n\n¿Lo borro?`)) return;
+  try{
+    await postAppsScript({ action: "eliminarCasaca", clave: CONFIG.adminPassword, id });
+    if(EF.cargado) await cargarEfectivo();
+    if(CA.cargado) await caCargar();
+  }catch(e){ alert("No se pudo borrar: " + e.message); }
 }
 
 async function caRegistrar(){
@@ -3058,7 +3072,8 @@ function renderEfectivo(){
   html += '<div class="card"><h2>Transferencias por confirmar</h2>' + (n.transfPend.length
     ? n.transfPend.map(c => `<div class="pago-linea"><span>${caCasacaSVG(c.color, 20)} <b>${esc(c.equipo)}</b> · ${pesos(c.monto)} · ${c.cantidad} ${esc(c.color.toLowerCase())}<br>
         <span class="hoy-gris" style="font-size:12px;">partido del ${fechaBonita(c.fecha)} · registró ${esc(c.capturo)} el ${esc(c.registro)}</span></span>
-        <button class="mini-btn" onclick="efConfirmar('${c.id}')">OK, ya pagaron</button></div>`).join("")
+        <span><button class="mini-btn" onclick="efConfirmar('${c.id}')">OK, ya pagaron</button>
+        <button class="mini-btn" onclick="caBorrar('${c.id}')">Borrar</button></span></div>`).join("")
     : '<div class="empty-state" style="text-align:left;">Ninguna por confirmar.</div>') + '</div>';
 
   // Casacas: cuántas se usan y cuánto cuestan.
@@ -3080,8 +3095,8 @@ function renderEfectivo(){
 
   // Todo lo registrado.
   html += '<div class="card"><h2>Registros de casacas</h2>' + (EF.casacas.length
-    ? '<table class="fin-tabla"><tr><th>Partido</th><th>Equipo</th><th>Casacas</th><th>Cobro</th><th>Forma</th><th>Estado</th></tr>' +
-      EF.casacas.slice().reverse().map(c => `<tr><td>${fechaBonita(c.fecha)}</td><td>${esc(c.equipo)}</td><td>${caCasacaSVG(c.color, 16)} ${c.cantidad}</td><td>${pesos(c.monto)}</td><td>${c.forma}</td><td>${c.estado}</td></tr>`).join("") + '</table>'
+    ? '<table class="fin-tabla"><tr><th>Partido</th><th>Equipo</th><th>Casacas</th><th>Cobro</th><th>Forma</th><th>Estado</th><th></th></tr>' +
+      EF.casacas.slice().reverse().map(c => `<tr><td>${fechaBonita(c.fecha)}</td><td>${esc(c.equipo)}</td><td>${caCasacaSVG(c.color, 16)} ${c.cantidad}</td><td>${pesos(c.monto)}</td><td>${c.forma}</td><td>${c.estado}</td><td><button class="mini-btn" onclick="caBorrar('${c.id}')">Borrar</button></td></tr>`).join("") + '</table>'
     : '<div class="empty-state" style="text-align:left;">Todavía no hay casacas registradas.</div>') + '</div>';
   caja.innerHTML = html;
 }
