@@ -2980,9 +2980,13 @@ function renderCasacas(){
       `<button type="button" class="ca-color${CA.color === c ? " active" : ""}" onclick="caElegir('color','${c}')">${caCasacaSVG(c, 34)}<span>${c}</span></button>`).join("") + '</div>';
     html += '<label>¿Cuántas casacas usaron?</label><div class="ca-cantidad">' +
       [1,2,3,4,5,6,7,8,9,10,11,12].map(n => `<button type="button" class="ca-num${CA.cantidad === n ? " active" : ""}" onclick="caElegir('cantidad', ${n})">${n}</button>`).join("") + '</div>';
-    if(CA.cantidad) html += `<div class="ca-cobro">Se cobran <b>${pesos(caCobro(CA.cantidad))}</b> <span>(3 o menos: $50 · 4 o más: $100)</span></div>`;
-    html += '<label>¿Cómo pagaron?</label><div class="ca-formas">' + ["Efectivo", "Transferencia"].map(f =>
-      `<button type="button" class="ca-opcion${CA.forma === f ? " active" : ""}" onclick="caElegir('forma','${f}')"><b>${f === "Efectivo" ? "💵 Efectivo" : "🏦 Transferencia"}</b></button>`).join("") + '</div>';
+    if(CA.cantidad) html += CA.forma === "No aplica"
+      ? `<div class="ca-cobro">No se cobran <span>(cuentan para Doña Carmen)</span></div>`
+      : `<div class="ca-cobro">Se cobran <b>${pesos(caCobro(CA.cantidad))}</b> <span>(3 o menos: $50 · 4 o más: $100)</span></div>`;
+    // "No aplica" (15 oct 2026): se usaron pero no se cobran; Doña Carmen sí las lava.
+    const etiquetaForma = { "Efectivo": "💵 Efectivo", "Transferencia": "🏦 Transferencia", "No aplica": "🚫 No aplica" };
+    html += '<label>¿Cómo pagaron?</label><div class="ca-formas">' + ["Efectivo", "Transferencia", "No aplica"].map(f =>
+      `<button type="button" class="ca-opcion${CA.forma === f ? " active" : ""}" onclick="caElegir('forma','${f}')"><b>${etiquetaForma[f]}</b></button>`).join("") + '</div>';
     html += `<button class="save-btn" onclick="caRegistrar()"${CA.guardando ? " disabled" : ""}>${CA.guardando ? "Guardando…" : "Registrar casacas"}</button>`;
   }
   if(CA.msg) html += `<div class="msg ${CA.msg.tipo === "ok" ? "ok" : "err"}" style="display:block;">${esc(CA.msg.texto)}</div>`;
@@ -3020,13 +3024,13 @@ async function caRegistrar(){
   if(!CA.equipo){ CA.msg = { tipo: "err", texto: "Escoge el equipo." }; renderCasacas(); return; }
   if(!CA.color){ CA.msg = { tipo: "err", texto: "Escoge el color." }; renderCasacas(); return; }
   if(!CA.cantidad){ CA.msg = { tipo: "err", texto: "Escoge cuántas casacas usaron." }; renderCasacas(); return; }
-  if(!CA.forma){ CA.msg = { tipo: "err", texto: "Escoge si pagaron en efectivo o por transferencia." }; renderCasacas(); return; }
+  if(!CA.forma){ CA.msg = { tipo: "err", texto: "Escoge si pagaron en efectivo, por transferencia o si no aplica." }; renderCasacas(); return; }
   const [equipo, fecha, categoria] = CA.equipo.split("|");
   CA.guardando = true; CA.msg = null; renderCasacas();
   try{
     const r = await postAppsScript({ action: "registrarCasacas", clave: CONFIG.adminPassword,
       equipo, fecha, categoria, color: CA.color, cantidad: CA.cantidad, forma: CA.forma });
-    CA.msg = { tipo: "ok", texto: `Listo: ${equipo}, ${CA.cantidad} ${CA.color.toLowerCase()}, ${pesos(r.casaca.monto)} ${CA.forma === "Efectivo" ? "en efectivo" : "por transferencia (Mauricio la confirma)"}.` };
+    CA.msg = { tipo: "ok", texto: `Listo: ${equipo}, ${CA.cantidad} ${CA.color.toLowerCase()}, ${CA.forma === "No aplica" ? "sin cobro (no aplica)" : pesos(r.casaca.monto) + " " + (CA.forma === "Efectivo" ? "en efectivo" : "por transferencia (Mauricio la confirma)")}.` };
     CA.equipo = ""; CA.color = ""; CA.cantidad = 0; CA.forma = "";
     await caCargar();
   }catch(e){
