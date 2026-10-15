@@ -763,6 +763,14 @@
   }
   .hd-circulo:hover{border-color:#9a9a9a;}
   .hd-circulo.on{background:#2E7D46;border-color:#49c46f;box-shadow:0 0 0 3px rgba(73,196,111,.2);}
+  /* Azul = "vino" (pantalla previa). Verde = está en la cancha (ya en juego). */
+  .hd-circulo.presente{background:#1F6FD1;border-color:#5AA2F0;box-shadow:0 0 0 3px rgba(90,162,240,.22);}
+  .hd-jug.presente{background:rgba(31,111,209,.14);}
+  .hd-jersey.otro{border-color:#F3A128 !important;color:#F3A128 !important;}
+  .hd-habitual{display:block;font-size:10px;color:#F3A128;line-height:1.1;margin-top:2px;}
+  .hd-jersey.repetido{border-color:#FF4D5E !important;color:#FF4D5E !important;}
+  .hd-llego{margin-top:8px;}
+  .hd-llego-lista{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   /* Sin número todavía no se puede meter: se ve apagado para que la mesa
      entienda que primero va el jersey. */
   .hd-circulo.sin-numero{border-style:dashed;border-color:#3a3a3a;cursor:not-allowed;}
@@ -2526,9 +2534,11 @@ const CONFIG = {
   // --- Listas fijas del formulario "Agregar partido" ---
   categorias: ["Varonil A", "Varonil B", "Femenil A", "Femenil B"],
   sedes: ["Club Central Gante"],
-  arbitros1: ["Francisco", "Jairo", "Esteban", "Mejía"],
-  arbitros2: ["Francisco", "Jairo", "Esteban", "Braulio", "Mejía"],
-  mesa: ["Michelle", "Eduardo", "Juan", "Miguel", "Mesa de control"],
+  // 14 oct 2026: entran Mauricio y Antonio de árbitros y Valeria a la mesa;
+  // "Mesa de control" se quitó (no es una persona y no se podía contar).
+  arbitros1: ["Francisco", "Jairo", "Braulio", "Esteban", "Mejía", "Mauricio", "Antonio"],
+  arbitros2: ["Francisco", "Jairo", "Braulio", "Esteban", "Mejía", "Mauricio", "Antonio"],
+  mesa: ["Michelle", "Juan", "Eduardo", "Miguel", "Valeria"],
   // A dónde se manda el reporte del partido al cerrar la hoja digital.
   correoReportes: "oliverrmz15@gmail.com",
 };
@@ -6644,10 +6654,57 @@ function hdClaveDe(m){
    "jugo" es distinto: se prende la primera vez que pisa la cancha y ya no se
    apaga. Es la memoria de que ese jugador sí entró al partido, aunque después
    haya salido. De ahí sale la asistencia. */
-function hdNuevoJugador(nombre){
-  return { nombre, jersey: "", q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0,
+function hdNuevoJugador(nombre, habitual){
+  /* "presente" = la mesa lo marcó en azul antes del salto (o con "+ Llegó").
+     Solo los presentes aparecen en el partido; ver hdEsPresente.
+     "habitual" = el número que más ha usado en la temporada: con él ya viene
+     puesto, y si hoy trae otro se pinta en naranja (ver hdJerseyHabitual). */
+  return { nombre, jersey: habitual || "", habitual: habitual || "", presente: false,
+           q: {1:0, 2:0, 3:0, 4:0}, triples: 0, fp: 0, ftf: 0,
            encancha: false, jugo: false };
 }
+
+/* El número fijo de cada jugador (Mauricio, 14 oct 2026).
+
+   Antes la mesa escribía el número de cada quien en cada partido. Si
+   escribía el 67 junto al nombre equivocado, todo lo que se cantaba como
+   "el 67" se iba a otro jugador, aunque ni hubiera venido: así le pusieron
+   a Marcelo Garza los puntos de José Lozano.
+
+   Ahora cada jugador ya trae su número: el que más ha usado en la temporada
+   según Estadísticas (empate: el más reciente). Si no ha jugado, viene vacío
+   y la mesa se lo pone. */
+function hdJerseyHabitual(equipo, nombre){
+  const norm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const eq = norm(equipo), nom = norm(nombre);
+  const cuenta = {}, ultima = {};
+  (ESTADISTICAS_ADMIN || []).forEach(r => {
+    if(norm(r["Equipo"]) !== eq || norm(r["Jugador"]) !== nom) return;
+    const n = String(r["Jersey"] || "").trim();
+    if(!n) return;
+    cuenta[n] = (cuenta[n] || 0) + 1;
+    const f = String(r["Fecha"] || "");
+    if(!ultima[n] || f > ultima[n]) ultima[n] = f;
+  });
+  const nums = Object.keys(cuenta);
+  if(!nums.length) return "";
+  nums.sort((a, b) => (cuenta[b] - cuenta[a]) || String(ultima[b]).localeCompare(String(ultima[a])));
+  return nums[0];
+}
+
+/* ¿Está en el partido? Los respaldos de antes del 14 oct no traen
+   "presente": ahí manda lo de siempre (tener número). Y quien ya pisó la
+   cancha o tiene algo anotado, vino, diga lo que diga la casilla. */
+function hdEsPresente(j){
+  if(!j) return false;
+  if(j.jugo || j.encancha || hdPuntosJugador(j) > 0 || j.fp > 0 || j.ftf > 0) return true;
+  if(j.presente === undefined) return !!String(j.jersey || "").trim();
+  return j.presente === true;
+}
+
+/* Hasta el 2º cuarto se puede agregar a alguien que llegó tarde; del 3º en
+   adelante ya no (regla de Mauricio). */
+const HD_LLEGO_HASTA_CUARTO = 2;
 
 const HD_EN_CANCHA = 5;
 
@@ -6672,7 +6729,10 @@ function hdSancionados(){
 }
 
 function hdNuevoPartido(m){
-  const roster = (equipo)=> (ROSTERS[equipo] || []).map(n=> hdNuevoJugador(typeof n === "string" ? n : n.nombre));
+  const roster = (equipo)=> (ROSTERS[equipo] || []).map(n=> {
+    const nombre = typeof n === "string" ? n : n.nombre;
+    return hdNuevoJugador(nombre, hdJerseyHabitual(equipo, nombre));
+  });
   return {
     clave: hdClaveDe(m),
     semana: m.jornada, fecha: m.fecha, hora: m.hora || "",
@@ -6715,11 +6775,73 @@ function hdYaInicio(){
   return !!HD && (HD.iniciado === true || Number(HD.cuarto || 0) > 0 || !!HD.cerrado);
 }
 
-/* Cuántos de un equipo están listos para jugar: los que traen número.
-   El número es cómo la mesa los identifica en la cancha; sin él no se les
-   puede anotar nada. */
+/* Cuántos de un equipo están listos para jugar: los marcados presentes que
+   traen número. Desde el 14 oct todos traen número de antemano, así que el
+   número ya no dice quién vino; eso lo dice el azul. */
 function hdListos(lado){
-  return HD ? HD.jugadores[lado].filter(j => String(j.jersey || "").trim()).length : 0;
+  return HD ? HD.jugadores[lado].filter(j => hdEsPresente(j) && String(j.jersey || "").trim()).length : 0;
+}
+
+/* Números repetidos entre los presentes de un equipo: con dos #7 en la
+   cancha la mesa no sabe a quién anotarle. */
+function hdRepetidos(lado){
+  const vistos = {}, rep = new Set();
+  (HD ? HD.jugadores[lado] : []).forEach(j => {
+    const n = String(j.jersey || "").trim();
+    if(!n || !hdEsPresente(j)) return;
+    if(vistos[n]) rep.add(n);
+    vistos[n] = true;
+  });
+  return rep;
+}
+
+/* Azul: vino / no vino. Solo antes de arrancar. */
+function hdPresente(lado, indice){
+  if(!HD || hdYaInicio()) return;
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+  if(hdEsPresente(j)){
+    j.presente = false;
+  }else{
+    if(!String(j.jersey || "").trim()){
+      alert("Antes de marcar a " + j.nombre + " ponle su número de jersey.");
+      return;
+    }
+    j.presente = true;
+  }
+  hdGuardarRespaldo();
+  hdRender();
+}
+
+/* "+ Llegó": un jugador del roster que no estaba marcado llega con el
+   partido empezado. Solo hasta el 2º cuarto. */
+function hdAbrirLlego(lado){
+  if(!HD || HD.cerrado) return;
+  if(Number(HD.cuarto || 0) > HD_LLEGO_HASTA_CUARTO){
+    alert("Ya va el " + hdNombrePeriodo(HD.cuarto).toLowerCase() + ": del 3º cuarto en adelante ya no se puede agregar a nadie.");
+    return;
+  }
+  HD_LLEGO = HD_LLEGO === lado ? null : lado;
+  hdRender();
+}
+function hdLlego(lado, indice){
+  if(!HD || HD.cerrado) return;
+  if(Number(HD.cuarto || 0) > HD_LLEGO_HASTA_CUARTO){ alert("Del 3º cuarto en adelante ya no se puede agregar a nadie."); return; }
+  const j = HD.jugadores[lado][indice];
+  if(!j) return;
+  if(!String(j.jersey || "").trim()){
+    const n = prompt("¿Qué número trae " + j.nombre + "?", "");
+    if(!n || !String(n).trim()) return;
+    j.jersey = String(n).trim().slice(0, 3);
+  }
+  if(hdRepetidos(lado).has(j.jersey) || HD.jugadores[lado].some(o => o !== j && hdEsPresente(o) && String(o.jersey).trim() === j.jersey)){
+    alert("Ya hay un #" + j.jersey + " en " + HD[lado] + ". Cámbiale el número a " + j.nombre + " antes de agregarlo.");
+    return;
+  }
+  j.presente = true;
+  HD_LLEGO = null;
+  hdGuardarRespaldo();
+  hdRender();
 }
 
 /* El mínimo para ARRANCAR un partido son 4 jugadores listos por equipo.
@@ -7057,7 +7179,7 @@ async function hdRefrescarRosters(){
     (ROSTERS[equipo] || []).forEach(n=>{
       const nombre = typeof n === "string" ? n : n.nombre;
       if(!yaEstan.has(nombre)){
-        HD.jugadores[lado].push(hdNuevoJugador(nombre));
+        HD.jugadores[lado].push(hdNuevoJugador(nombre, hdJerseyHabitual(equipo, nombre)));
         nuevos.push(nombre + " (" + equipo + ")");
       }
     });
@@ -7412,6 +7534,7 @@ function hdJersey(lado, indice, valor){
   if(!HD) return;
   const j = HD.jugadores[lado][indice];
   j.jersey = String(valor).trim().slice(0,3);
+  if(!j.jersey && !hdYaInicio()) j.presente = false;   // sin número no puede estar marcado
   // Si le borran el número a alguien que estaba en cancha, sale de la cancha:
   // sin número la mesa no lo puede seguir. Pero si ya había entrado, "jugo"
   // se queda prendido — borrarle el número no borra que jugó.
@@ -7447,6 +7570,11 @@ function hdCambiarCancha(lado, indice){
     // El número hace falta para poder meterlo (es como se le identifica en la
     // cancha), pero el número NO es la asistencia: la asistencia es haber
     // entrado. Por eso aquí abajo se prende "jugo".
+    if(!hdEsPresente(j)){
+      alert(j.nombre + " no está marcado como presente.\n\n" +
+            "Si acaba de llegar, agrégalo con \"+ Llegó\" (solo hasta el 2º cuarto).");
+      return;
+    }
     if(!String(j.jersey || "").trim()){
       alert("Antes de meter a " + j.nombre + " ponle su número de jersey.\n\n" +
             "Con el número puesto ya lo puedes mandar a la cancha.");
@@ -7470,6 +7598,7 @@ function hdCambiarCancha(lado, indice){
    eso es donde se equivocaban. Ahora se pica la C del que sale y se elige de
    una vez el número del que entra: los dos movimientos en uno. */
 let HD_CAMBIO = null;   // {lado, indice} del jugador que va a salir
+let HD_LLEGO = null;    // lado cuyo "+ Llegó" está abierto
 
 function hdAbrirCambio(lado, indice){
   if(!HD || HD.cerrado) return;
@@ -7490,7 +7619,7 @@ function hdDisponiblesParaEntrar(lado){
   if(!HD) return [];
   return HD.jugadores[lado]
     .map((j, i)=>({ j, i }))
-    .filter(({j})=> !j.encancha && String(j.jersey || "").trim() && (j.fp + j.ftf) < 5);
+    .filter(({j})=> !j.encancha && hdEsPresente(j) && String(j.jersey || "").trim() && (j.fp + j.ftf) < 5);
 }
 
 function hdHacerCambio(indiceEntra){
@@ -7516,11 +7645,18 @@ function hdHacerCambio(indiceEntra){
    Devuelve pares {j, i} porque los botones necesitan el índice REAL dentro
    de HD.jugadores, no la posición en pantalla. */
 function hdOrdenados(lado){
+  /* Antes de arrancar se ve todo el roster (los marcados en azul arriba).
+     Ya en juego, SOLO los presentes: el que no vino no aparece, así que no
+     se le puede anotar nada ni meter de cambio (14 oct 2026). */
   const lista = HD.jugadores[lado].map((j, i)=>({ j, i }));
+  if(!hdYaInicio()){
+    return lista.filter(x => hdEsPresente(x.j)).concat(lista.filter(x => !hdEsPresente(x.j)));
+  }
+  const vinieron = lista.filter(x => hdEsPresente(x.j));
   const conNumero = x => !!String(x.j.jersey || "").trim();
-  return lista.filter(x=> x.j.encancha)
-    .concat(lista.filter(x=> !x.j.encancha && conNumero(x)))
-    .concat(lista.filter(x=> !x.j.encancha && !conNumero(x)));
+  return vinieron.filter(x=> x.j.encancha)
+    .concat(vinieron.filter(x=> !x.j.encancha && conNumero(x)))
+    .concat(vinieron.filter(x=> !x.j.encancha && !conNumero(x)));
 }
 
 /* La foto no vive en el partido sino en las altas de jugadores. Se busca por
@@ -7563,9 +7699,11 @@ function hdPrevioHTML(){
       Semana ${HD.semana} · ${HD.categoria || ""}${HD.hora ? " · " + HD.hora : ""}
     </div>
     <div class="hd-previo-ayuda">
-      Ponle su número a cada quien y prende el círculo de los que arrancan.
-      Cuando le des a <strong>Iniciar partido</strong> aparecen los botones para
-      anotar y empieza a correr el 1<sup>er</sup> cuarto.
+      Cada quien ya trae su número de siempre. Con el capitán al lado, prende en
+      <strong style="color:#5AA2F0;">azul</strong> a los que <strong>sí vinieron</strong>.
+      Si alguien trae otro jersey, cámbiale el número (se pinta en naranja).
+      Al darle a <strong>Iniciar partido</strong> solo quedan los de azul, y ahí
+      prendes en verde a los cinco que arrancan.
     </div>
   </div>`;
 
@@ -7620,8 +7758,7 @@ function hdPrevioHTML(){
     html += `<div class="card">
       <div class="hd-previo-eq">
         <span class="nom">${HD[lado]}</span>
-        <span class="cont${pocos ? " pocos" : ""}">${listos} con número</span>
-        <span class="cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA} titulares</span>
+        <span class="cont${pocos ? " pocos" : ""}">${listos} presentes</span>
       </div>`;
 
     if(!jugadores.length){
@@ -7630,16 +7767,21 @@ function hdPrevioHTML(){
       return;
     }
 
+    const repetidos = hdRepetidos(lado);
     hdOrdenados(lado).forEach(({j, i})=>{
       const sinNumero = !String(j.jersey || "").trim();
-      html += `<div class="hd-jug${j.encancha ? " en-cancha" : ""}${sinNumero ? " sin-numero" : ""}">
-        <button class="hd-circulo${j.encancha ? " on" : ""}${sinNumero ? " sin-numero" : ""}"
-                onclick="hdCambiarCancha('${lado}',${i})"
-                title="${sinNumero ? "Ponle su número para poder marcarlo de titular" : (j.encancha ? "Quitar de titular a " + j.nombre : "Marcar de titular a " + j.nombre)}"
-                aria-label="${j.encancha ? "Titular" : "En banca"}"></button>
+      const vino = hdEsPresente(j);
+      const num = String(j.jersey || "").trim();
+      const otro = !!j.habitual && num && num !== j.habitual;
+      html += `<div class="hd-jug${vino ? " presente" : ""}${sinNumero ? " sin-numero" : ""}">
+        <button class="hd-circulo${vino ? " presente" : ""}${sinNumero ? " sin-numero" : ""}"
+                onclick="hdPresente('${lado}',${i})"
+                title="${sinNumero ? "Ponle su número para poder marcarlo" : (vino ? "Quitar a " + j.nombre + " (no vino)" : "Marcar que " + j.nombre + " sí vino")}"
+                aria-label="${vino ? "Presente" : "No vino"}"></button>
         <div class="hd-jcol">
-          <input class="hd-jersey" value="${j.jersey}" placeholder="#" maxlength="3"
+          <input class="hd-jersey${otro ? " otro" : ""}${vino && repetidos.has(num) ? " repetido" : ""}" value="${j.jersey}" placeholder="#" maxlength="3"
                  onchange="hdJersey('${lado}',${i},this.value)" title="Número de jersey">
+          ${otro ? `<span class="hd-habitual">normalmente #${j.habitual}</span>` : ""}
         </div>
         <div class="hd-jug-info">
           <div class="hd-jug-nombre">
@@ -7658,7 +7800,7 @@ function hdPrevioHTML(){
       <button class="mini-btn" onclick="hdRefrescarRosters()">🔄 Refrescar rosters</button>
     </div>
     <div class="hd-previo-nota" id="hdAviso">
-      Se necesitan al menos ${HD_MINIMO_PARA_INICIAR} jugadores con número por equipo para arrancar.
+      Se necesitan al menos ${HD_MINIMO_PARA_INICIAR} presentes por equipo para arrancar.
     </div>
   </div>`;
 
@@ -7720,27 +7862,33 @@ function hdIniciarPartido(){
     .map(lado => HD[lado] + " tiene " + hdListos(lado));
   if(faltantes.length){
     alert("Para arrancar hacen falta al menos " + HD_MINIMO_PARA_INICIAR +
-          " jugadores con número por equipo.\n\n" + faltantes.join("\n") +
-          "\n\nPonles su número y vuelve a intentarlo.");
+          " presentes por equipo.\n\n" + faltantes.join("\n") +
+          "\n\nPrende en azul a los que sí vinieron y vuelve a intentarlo.");
+    return;
+  }
+  /* Sin árbitros y mesa no se arranca (Mauricio, 14 oct 2026): son los que
+     firman el partido y de aquí salen sus cuentas. */
+  const faltaOficial = [["arbitro1", "el árbitro 1"], ["arbitro2", "el árbitro 2"], ["mesa", "quién está en la mesa"]]
+    .filter(([campo]) => !String(HD[campo] || "").trim()).map(([, que]) => que);
+  if(faltaOficial.length){
+    alert("Antes de iniciar elige " + faltaOficial.join(", ") + ".");
+    return;
+  }
+  if(String(HD.arbitro1).trim() === String(HD.arbitro2).trim()){
+    alert("El árbitro 1 y el árbitro 2 no pueden ser la misma persona.");
+    return;
+  }
+  const conRepetidos = ["local","visit"].filter(lado => hdRepetidos(lado).size)
+    .map(lado => HD[lado] + ": #" + [...hdRepetidos(lado)].join(", #"));
+  if(conRepetidos.length){
+    alert("Hay números repetidos entre los presentes:\n\n" + conRepetidos.join("\n") +
+          "\n\nCámbiale el número a uno de ellos (el que trae puesto hoy).");
     return;
   }
 
-  /* Los titulares se avisan pero no se exigen: un equipo puede arrancar con
-     cuatro. Lo que no puede es arrancar sin que nadie esté marcado, porque
-     entonces la asistencia del partido saldría vacía. */
-  const sinTitulares = ["local","visit"].filter(lado => hdEnCancha(lado) === 0);
-  if(sinTitulares.length){
-    alert("No has marcado a los titulares de " + sinTitulares.map(l=>HD[l]).join(" ni de ") + ".\n\n" +
-          "Prende el círculo de los que arrancan en la cancha. De ahí sale la asistencia.");
-    return;
-  }
-  const incompletos = ["local","visit"]
-    .filter(lado => hdEnCancha(lado) !== HD_EN_CANCHA)
-    .map(lado => HD[lado] + ": " + hdEnCancha(lado));
-  if(incompletos.length){
-    if(!confirm("OJO, hay equipos que no arrancan con " + HD_EN_CANCHA + " en cancha:\n\n" +
-                incompletos.join("\n") + "\n\n¿Aun así inicio el partido?")) return;
-  }
+  /* Los titulares ya no se marcan aquí: en cuanto arranca, solo quedan los
+     presentes y ahí se prenden en verde los cinco de cada equipo (14 oct
+     2026). La asistencia sigue saliendo de pisar la cancha (hdAsistio). */
 
   HD.iniciado = true;
   HD.cuarto = 1;
@@ -8416,9 +8564,23 @@ function hdColumnaEquipo(lado){
   html += `<div class="hd-cancha-head">
     <span class="hd-cancha-tit">En cancha</span>
     <span class="hd-cancha-cont${dentro === HD_EN_CANCHA ? " completo" : ""}">${dentro}/${HD_EN_CANCHA}</span>
-    <span class="hd-cancha-cont" title="Los que van a quedar como presentes: los que entraron a la cancha más los que tienen puntos o faltas">${presentes} presentes</span>
-    <span class="hd-cancha-ayuda">Ponles su número y prende el círculo de los cinco que están jugando. Asiste el que entra a la cancha, no el que solo trae número. Para un cambio, pica la <strong style="color:#39FF14;">C</strong> del que sale y elige el número del que entra.</span>
+    <span class="hd-cancha-cont" title="Los que ya cuentan asistencia: los que entraron a la cancha (más los que tienen puntos o faltas)">${presentes} con asistencia</span>
+    <span class="hd-cancha-ayuda">Aquí solo están los que marcaste presentes. Prende en verde a los cinco que están jugando. Asiste el que entra a la cancha. Para un cambio, pica la <strong style="color:#39FF14;">C</strong> del que sale y elige el número del que entra.</span>
   </div>`;
+
+  /* "+ Llegó": los del roster que no se marcaron y llegan tarde. Solo hasta
+     el 2º cuarto (ver HD_LLEGO_HASTA_CUARTO). */
+  const faltan = jugadores.map((j, i) => ({ j, i })).filter(x => !hdEsPresente(x.j));
+  const aTiempo = Number(HD.cuarto || 0) <= HD_LLEGO_HASTA_CUARTO;
+  if(!HD.cerrado && faltan.length){
+    html += `<div class="hd-llego">
+      <button class="mini-btn" onclick="hdAbrirLlego('${lado}')"${aTiempo ? "" : " disabled"}
+              title="${aTiempo ? "Agregar a alguien del roster que acaba de llegar" : "Del 3º cuarto en adelante ya no se puede agregar a nadie"}">+ Llegó</button>
+      ${aTiempo ? "" : '<span class="hoy-gris" style="font-size:12px;"> ya no se puede agregar a nadie (3º cuarto)</span>'}
+      ${HD_LLEGO === lado && aTiempo ? '<div class="hd-llego-lista">' + faltan.map(({j, i}) =>
+        `<button class="mini-btn" onclick="hdLlego('${lado}',${i})">${j.jersey ? "#" + j.jersey + " " : ""}${j.nombre}</button>`).join("") + '</div>' : ""}
+    </div>`;
+  }
 
   let grupoPrevio = null;
   hdOrdenados(lado).forEach(({j, i})=>{
