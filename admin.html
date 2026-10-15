@@ -1544,6 +1544,78 @@
     .hd-bf-botones .hd-cuarto-btn{padding:9px 8px;font-size:13px;min-width:38px;}
   }
 
+  /* Pantalla completa en la computadora (14 oct 2026). En una compu con
+     mouse y pantalla ancha la hoja usa el acomodo de cuatro columnas, sin la
+     barra fija, y el botón de pantalla completa vivía en esa barra: no le
+     salía a Mauricio. Ahora (1) hay un botón propio para ese acomodo y (2)
+     en pantalla completa la compu toma el mismo acomodo que la tablet: son
+     las reglas de la tablet de arriba, repetidas para body.hd-pc. */
+  .hd-pc-escritorio{display:none;}
+  @media (min-width:1390px){ .hd-pc-escritorio{display:inline-block;margin:0 0 8px;} }
+  @media (any-pointer:coarse){ .hd-pc-escritorio{display:none;} }
+  /* Solo en pantalla de computadora: en la tablet (más angosta, o táctil)
+     estas reglas ya aplican por su propio @media y no se toca nada. */
+  @media (min-width:1390px){
+    body.hd-pc .hd-marcador{display:none;}
+    body.hd-pc .hd-marcador{display:none;}
+    body.hd-pc .hd-tablero, body.hd-pc .hd-tiempos{display:none;}
+    body.hd-pc .hd-minuta{order:5;}
+    body.hd-pc .hd-barra-fija{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center; position:sticky;top:0;z-index:30;margin:0 0 10px;padding:8px 10px; background:#0b0b0b;border:1px solid #2a2a2a;border-radius:0 0 14px 14px; box-shadow:0 6px 18px rgba(0,0,0,.6);}
+    body.hd-pc .hd-bf-eq{display:flex;align-items:center;gap:10px;min-width:0;}
+    body.hd-pc .hd-bf-visit{flex-direction:row-reverse;}
+    body.hd-pc .hd-bf-nombre{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;color:#fff; font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.3px; display:flex;align-items:center;gap:7px;min-width:0;flex:1 1 auto; overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    body.hd-pc .hd-bf-visit .hd-bf-nombre{justify-content:flex-end;flex-direction:row-reverse;}
+    body.hd-pc .hd-bf-nombre i{width:14px;height:14px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.3);}
+    body.hd-pc .hd-bf-pts{font-size:40px;font-weight:900;color:#fff;line-height:1;min-width:58px;text-align:center;flex:0 0 auto;}
+    body.hd-pc .hd-bf-faltas{flex:0 0 auto;font-size:13px;font-weight:900;color:#ddd;background:#161616; border:1px solid #333;border-radius:9px;padding:7px 9px;text-align:center;line-height:1.15;}
+    body.hd-pc .hd-bf-faltas small{display:block;font-size:9px;color:#888;letter-spacing:.4px;}
+    body.hd-pc .hd-bf-faltas.bonus{background:#4a1010;border-color:#e23b3b;color:#ffb3b3;}
+    body.hd-pc .hd-bf-faltas.bonus small{color:#ffb3b3;}
+    body.hd-pc .hd-bf-favor{flex:0 0 auto;font-size:10px;font-weight:900;color:#1a0b00;background:#E8912E; border-radius:6px;padding:4px 6px;letter-spacing:.4px;}
+    body.hd-pc .hd-bf-tf{flex:0 0 auto;min-width:76px;padding:9px 10px;border-radius:10px;border:1px solid #3a5; background:#152;color:#cfc;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;line-height:1.1;}
+    body.hd-pc .hd-bf-tf small{display:block;font-size:9px;font-weight:800;letter-spacing:.4px;opacity:.8;}
+    body.hd-pc .hd-bf-tf:disabled{opacity:.35;cursor:not-allowed;}
+    body.hd-pc .hd-bf-periodos{text-align:center;}
+    body.hd-pc .hd-bf-per-tit{font-size:10px;font-weight:900;color:#E8365D;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+    body.hd-pc .hd-bf-botones{display:flex;gap:5px;justify-content:center;}
+    body.hd-pc .hd-bf-botones .hd-cuarto-btn{padding:10px 12px;font-size:14px;border-radius:9px;min-width:46px;}
+    body.hd-pc .hd-col{padding:10px;}
+    body.hd-pc .hd-col h3{font-size:17px;}
+    body.hd-pc .hd-col-sub{font-size:12px;margin-bottom:8px;}
+    body.hd-pc .hd-acciones-equipo{margin-bottom:6px;}
+    body.hd-pc .hd-cancha-ayuda{display:none;}
+    body.hd-pc .hd-cancha-head{padding:6px 6px 6px;}
+    body.hd-pc .hd-cancha-tit, body.hd-pc .hd-cancha-cont{font-size:13px;}
+    body.hd-pc .hd-jug{flex-wrap:nowrap;gap:10px;padding:7px 8px;border-radius:10px;}
+    body.hd-pc .hd-circulo{width:30px;height:30px;}
+    body.hd-pc .hd-jug > .hd-jcol{flex:0 0 58px;}
+    body.hd-pc .hd-jersey{width:58px;font-size:20px;padding:7px 4px;}
+    body.hd-pc .hd-c{font-size:13px;padding:4px 0;}
+    body.hd-pc .hd-jug-nombre{font-size:17px;}
+    body.hd-pc .hd-jug-datos{font-size:13px;margin-top:3px;}
+    body.hd-pc .hd-btns{grid-template-columns:repeat(4,48px);gap:5px;}
+    body.hd-pc .hd-b{font-size:16px;padding:9px 2px;border-radius:8px;}
+    body.hd-pc .hd-pend .hd-b{padding:7px 10px;font-size:14px;}
+    body.hd-pc .hd-jug.en-cancha{background:rgba(46,125,70,.30);border-left:7px solid #49c46f; margin-bottom:5px;border-bottom:none;}
+    body.hd-pc .hd-jug.en-cancha .hd-jug-nombre{color:#fff;}
+    body.hd-pc .hd-jug:not(.en-cancha){opacity:.6;padding:4px 8px;}
+    body.hd-pc .hd-jug:not(.en-cancha):hover, body.hd-pc .hd-jug:not(.en-cancha):focus-within{opacity:1;}
+    body.hd-pc .hd-jug:not(.en-cancha) .hd-b{padding:6px 2px;font-size:14px;}
+    body.hd-pc .hd-jug:not(.en-cancha) .hd-jug-nombre{font-size:15px;}
+    body.hd-pc .hd-minuta{display:none;}
+    body.hd-pc .hd-eq-con-minuta{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:6px;align-items:start;min-width:0;}
+    body.hd-pc .hd-minuta-eq{display:block;position:sticky;top:84px;background:#0c0c0c;border:1px solid #2a2a2a; border-radius:12px;padding:8px 6px;}
+    body.hd-pc .hd-minuta-eq .hd-min-eq-nom{font-size:11px;}
+    body.hd-pc .hd-minuta-eq .hd-min-lista{max-height:calc(100vh - 150px);}
+    body.hd-pc .hd-minuta-eq .hd-min-periodo{font-size:10px;}
+    body.hd-pc .hd-minuta-eq .hd-min-fila{padding:4px 5px;margin-bottom:3px;}
+    body.hd-pc .hd-minuta-eq .hd-min-pts{font-size:14px;}
+    body.hd-pc .hd-minuta-eq .hd-min-corrido{font-size:16px;}
+    body.hd-pc .hd-minuta-eq .hd-min-num{min-width:26px;height:26px;font-size:14px;}
+    body.hd-pc .hd-minuta-eq .hd-min-vacia{font-size:11px;}
+    body.hd-pc .hd-jug-info{min-width:90px;}
+  }
+
   /* ================= PANTALLA COMPLETA (hoja digital) =================
      Pedido de Mauricio el 1 de octubre de 2026, viendo la tablet: un botón
      que deje SOLO lo de arriba (marcador, faltas, tiempos fuera, periodo),
@@ -8098,6 +8170,8 @@ function hdRender(){
 
   // Tablero pegado a la izquierda · jugadores en medio · tiempos fuera a la derecha
   html += hdPaletaHTML();
+  // En la computadora no hay barra fija; el botón de pantalla completa va aquí.
+  html += '<button class="hd-bf-pc hd-pc-escritorio" onclick="hdPantallaCompleta()">⛶ Pantalla completa</button>';
   html += hdBarraFijaHTML();
   html += '<div class="hd-conmarcador">';
   html += hdMinutaHTML();
