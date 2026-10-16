@@ -6160,6 +6160,9 @@ function edCargarPartido(){
         nombre: nom,
         jersey: String(r["Jersey"] || ""),
         q: ED_PERIODOS.map(p => Number(r[p] || 0)),
+        // El tiempo extra no se edita aquí, pero se conserva y cuenta en el total
+        // (antes, editar un partido con TE le borraba esos puntos al jugador).
+        te: Number(r["TE"] || 0),
         triples: Number(r["Triples"] || 0),
         fp: Number(r["FP"] || 0),
         ftf: Number(r["FTF"] || 0),
@@ -6209,7 +6212,7 @@ function edSumaParcial(lado){ return ED_PARTIDO.parcial[lado].reduce((a,b)=>a+Nu
 function edSumaJugadores(lado){
   return ED_PARTIDO.jugadores[lado].reduce((s,j)=> s + j.q.reduce((a,b)=>a+Number(b||0),0), 0);
 }
-function edPuntosJugador(j){ return j.q.reduce((a,b)=>a+Number(b||0),0); }
+function edPuntosJugador(j){ return j.q.reduce((a,b)=>a+Number(b||0),0) + Number(j.te || 0); }
 
 /* Cuántos triples le caben a un jugador: uno por cada 3 puntos. Con 3 puntos
    cabe 1, con 9 caben 3. Más que eso es imposible. */
@@ -6486,7 +6489,7 @@ function edPayload(){
       if(total > 0 || j.triples > 0 || j.fp > 0 || j.ftf > 0 || String(j.jersey).trim()){
         jugadores.push({
           equipo: equipo, jugador: j.nombre, jersey: j.jersey,
-          q1: j.q[0], q2: j.q[1], q3: j.q[2], q4: j.q[3],
+          q1: j.q[0], q2: j.q[1], q3: j.q[2], q4: j.q[3], te: Number(j.te || 0),
           // Nunca se manda un número de triples que no quepa en los puntos.
           total: total, triples: Math.min(Number(j.triples || 0), edTriplesQueCaben(j)),
           fp: j.fp, ftf: j.ftf
@@ -8837,6 +8840,8 @@ async function hdFinalizar(){
       jugadoresPayload.push({
         equipo: HD[lado], jugador: j.nombre, jersey: j.jersey,
         q1: j.q[1], q2: j.q[2], q3: j.q[3], q4: j.q[4],
+        // Los tiempos extra (periodos 5 en adelante) van juntos a la columna TE.
+        te: HD_PERIODOS.filter(c => c > HD_CUARTOS).reduce((s, c) => s + (j.q[c] || 0), 0),
         total, triples: hdCuadrarTriples(j), fp: j.fp, ftf: j.ftf
       });
     });
@@ -9331,7 +9336,8 @@ function mnParciales(p){
                 String(r["Fecha"]).slice(0,10) === p.fecha)
     .reduce((s,r)=> s + (Number(r[campo]) || 0), 0);
 
-  const periodos = ["1º","2º","3º","4º"];
+  // El TE solo sale si hubo tiempo extra.
+  const periodos = ["1º","2º","3º","4º"].concat(de(p.local, "TE") + de(p.visit, "TE") > 0 ? ["TE"] : []);
   const fila = (equipo, total)=>`
     <tr>
       <td>${equipo}</td>
