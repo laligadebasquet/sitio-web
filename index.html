@@ -3086,7 +3086,7 @@ function revisarPartidoDelLink(){
     x.local === nombreEquipo(local) && x.visitante === nombreEquipo(visit));
   if(!p) return;   // todavía no llegan los datos: se vuelve a revisar con la siguiente tanda
   PARTIDO_DEL_LINK_HECHO = true;
-  if(p.link){ location.replace(p.link); return; }
+  if(p.link){ irAlVideoSinPerderLaVisita(p.link); return; }
   const ref = JSON.stringify({ semana: p.jornada, fecha: p.fecha, local: p.local, visit: p.visitante }).replace(/"/g, "&quot;");
   const m = document.createElement("div");
   m.className = "modal-overlay open";
@@ -3495,14 +3495,58 @@ const NOMBRE_DE_VISTA = {
   pagos:"Formas de pago", contacto:"Contacto"
 };
 
+/* Las etiquetas utm_* con las que llegó la visita (16 oct 2026). Existen
+   para medirle a los PATROCINADORES: el link de la cédula trae
+   utm_source=cedula y el de YouTube utm_source=youtube, y Analytics saca la
+   fuente de la visita de los utm_* que vengan en page_location. Antes
+   page_location era solo origen + vista, así que esa fuente se perdía y todo
+   caía en "Direct".
+
+   Solo pasan los utm_*: "partido=" (fecha y equipos) ni ningún otro dato de
+   la dirección se manda a Analytics. Se leen una vez, al cargar, porque la
+   página después puede cambiar la dirección. */
+const UTM_DE_ENTRADA = (() => {
+  try{
+    const de = new URLSearchParams(location.search), a = new URLSearchParams();
+    ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].forEach(k => {
+      const v = de.get(k);
+      if(v) a.set(k, v.slice(0, 100));
+    });
+    return a.toString();
+  }catch(e){ return ""; }
+})();
+let UTM_YA_MANDADO = false;
+
 function vistaAnalitica(vista){
   if(typeof window.gtag !== "function") return;
   const nombre = NOMBRE_DE_VISTA[vista] || vista;
+  // Los utm_* van solo en la PRIMERA vista: con eso Analytics ya sabe de
+  // dónde vino toda la visita.
+  const utm = !UTM_YA_MANDADO && UTM_DE_ENTRADA ? "?" + UTM_DE_ENTRADA : "";
+  UTM_YA_MANDADO = true;
   window.gtag("event", "page_view", {
     page_title: nombre,
-    page_location: location.origin + "/" + vista,
-    page_path: "/" + vista
+    page_location: location.origin + "/" + vista + utm,
+    page_path: "/" + vista,
+    // Que salga aunque la página se vaya enseguida (la cédula manda al video).
+    transport_type: "beacon",
+    event_callback: () => { window.__gaVistaEnviada = true; }
   });
+}
+
+/* Ir al video del partido SIN perder la visita: si Analytics está prendido
+   y la primera vista todavía no sale, se espera a que salga (máximo 1.5 s).
+   Antes location.replace podía ganarle al script de Google, que se carga
+   aparte, y quien llegaba de la cédula no se contaba. */
+function irAlVideoSinPerderLaVisita(url){
+  if(!window.__gaLista || window.__gaVistaEnviada){ location.replace(url); return; }
+  const desde = Date.now();
+  const espera = setInterval(() => {
+    if(window.__gaVistaEnviada || Date.now() - desde > 1500){
+      clearInterval(espera);
+      location.replace(url);
+    }
+  }, 100);
 }
 
 /* ---------- el aviso ---------- */
