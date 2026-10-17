@@ -7484,7 +7484,15 @@ function hdApuntarEnMinuta(datos){
     pts: datos.pts,
     // Cómo iba el partido DESPUÉS de esta canasta: es lo que ubica a
     // cualquiera que lea la minuta después.
-    ml: hdTotal(HD, "local"), mv: hdTotal(HD, "visit")
+    ml: hdTotal(HD, "local"), mv: hdTotal(HD, "visit"),
+    /* La hora EXACTA de la canasta, en milisegundos, con el reloj de la
+       tablet (17 oct 2026). Sirve para empatar cada jugada con su segundo
+       en el video de YouTube sin leer el marcador de la transmisión: basta
+       restarle la hora en que arrancó la transmisión. Un −1 corrige este
+       mismo renglón (hdQuitarDeMinuta) y no le toca la hora; si lo borra,
+       se va con ella. Las minutas de antes no la traen, y nada depende de
+       que esté. */
+    t: Date.now()
   });
 }
 
@@ -8860,7 +8868,10 @@ async function hdFinalizar(){
     duracion: hdDuracionMin(HD.arranco, HD.termino),
     jugadas: (HD.jugadas || []).map(x=>({
       c: x.c, lado: x.lado, nombre: x.nombre, jersey: x.jersey,
-      pts: x.pts, ml: x.ml, mv: x.mv
+      pts: x.pts, ml: x.ml, mv: x.mv,
+      // La hora de cada jugada (ver hdApuntarEnMinuta). En partidos que
+      // empezaron antes de este cambio no existe y se manda sin ella.
+      t: x.t
     }))
   };
 
