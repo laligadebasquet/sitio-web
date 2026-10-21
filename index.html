@@ -2891,6 +2891,10 @@ function mapEstadisticasCsv(rows){
     jersey: String(r["Jersey"] || "").trim(),
     q1: Number(r["1º"] || 0), q2: Number(r["2º"] || 0),
     q3: Number(r["3º"] || 0), q4: Number(r["4º"] || 0),
+    /* Tiempo extra (columna TE, 16 oct 2026). Sin esto la página no lo
+       veía: en JOE'S 52-42 UNOS (20 oct) el parcial sumaba 39 y 39 porque
+       los 13 y 3 del TE no salían en ninguna columna. */
+    te: Number(r["TE"] || 0),
     total: Number(r["Total"] || 0),
     triples: triplesPosibles(r["Triples"], r["Total"])
   })));
@@ -3880,14 +3884,16 @@ function fichaJugadorHTML(equipo, jugador){
   if(!pj){
     html += `<div class="ficha-vacia">Todavía no ha jugado ningún partido.</div>`;
   } else {
+    // La columna TE solo aparece si alguno de sus partidos se fue a tiempo extra.
+    const conTE = suyos.some(e => Number(e.te) > 0);
     html += `<table class="ficha-tabla ficha-tabla-stats">
-      <thead><tr><th>Fecha</th><th>Rival</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Pts</th><th>3P</th></tr></thead><tbody>`;
+      <thead><tr><th>Fecha</th><th>Rival</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th>${conTE ? "<th>TE</th>" : ""}<th>Pts</th><th>3P</th></tr></thead><tbody>`;
     html += suyos.map(e=>{
       const d = dueloDeEseDia(equipo, e.fecha, e.semana);
       return `<tr>
         <td>${fechaCorta(e.fecha)}</td>
         <td class="ficha-td-rival">${d.rival || ""}</td>
-        <td>${e.q1 || 0}</td><td>${e.q2 || 0}</td><td>${e.q3 || 0}</td><td>${e.q4 || 0}</td>
+        <td>${e.q1 || 0}</td><td>${e.q2 || 0}</td><td>${e.q3 || 0}</td><td>${e.q4 || 0}</td>${conTE ? `<td>${e.te || 0}</td>` : ""}
         <td><strong>${e.total || 0}</strong></td>
         <td>${e.triples || 0}</td>
       </tr>`;
@@ -4135,6 +4141,8 @@ function verEstadistica(ref){
       stats.filter(e=>e.equipo === ganador).forEach(e=>{ tope = Math.max(tope, e.total); });
     }
 
+    // Igual que en el correo: la columna TE solo si el partido tuvo tiempo extra.
+    const conTE = stats.some(e => Number(e.te) > 0);
     const tabla = (equipo)=>{
       const del = stats.filter(e=>e.equipo === equipo).sort((a,b)=>b.total - a.total);
       if(!del.length) return "";
@@ -4142,12 +4150,12 @@ function verEstadistica(ref){
         <div class="stat-equipo">
           <div class="stat-equipo-nom">${equipo}</div>
           <table class="stat-tabla">
-            <tr><th>Jugador</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Pts</th><th>3P</th></tr>
+            <tr><th>Jugador</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th>${conTE ? "<th>TE</th>" : ""}<th>Pts</th><th>3P</th></tr>
             ${del.map(e=>{
               const estrella = (ganador === equipo && tope > 0 && e.total === tope) ? " ⭐" : "";
               return `<tr>
                 <td>${e.jersey ? "#" + e.jersey + " " : ""}${e.jugador}${estrella}</td>
-                <td>${e.q1}</td><td>${e.q2}</td><td>${e.q3}</td><td>${e.q4}</td>
+                <td>${e.q1}</td><td>${e.q2}</td><td>${e.q3}</td><td>${e.q4}</td>${conTE ? `<td>${e.te}</td>` : ""}
                 <td class="stat-total">${e.total}</td><td>${e.triples}</td>
               </tr>`;
             }).join("")}
@@ -4155,8 +4163,9 @@ function verEstadistica(ref){
         </div>`;
     };
 
-    const porCuarto = (equipo)=>[1,2,3,4].map(c=>
-      stats.filter(e=>e.equipo === equipo).reduce((s,e)=>s + Number(e["q"+c] || 0), 0));
+    const periodos = conTE ? ["q1","q2","q3","q4","te"] : ["q1","q2","q3","q4"];
+    const porCuarto = (equipo)=>periodos.map(c=>
+      stats.filter(e=>e.equipo === equipo).reduce((s,e)=>s + Number(e[c] || 0), 0));
     const pcL = porCuarto(ref.local), pcV = porCuarto(ref.visit);
 
     caja.innerHTML =
@@ -4164,7 +4173,7 @@ function verEstadistica(ref){
       `<div class="stat-equipo">
         <div class="stat-equipo-nom">Parcial del partido</div>
         <table class="stat-tabla">
-          <tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>Total</th></tr>
+          <tr><th>Equipo</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th>${conTE ? "<th>TE</th>" : ""}<th>Total</th></tr>
           <tr><td>${ref.local}</td>${pcL.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcL.reduce((a,b)=>a+b,0)}</td></tr>
           <tr><td>${ref.visit}</td>${pcV.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcV.reduce((a,b)=>a+b,0)}</td></tr>
         </table>
