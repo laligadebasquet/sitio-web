@@ -1737,6 +1737,10 @@
   <div class="config-warning" id="configWarning" style="display:none;">
     ⚠️ Falta configurar <code>CONFIG.appsScriptUrl</code> en el código de esta página (la URL del Web App de Apps Script). Mientras tanto puedes revisar el formulario, pero "Guardar" no va a funcionar.
   </div>
+  <!-- Qué no cargó y por qué (22 oct 2026). Antes solo iba a la consola: con
+       los acentos rotos en el backend, el Admin se sentía lento y nadie veía
+       que Google estaba contestando "Estadísticas no autorizada". -->
+  <div class="config-warning" id="avisoCarga" style="display:none;"></div>
 
   <!-- ============ TAB: HOY ============ -->
   <!-- Lo primero que se ve al entrar: qué hay que hacer hoy. Antes se caía
@@ -3365,10 +3369,22 @@ function parseCsv(text){
 /* Lee las hojas públicas con reintentos. Antes, si el primer intento se
    caía o se pasaba de tiempo, devolvía null y el Admin se quedaba vacío sin
    avisar — de ahí que hubiera que recargar la página varias veces. */
-async function leerDelSheetConReintentos(hojas){
+/* `error` (opcional) es un objeto donde se deja el motivo cuando Apps Script
+   contesta un error CLARO ("La hoja 'Estadísticas' no está autorizada"). Ese
+   error no se arregla esperando: se devuelve al primer intento. Pasó el 22 oct
+   2026: con los acentos rotos en el backend, el Admin reintentaba 5 veces con
+   15 s de esperas (~30 s mudos) por una lectura que nunca iba a salir. Los
+   reintentos quedan solo para lo que sí es pasajero: tiempo agotado o que no
+   se pudo contactar. */
+async function leerDelSheetConReintentos(hojas, error){
   for(let i = 0; i <= ESPERAS_REINTENTO.length; i++){
-    const datos = await leerDelSheet(hojas, 20000);
+    let claro = null;
+    const datos = await leerDelSheet(hojas, 20000, undefined, m => { claro = m; });
     if(datos) return datos;
+    if(claro && !esErrorPasajero(claro)){
+      if(error) error.mensaje = claro;
+      return null;
+    }
     if(i < ESPERAS_REINTENTO.length){
       await new Promise(r=>setTimeout(r, ESPERAS_REINTENTO[i]));
     }
@@ -3376,7 +3392,15 @@ async function leerDelSheetConReintentos(hojas){
   return null;
 }
 
-function leerDelSheet(hojas, timeoutMs, opciones){
+/* Errores de Apps Script que SÍ se arreglan solos al reintentar: cuotas de
+   Google, candados ocupados o tiempo agotado del lado del servidor. Todo lo
+   demás (hoja no autorizada, no autorizado, acción desconocida) es un error
+   de verdad y se dice en pantalla al primer intento. */
+function esErrorPasajero(mensaje){
+  return /too many|invoked too|quota|cuota|lock|ocupad|timed? ?out|tiempo|try again|intenta de nuevo|service|servicio|temporal/i.test(String(mensaje || ""));
+}
+
+function leerDelSheet(hojas, timeoutMs, opciones, alError){
   return new Promise(resolve=>{
     const nombre = "__ligaCb" + Date.now() + Math.floor(Math.random()*1000);
     const script = document.createElement("script");
@@ -3405,6 +3429,7 @@ function leerDelSheet(hojas, timeoutMs, opciones){
         resolve(respuesta.hojas);
       }else{
         console.warn("El Apps Script devolvió un error:", respuesta && respuesta.error);
+        if(alError) alError(String((respuesta && respuesta.error) || "respuesta sin datos"));
         resolve(null);
       }
     };
@@ -3484,10 +3509,19 @@ async function postAppsScript(payload){
       if(!res.ok) throw new Error("HTTP " + res.status);
       const texto = (await res.text() || "").trim();
       const data = JSON.parse(texto);         // si no es JSON, cae al catch
-      if(!data.ok) throw new Error(data.error || "Error desconocido");
+      if(!data.ok){
+        const e = new Error(data.error || "Error desconocido");
+        e.claro = true;   // Apps Script SÍ contestó: es un error de verdad
+        throw e;
+      }
       return data;
     }catch(err){
       ultimoError = err;
+      /* Si Google contestó con un error claro ("No autorizado", "La hoja … no
+         está autorizada"), esperar 15 s no lo arregla: se avisa ya. Solo se
+         reintenta lo pasajero (404 de la URL temporal, respuesta que no es
+         JSON, cuotas). Ver leerDelSheetConReintentos. */
+      if(err.claro && !esErrorPasajero(err.message)) throw err;
       if(i < ESPERAS_REINTENTO.length){
         await new Promise(r=>setTimeout(r, ESPERAS_REINTENTO[i]));
       }
@@ -3710,12 +3744,49 @@ async function initData(){
   repintarVistaActual();   // muestra "Cargando datos…" de inmediato
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
-    // Lo que NO es privado se lee por la vía abierta (rápida, sin contraseña).
-    const datos = await leerDelSheetConReintentos([
+    /* LAS TRES LECTURAS SALEN AL MISMO TIEMPO (22 oct 2026).
+
+       Antes iban una tras otra: hojas públicas, luego jugadores y pagos, luego
+       inscripciones. Ninguna necesita a la otra, pero cada una esperaba a la
+       anterior y cada llamada a Apps Script cuesta 1.5–2.5 s de piso: ~10 s
+       antes de ver datos. Ahora se piden juntas y se procesan en el mismo
+       orden de siempre cuando llegan las tres, así que el resultado es igual
+       y la espera es la de la más lenta (~4–5 s). */
+
+    /* Integrantes y Pagos traen datos privados: correos, fechas de nacimiento,
+       tutores, INE de menores y montos. Por eso NO salen por la dirección
+       abierta del Apps Script — se piden aparte, con la contraseña de este
+       Admin, igual que "Inscripción de Equipos".
+
+       Cada quien pide solo lo que le toca: con la clave del staff Apps Script
+       rechaza la lectura entera si una sola hoja no le toca, por eso Pagos
+       solo se pide siendo admin. Ya sin sinFotos: desde el 1 de octubre de
+       2026 la columna Foto trae solo ligas de Drive (84 KB las 449). */
+    const hojasPrivadas = STAFF
+      ? ((permisoStaff("cedulas") || permisoStaff("minuta")) ? ["Integrantes"] : [])
+      : ["Integrantes", "Pagos"];
+    const errorPublico = {};
+    const pedidoPublico = leerDelSheetConReintentos([
       "Equipos","Rol de Partidos","Resultados","Asistencia","Estadísticas"
-    ]);
+    ], errorPublico);
+    const pedidoPrivado = hojasPrivadas.length ? postAppsScript({
+      action: "leerHojasAdmin",
+      clave: CONFIG.adminPassword,
+      hojas: hojasPrivadas
+    }) : Promise.resolve(null);
+    // "Inscripción de Equipos" tiene teléfonos y códigos de equipo: es solo de
+    // Mauricio y va por POST con su contraseña. El staff ni la pide.
+    const pedidoInscripciones = STAFF ? Promise.resolve(null)
+      : postAppsScript({action: "leerInscripciones", clave: CONFIG.adminPassword});
     // Aparte y sin esperarla: si falla, el Admin carga igual (ver hdCargarSanciones).
     hdCargarSanciones();
+    const inicioArranque = Date.now();
+    const [rPublico, rPrivado, rInscripciones] =
+      await Promise.allSettled([pedidoPublico, pedidoPrivado, pedidoInscripciones]);
+    // Medir antes de opinar: queda en la consola cuánto tardó de verdad.
+    console.info("Arranque: las 3 lecturas tardaron " + ((Date.now() - inicioArranque) / 1000).toFixed(1) + " s");
+
+    const datos = rPublico.status === "fulfilled" ? rPublico.value : null;
     if(datos){
       if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
                                 CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
@@ -3726,41 +3797,12 @@ async function initData(){
       if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
     } else {
       usedFallback = true;
-      ERRORES_CARGA.push("equipos y calendario");
+      ERRORES_CARGA.push("equipos y calendario" + (errorPublico.mensaje ? " (" + errorPublico.mensaje + ")" : ""));
     }
 
-    /* Integrantes y Pagos traen datos privados: correos, fechas de nacimiento,
-       tutores, INE de menores y montos. Por eso NO salen por la dirección
-       abierta del Apps Script — se piden aparte, con la contraseña de este
-       Admin, igual que "Inscripción de Equipos". */
     try{
-      /* SIN LAS FOTOS.
-
-         Son 448 fotos guardadas como texto dentro del Sheet: 15.4 MB en una
-         sola lectura, contra 889 KB sin ellas. Admin las bajaba TODAS cada
-         vez que abría, aunque fueras directo a la tabla de pagos. Es la
-         razón principal de que tardara tanto en arrancar.
-
-         Ahora se piden por equipo, solo cuando alguien abre un roster o una
-         foto — igual que ya lo hace la página pública desde hace semanas. */
-      /* Cada quien pide solo lo que le toca. Antes esto salía siempre con
-         la clave de Mauricio, aun en el portal de staff, porque corría al
-         abrir la página, antes de que nadie tecleara nada. Ahora corre
-         después de entrar, y con la clave del staff Apps Script rechaza la
-         lectura entera si una sola hoja no le toca: por eso Pagos solo se
-         pide siendo admin. */
-      const hojasPrivadas = STAFF
-        ? ((permisoStaff("cedulas") || permisoStaff("minuta")) ? ["Integrantes"] : [])
-        : ["Integrantes", "Pagos"];
-      /* Ya sin sinFotos: desde el 1 de octubre de 2026 la columna Foto trae
-         solo ligas de Drive (84 KB las 449), así que las fotos llegan con
-         esta misma lectura y la mesa las ve al instante para verificar
-         identidad, sin otro viaje de varios segundos. */
-      const priv = hojasPrivadas.length ? await postAppsScript({
-        action: "leerHojasAdmin",
-        clave: CONFIG.adminPassword,
-        hojas: hojasPrivadas
-      }) : null;
+      if(rPrivado.status === "rejected") throw rPrivado.reason;
+      const priv = rPrivado.value;
       const hojasPriv = (priv && priv.hojas) || {};
       if(hojasPriv["Integrantes"]){
         ROSTERS = mapIntegrantesCsv(hojasPriv["Integrantes"]);
@@ -3769,15 +3811,12 @@ async function initData(){
       }
       if(hojasPriv["Pagos"]) PAGOS = mapPagosCsv(hojasPriv["Pagos"]);
     }catch(err){
-      ERRORES_CARGA.push("jugadores y pagos");
+      ERRORES_CARGA.push("jugadores y pagos" + (err && err.claro ? " (" + err.message + ")" : ""));
       console.warn("No se pudieron leer los datos privados:", err);
     }
-    // "Inscripción de Equipos" tiene teléfonos y códigos de equipo, así que
-    // no está en la lista blanca pública de doGet — se pide aparte por POST
-    // mandando la misma contraseña del candado de este Admin.
-    // Las inscripciones son solo de Mauricio; el staff ni las pide.
     if(!STAFF) try{
-      const d = await postAppsScript({action: "leerInscripciones", clave: CONFIG.adminPassword});
+      if(rInscripciones.status === "rejected") throw rInscripciones.reason;
+      const d = rInscripciones.value;
       INSCRIPCIONES = mapInscripcionesCsv(d.filas || []);
       INSCRIPCIONES_CARGADAS = true;
     }catch(err){
@@ -3785,7 +3824,7 @@ async function initData(){
       // inscripciones", que era MENTIRA. Ahora se marca como no cargado
       // para poder decir la verdad en pantalla.
       INSCRIPCIONES_CARGADAS = false;
-      ERRORES_CARGA.push("inscripciones de equipos");
+      ERRORES_CARGA.push("inscripciones de equipos" + (err && err.claro ? " (" + err.message + ")" : ""));
       console.warn("No se pudieron leer las inscripciones:", err);
     }
   } else {
@@ -3821,10 +3860,25 @@ async function initData(){
 
   CARGANDO = false;
   repintarVistaActual();   // cambia "Cargando datos…" por los datos reales
+  pintarAvisoCarga();
 
   // Red de seguridad: si algo no cargó, se vuelve a intentar SOLO, en
   // segundo plano, sin que nadie tenga que picarle a nada.
   if(ERRORES_CARGA.length) programarReintentoAutomatico();
+}
+
+/* Letrero arriba con lo que no cargó, y el motivo si Google lo dijo. */
+function textoAvisoCarga(errores, quedanReintentos){
+  if(!errores || !errores.length) return "";
+  return "⚠️ No se pudo cargar: " + errores.join(" · ") + ". " +
+    (quedanReintentos ? "Se vuelve a intentar solo en unos segundos." : "Recarga la página; si sigue igual, avísale a Mauricio.");
+}
+function pintarAvisoCarga(){
+  const caja = document.getElementById("avisoCarga");
+  if(!caja) return;
+  const t = textoAvisoCarga(ERRORES_CARGA, _reintentosAuto < 3);
+  caja.textContent = t;
+  caja.style.display = t ? "block" : "none";
 }
 
 /* Reintenta la carga completa en segundo plano hasta 3 veces, separando
