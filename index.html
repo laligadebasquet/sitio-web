@@ -5969,11 +5969,9 @@ function renderConcentrado(){
 /* ============================================================
    SANCIONES (Mauricio, 21 oct 2026)
 
-   Dos partes:
-     · ACTIVAS: el jugador todavía no cumple su suspensión. Cuándo fue
-       sancionado, cuántos partidos son y cuántos le faltan.
-     · PASADAS: ya la cumplió (o es de antes del 21 oct, cuando todavía no
-       había dictamen): el jugador y la sanción que recibió.
+   Solo las ACTIVAS: el jugador todavía no cumple su suspensión. Cuándo fue
+   sancionado, cuántos partidos son y cuántos le faltan. (Hubo también una
+   parte de "pasadas"; Mauricio la quitó el 22 oct 2026.)
 
    Del Apps Script solo llegan las que ya pasaron o ya tienen dictamen, y
    sin la descripción de lo que pasó (eso es para el capitán y el jugador,
@@ -6075,17 +6073,16 @@ function renderSanciones(fallo){
 
   const lista = SANCIONES_PUB.map(s => Object.assign({}, s, { est: estadoSancion(s, RESULTADOS) }))
     .sort((a, b) => String(fechaSancionISO(b.fecha)).localeCompare(String(fechaSancionISO(a.fecha))));
+  /* Solo las ACTIVAS (Mauricio, 22 oct 2026): las que ya se cumplieron no
+     se enseñan. */
   const activas = lista.filter(s => s.est.activa);
-  const pasadas = lista.filter(s => !s.est.activa);
   const rival = s => s.equipo === s.local ? s.visit : s.local;
 
-  const tarjeta = (s, activa) => {
-    let sancion;
-    if(!s.est.dictaminada) sancion = "Sancionado · ya pasó";
-    else if(typeof s.est.partidos !== "number") sancion = s.est.texto;   // resto de la temporada o definitiva
-    else if(activa) sancion = `${s.est.texto} · le ${s.est.faltan === 1 ? "falta 1" : "faltan " + s.est.faltan}`;
-    else sancion = `${s.est.texto} · cumplida`;
-    return `<div class="san-caso${activa ? " activa" : ""}">
+  const tarjeta = (s) => {
+    const sancion = typeof s.est.partidos !== "number"
+      ? s.est.texto   // resto de la temporada o definitiva
+      : `${s.est.texto} · le ${s.est.faltan === 1 ? "falta 1" : "faltan " + s.est.faltan}`;
+    return `<div class="san-caso activa">
       <div class="san-jugador">${s.jugador}</div>
       <div class="san-sub">${s.equipo}${s.categoria ? " · " + s.categoria : ""}</div>
       <div class="san-sub">Sancionado el ${fechaCorta(fechaSancionISO(s.fecha))} vs ${rival(s)}</div>
@@ -6096,12 +6093,8 @@ function renderSanciones(fallo){
   el.innerHTML = titulo +
     `<h3 class="san-h">Sanciones activas</h3>` +
     (activas.length
-      ? `<div class="san-grid">${activas.map(s => tarjeta(s, true)).join("")}</div>`
-      : '<div class="san-vacio">Ningún jugador tiene una sanción activa.</div>') +
-    `<h3 class="san-h">Sanciones pasadas</h3>` +
-    (pasadas.length
-      ? `<div class="san-grid">${pasadas.map(s => tarjeta(s, false)).join("")}</div>`
-      : '<div class="san-vacio">No hay sanciones pasadas.</div>');
+      ? `<div class="san-grid">${activas.map(tarjeta).join("")}</div>`
+      : '<div class="san-vacio">Ningún jugador tiene una sanción activa.</div>');
 }
 
 /* Reglamento oficial "REGLAMENTO DE COMPETENCIA — TEMPORADA AGOSTO 2026", tal
