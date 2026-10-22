@@ -9,6 +9,11 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="La Liga">
+<!-- Desde el 22 oct 2026 abre como app (sin barra del navegador) al tocar el
+     ícono del inicio; en iPhone es requisito para recibir notificaciones. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>La Liga de Basquet | Gante San Pedro</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAYFBMVEXxbyUAAAD6diH1lln5fDP4gjxqLg6qShb1fDf6hkL/BwP7a2b//wCIOxH8gTcoGRIJEBn9mx37/f1JKBbwq5W/PzS7eDQzGAoKGV6unmvs1Kny53gA//92ABFoEWhzaHtggaGxAAAAIHRSTlP6AAobp136/mROAQMB/ZCZXA8CrggEA+oGBwYDAQMDBz9mQa0AAATXSURBVHjajVeJcusgDETI2BjwmfS+/v8vnwAJ4yPtY6bTxDHLaiVgpeA83JOO/xC1sTSMRozf9VO4eFmdH6Gjv942qhpN00cQ/BvALQ5WM6qLMZqVaLjfAXSc3qhHw7yD078BeIBe/Tr6FfRDAALHpo7bWk3D2rF+iqDDNYAPYLb3+p1gWCEbcHgFoEGJdo3BRKiMqBwWbcY6DLWFXxbpPwlu0V91cEuc0jclDDwC/MBdGN4h0KKJt6FKMibVUSQCq0iMUe8awDssP32hT4yrYkgxuQU3lVFm8j+tmqKxjyudaqGJCaSfkHHRhQ2A8pcfj5HqFuuxBvKv+dXmnosyATxx/kbQH1jWuCjmyG9hBJOFjACBBWgoOw6wqiSDi6b0bYQQFhAETMkkAOchv3GPMfa7WpA6KkH1xMFlJSmIkAA8B0Cp0WX9NH2eJxrzHNPUFwRKEnIQSwII8lWX+RQszLe261Tbqa5rp1mVOiXmz8wTQyAABzYH4L1GqXaAW9vGj21+0t3okZEEfvjPhtcEFdydJ1EAjaRrpontEGe2ahjadmhfZtnqDbxJEERBcQobCKJFD19Tl1Yn+m370nUxjG6YfsoLshZRUOXjc2D5Yc3zlXohiMiBw5i+GeEenh0v+6yEjJMMIvEn0nF1ntsyXjfDm+jNpRO3RM81pFemAlm9KAEjDEyihSK/ztIbAkjTercwlbfvKb+cJg1DXptJTK/5dQ38eiMAsSxTVBbmgWnXaWQ8CsLmTfPEAKtiINqcCcnDJGGzACJhmylknqtj8VFp3oZCKSmQmHP8g2ykBAob48RFK5uJl5jmkjlRTlUI3ews7ylWUXHkLIGBWR3IdxUCxZDzEIs4cbeZgRYAjBJ0w25pKYP0aMpMrQAY1QtAQlrgdua+URhoU6GcPRkpAyw1QHcCqCicAc4hDN1Jve3TMQRmsBPxUryyoa5FtIURFSInvhu2aQVBSrEvK+ZCaqpCejkDVHKcC4nn0dEipdydAUQWdQOfPwDfRag+94g2leIRoOhSNpODD/5JKNGFkbm8vjwGkAhsvZ3lQAkMyQdKnQX6kmgNczlMqwNle5RPm7eVg6gB0peOypwJ6PDOzMuh6nSQ8/2bD+UjwKTkDgt8JjbpVObzVXumYOEnIQyd2uVhkhOR7uXqWA9BzleP28UyDQcKdL1JtI3SKIeyCwqemcLq5ZqPJ/NMO6ii0LXlYopLPUky4rEuFHpY5MZS5g1eZ74dY0Jv8ysoUy54V7SIlyultFzv8pEcUbQF83SjMc3JIjTCjgwpbh4lXu+eDYPfGQxbGww7FpuqV33PYOizwZCNlM7mpbY4tsc4qtaB+Ad3tDjRo1jh5PeG+2D1aM4ql7jNXpNtHk8iH60fW35yirFg83wKeLN5xaep8Q7RWqO5aDbIAkcPWpxO2FldCT1ZVZLvvR/37Q49W2qjKnZbwQEh+9EkD/a5a+vxDvzQPDLbQAWJm1Ti78tYUs9Q5L2w+ymZY7G0Kxt8GXUppTCvWh6khm0rAXzftVZbv6LG97rvqpuuoKsqimaXei5qXxe7awR7cOFh24dw/6vtw0PveWg8/XUNqMpB+79a37o/O/QsNF2HP5vv1NvisWnJ7l+H/+neScwY5YqkHm2y1P+vCfmq/f8H77UqjUAOqEUAAAAASUVORK5CYII=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1786,25 +1791,51 @@
     .match-row.gano .team-name{font-weight:800;}
     .match-row.gano .match-pts{color:var(--win);}
 
-    .aviso-cookies{
+    /* ---- "Pon La Liga de Basquet en tu celular" (22 oct 2026) ----
+       Reemplaza al aviso de cookies, que Mauricio sentía de robot y que en
+       el celular tapaba casi un cuarto de pantalla. Ahora la tarjeta invita
+       a poner la página en la pantalla de inicio. */
+    .instalar-tarjeta{
       position:fixed; left:16px; right:16px; bottom:16px; z-index:60;
-      background:var(--navy); color:#fff; border-radius:12px;
-      padding:14px 16px; display:flex; gap:14px; align-items:center;
-      flex-wrap:wrap; justify-content:space-between;
-      box-shadow:0 8px 30px rgba(0,0,0,.35); max-width:720px; margin:0 auto;
+      background:var(--navy); color:#fff; border-radius:16px;
+      padding:16px 18px; box-shadow:0 8px 30px rgba(0,0,0,.35);
+      max-width:460px; margin:0 auto;
     }
-    .aviso-cookies-txt{flex:1; min-width:220px; font-size:12.5px; line-height:1.5;
-      color:var(--on-dark-soft);}
-    .aviso-cookies-btns{display:flex; gap:8px;}
-    .aviso-cookies button{
-      border:none; border-radius:8px; padding:9px 16px; cursor:pointer;
-      font-family:inherit; font-size:12px; font-weight:800; text-transform:uppercase;
-      letter-spacing:.04em;
+    .instalar-titulo{font-size:15px; font-weight:900; margin:0 0 4px;}
+    .instalar-txt{font-size:12.5px; line-height:1.45; color:var(--on-dark-soft); margin:0 0 12px;}
+    .instalar-btns{display:flex; gap:8px;}
+    .instalar-tarjeta button, .instalar-hoja button.instalar-ya{
+      border:none; border-radius:8px; padding:10px 16px; cursor:pointer;
+      font-family:inherit; font-size:12.5px; font-weight:800;
     }
-    .aviso-si{background:var(--orange); color:#fff;}
-    .aviso-no{background:transparent; color:var(--on-dark-soft);
+    .instalar-si{background:var(--orange); color:#111;}
+    .instalar-no{background:transparent; color:var(--on-dark-soft);
       border:1px solid rgba(255,255,255,.28) !important;}
-    .aviso-cookies button:hover{filter:brightness(1.1);}
+    .instalar-fondo{
+      position:fixed; inset:0; z-index:70; background:rgba(0,0,0,.55);
+      display:none; align-items:flex-end; justify-content:center;
+    }
+    .instalar-fondo.open{display:flex;}
+    .instalar-hoja{
+      background:#fff; color:var(--text); width:100%; max-width:520px;
+      border-radius:18px 18px 0 0; padding:18px 20px calc(22px + env(safe-area-inset-bottom));
+    }
+    .instalar-hoja-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+    .instalar-hoja h3{font-size:17px; font-weight:900; margin:0;}
+    /* El ✕ de las ventanas es blanco porque vive en encabezados negros; en
+       esta hoja blanca no se veía. */
+    .instalar-hoja .modal-close{background:#EEEEEE; color:var(--text);}
+    .instalar-paso{display:flex; gap:12px; align-items:flex-start; margin:12px 0;
+      font-size:14px; line-height:1.4;}
+    .instalar-num{width:26px; height:26px; border-radius:50%; background:var(--orange); color:#111;
+      font-weight:900; font-size:13px; display:flex; align-items:center; justify-content:center; flex:none;}
+    .instalar-ya{background:var(--orange); color:#111; width:100%; margin-top:6px;}
+    .instalar-nota{font-size:12.5px; color:var(--text-soft); line-height:1.45; margin:10px 0 0;}
+    .privacidad-texto{padding:18px 20px 8px;}
+    .privacidad-texto p{font-size:13.5px; line-height:1.6; color:var(--text); margin:0 0 12px;}
+    .privacidad-texto h4{font-size:13px; font-weight:800; text-transform:uppercase;
+      letter-spacing:.5px; margin:16px 0 6px;}
+    footer a{color:inherit;}
 
     /* ---- Ficha de búsqueda ---- */
     .ficha{
@@ -2233,7 +2264,7 @@
       text-transform:uppercase;letter-spacing:.4px;padding:14px 12px;border-radius:10px;font-family:inherit;cursor:pointer;}
     .mas-hoja button + button{border-top:1px solid #222;}
     .mas-hoja button.active{color:var(--orange);}
-    .aviso-cookies{bottom:calc(76px + env(safe-area-inset-bottom)) !important;}
+    .instalar-tarjeta{bottom:calc(76px + env(safe-area-inset-bottom)) !important;}
 
     main{margin-top:14px;padding:0 16px;}
 
@@ -2649,7 +2680,50 @@
   </div>
 </div>
 
-<footer>La Liga de Basquet 2026</footer>
+<!-- Aviso de privacidad (22 oct 2026). Al quitar el aviso de cookies hay
+     que seguir informando que la página usa Google Analytics, para qué y
+     cómo no ser contado; además repite lo de fotos y videos que acepta cada
+     jugador al darse de alta. Se abre desde el pie de página. -->
+<div class="modal-overlay" id="privacidadModal" onclick="if(event.target===this) cerrarPrivacidad()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>Aviso de privacidad</h3>
+        <span>La Liga de Basquet · Gante San Pedro</span>
+      </div>
+      <button class="modal-close" onclick="cerrarPrivacidad()">✕</button>
+    </div>
+    <div class="modal-body privacidad-texto">
+      <h4>Visitas a esta página</h4>
+      <p>Usamos Google Analytics para contar visitas y saber qué secciones se usan
+        más, y así mejorar la página. No recibimos tu nombre, tu correo ni tu
+        teléfono, y Google no guarda tu dirección IP completa.</p>
+      <p id="privacidadEstado"></p>
+      <p><button type="button" class="res-btn" id="privacidadBoton" onclick="cambiarConteo()"></button></p>
+      <h4>Jugadores</h4>
+      <p>Tu nombre y fotografía se usan para la operación del torneo: credencial de
+        jugador, registro de asistencia y estadísticas. Tu nombre, fotografías y
+        videos tomados durante los partidos y eventos se difunden en esta página
+        y en las redes sociales de la liga, como lo aceptaste al darte de alta.</p>
+      <p>Para cualquier duda o para pedir que corrijamos o quitemos tus datos,
+        escríbenos a <a href="mailto:control@laligadebasquet.com">control@laligadebasquet.com</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial para poner la página en la pantalla de inicio. Lo llena
+     pintarTutorialInstalar() según el celular (iPhone o Android). -->
+<div class="instalar-fondo" id="instalarFondo" onclick="if(event.target===this) cerrarTutorialInstalar()">
+  <div class="instalar-hoja" role="dialog" aria-labelledby="instalarTitulo">
+    <div class="instalar-hoja-top">
+      <h3 id="instalarTitulo">En tu iPhone</h3>
+      <button class="modal-close" onclick="cerrarTutorialInstalar()" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="instalarPasos"></div>
+  </div>
+</div>
+
+<footer>La Liga de Basquet 2026 · <a href="#" onclick="abrirPrivacidad(); return false;">Aviso de privacidad</a></footer>
 
 <script>
 /* ============================================================
@@ -3563,33 +3637,180 @@ function irAlVideoSinPerderLaVisita(url){
   }, 100);
 }
 
-/* ---------- el aviso ---------- */
-function pintarAvisoCookies(){
-  if(!CONFIG.gaId) return;                 // sin analítica no hay nada que avisar
-  if(consentimientoAnalitica()) {          // ya decidió antes
-    if(consentimientoAnalitica() === "si") arrancarAnalitica();
-    return;
-  }
-  const caja = document.createElement("div");
-  caja.className = "aviso-cookies";
-  caja.id = "avisoCookies";
-  caja.innerHTML = `
-    <div class="aviso-cookies-txt">
-      Usamos una herramienta de medición para saber qué partes de la página se
-      usan más. No guardamos nada que identifique a nadie.
-    </div>
-    <div class="aviso-cookies-btns">
-      <button class="aviso-si" onclick="responderCookies('si')">Está bien</button>
-      <button class="aviso-no" onclick="responderCookies('no')">No, gracias</button>
-    </div>`;
-  document.body.appendChild(caja);
+/* ---------- arranque de la analítica ----------
+   Hasta el 22 oct 2026 salía un aviso de "Está bien / No, gracias" y solo se
+   contaba a quien aceptaba. Mauricio lo quitó: se veía de robot, tapaba un
+   cuarto de pantalla en el celular, y por él los números de Analytics eran un
+   mínimo (el jugador que llega desde su cédula se iba al video antes de
+   contestar y no se contaba). En México basta con informar: eso lo hace el
+   "Aviso de privacidad" del pie, que además deja dejar de ser contado.
+   Quien ya había dicho "no" con el aviso viejo sigue sin contarse. */
+function iniciarAnalitica(){
+  if(!CONFIG.gaId) return;                 // sin ID no hay nada que cargar
+  if(consentimientoAnalitica() === "no") return;
+  arrancarAnalitica();
 }
 
+/* "si" o "no": lo usa el botón del aviso de privacidad. */
 function responderCookies(respuesta){
   try{ localStorage.setItem(GA_CONSENTIMIENTO, respuesta); }catch(e){}
-  const caja = document.getElementById("avisoCookies");
-  if(caja) caja.remove();
   if(respuesta === "si") arrancarAnalitica();
+}
+
+function abrirPrivacidad(){
+  pintarEstadoConteo();
+  document.getElementById("privacidadModal").classList.add("open");
+}
+function cerrarPrivacidad(){ document.getElementById("privacidadModal").classList.remove("open"); }
+
+function pintarEstadoConteo(){
+  const fuera = consentimientoAnalitica() === "no";
+  document.getElementById("privacidadEstado").textContent = fuera
+    ? "En este navegador ya no te contamos."
+    : "Si no quieres que te contemos, toca el botón; se guarda en este navegador.";
+  document.getElementById("privacidadBoton").textContent = fuera ? "Volver a contarme" : "No quiero que me cuenten";
+}
+/* Dejar de contar no puede apagar un Analytics que ya cargó en esta visita:
+   se recarga la página para que arranque sin él. */
+function cambiarConteo(){
+  const fuera = consentimientoAnalitica() === "no";
+  responderCookies(fuera ? "si" : "no");
+  if(!fuera) { location.reload(); return; }
+  pintarEstadoConteo();
+}
+
+/* ============================================================
+   "PON LA LIGA DE BASQUET EN TU CELULAR" (22 oct 2026)
+
+   Una tarjeta abajo invita a poner la página en la pantalla de inicio, con
+   un tutorial según el celular. Es el primer paso para mandar notificaciones
+   (en iPhone solo llegan a páginas instaladas), pero la tarjeta NO las
+   promete: todavía no existen.
+
+   Cuándo sale: solo en celular, nunca si ya se abrió como app, y no al
+   llegar sino cuando la persona ya cambió de sección (ya vio para qué sirve).
+   "Ahora no" la esconde 21 días. */
+const TITULO_INSTALAR = "Pon La Liga de Basquet en tu celular";
+const INSTALAR_POSPUESTO = "ligaInstalar_v1";       // fecha (ms) del último "Ahora no"
+const DIAS_SIN_INSISTIR = 21;
+let EVENTO_INSTALAR = null;      // Android: el aviso nativo de Chrome, guardado para usarlo con nuestro botón
+let INSTALAR_YA_OFRECIDO = false;
+
+/* "ios", "android" o "" (computadora u otro). El iPad nuevo dice ser Mac:
+   se distingue porque tiene pantalla táctil. */
+function tipoDeCelular(ua, toques){
+  if(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && toques > 1)) return "ios";
+  if(/Android/i.test(ua)) return "android";
+  return "";
+}
+/* Instagram, Facebook y TikTok abren la página en su propio navegador, que no
+   deja agregarla al inicio: hay que mandarlos a Safari o a Chrome primero. */
+function enNavegadorDeApp(ua){ return /Instagram|FBAN|FBAV|FB_IAB|TikTok|Line\//i.test(ua); }
+
+function yaInstalada(){
+  try{
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+           window.navigator.standalone === true;
+  }catch(e){ return false; }
+}
+
+function puedeOfrecerInstalar(ahora){
+  if(yaInstalada()) return false;
+  if(!tipoDeCelular(navigator.userAgent || "", navigator.maxTouchPoints || 0)) return false;
+  let pospuesto = 0;
+  try{ pospuesto = Number(localStorage.getItem(INSTALAR_POSPUESTO)) || 0; }catch(e){}
+  return !pospuesto || (ahora - pospuesto) > DIAS_SIN_INSISTIR * 864e5;
+}
+
+function eventoInstalar(nombre){
+  if(typeof window.gtag === "function") window.gtag("event", nombre);
+}
+
+function quizaOfrecerInstalar(){
+  if(INSTALAR_YA_OFRECIDO || !puedeOfrecerInstalar(Date.now())) return;
+  INSTALAR_YA_OFRECIDO = true;
+  const caja = document.createElement("div");
+  caja.className = "instalar-tarjeta";
+  caja.id = "instalarTarjeta";
+  caja.innerHTML = `
+    <p class="instalar-titulo">${TITULO_INSTALAR}</p>
+    <p class="instalar-txt">Tu rol, la tabla y tu credencial a un toque, sin buscar la página.</p>
+    <div class="instalar-btns">
+      <button class="instalar-si" onclick="abrirTutorialInstalar()">Cómo hacerlo</button>
+      <button class="instalar-no" onclick="posponerInstalar()">Ahora no</button>
+    </div>`;
+  document.body.appendChild(caja);
+  eventoInstalar("instalar_tarjeta_vista");
+}
+
+function posponerInstalar(){
+  try{ localStorage.setItem(INSTALAR_POSPUESTO, String(Date.now())); }catch(e){}
+  const caja = document.getElementById("instalarTarjeta");
+  if(caja) caja.remove();
+}
+
+/* Los pasos, como texto, para poder probarlos sin navegador. */
+function pasosInstalar(tipo, enApp, hayBotonAndroid){
+  if(enApp) return {
+    titulo: "Primero ábrela en tu navegador",
+    pasos: ["Toca los <b>tres puntitos</b> (arriba a la derecha).",
+            tipo === "ios" ? "Elige <b>Abrir en Safari</b>." : "Elige <b>Abrir en Chrome</b> o <b>Abrir en el navegador</b>.",
+            "Ya en el navegador, vuelve a tocar <b>Cómo hacerlo</b>."],
+    nota: "Instagram y Facebook abren las páginas en su propio navegador, y ahí no se puede agregar al inicio."
+  };
+  if(tipo === "ios") return {
+    titulo: "En tu iPhone",
+    pasos: ["Toca <b>Compartir</b>: el cuadro con la flecha ↑, abajo al centro de Safari.",
+            "Baja y toca <b>Agregar a inicio</b>.",
+            "Toca <b>Agregar</b>. Listo: el logo de La Liga queda en tu pantalla."],
+    nota: ""
+  };
+  return {
+    titulo: "En tu Android",
+    pasos: hayBotonAndroid
+      ? ["Toca <b>Instalar La Liga</b> aquí abajo.", "Confirma con <b>Instalar</b>.", "Listo: el logo de La Liga queda en tu pantalla."]
+      : ["Toca el menú <b>⋮</b> de Chrome (arriba a la derecha).", "Toca <b>Agregar a la pantalla principal</b> o <b>Instalar app</b>.", "Confirma. Listo: el logo de La Liga queda en tu pantalla."],
+    nota: ""
+  };
+}
+
+function abrirTutorialInstalar(){
+  const ua = navigator.userAgent || "";
+  const tipo = tipoDeCelular(ua, navigator.maxTouchPoints || 0) || "android";
+  const p = pasosInstalar(tipo, enNavegadorDeApp(ua), !!EVENTO_INSTALAR);
+  document.getElementById("instalarTitulo").textContent = p.titulo;
+  document.getElementById("instalarPasos").innerHTML =
+    p.pasos.map((s, i) => `<div class="instalar-paso"><div class="instalar-num">${i + 1}</div><div>${s}</div></div>`).join("") +
+    (tipo === "android" && EVENTO_INSTALAR && !enNavegadorDeApp(ua)
+      ? `<button class="instalar-ya" onclick="instalarAndroid()">Instalar La Liga</button>` : "") +
+    (p.nota ? `<p class="instalar-nota">${p.nota}</p>` : "");
+  document.getElementById("instalarFondo").classList.add("open");
+  eventoInstalar("instalar_tutorial_abierto");
+}
+function cerrarTutorialInstalar(){ document.getElementById("instalarFondo").classList.remove("open"); }
+
+async function instalarAndroid(){
+  if(!EVENTO_INSTALAR) return;
+  EVENTO_INSTALAR.prompt();
+  try{ await EVENTO_INSTALAR.userChoice; }catch(e){}
+  EVENTO_INSTALAR = null;
+  cerrarTutorialInstalar();
+}
+
+function prepararInstalar(){
+  /* Chrome en Android avisa que la página se puede instalar; se guarda el
+     aviso para dispararlo desde nuestro botón y no cuando a Chrome le toque. */
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); EVENTO_INSTALAR = e; });
+  window.addEventListener("appinstalled", () => {
+    eventoInstalar("app_instalada");
+    const caja = document.getElementById("instalarTarjeta");
+    if(caja) caja.remove();
+  });
+  /* Cuántas veces se abre desde el ícono del inicio: sirve para el pitch. */
+  if(yaInstalada()) setTimeout(() => eventoInstalar("abierta_como_app"), 3000);
+  /* Mucha gente solo ve el Inicio (ahí ya están los próximos partidos) y
+     nunca cambia de sección: a los 30 s también se le ofrece. */
+  setTimeout(quizaOfrecerInstalar, 30000);
 }
 
 /* ============================================================
@@ -7804,6 +8025,7 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
     marcarMenuActivo();
     marcarBarraCel(btn.dataset.view);
     vistaAnalitica(btn.dataset.view);
+    if(btn.dataset.view !== "inicio") quizaOfrecerInstalar();   // ya vio para qué sirve la página
     if(btn.dataset.view === "sanciones" && !SANCIONES_PUB) cargarSancionesPublicas();
   });
 });
@@ -8090,7 +8312,8 @@ function renderSponsors(){
   track.innerHTML = SPONSORS_DEMO.map(badge).join("") + SPONSORS_DEMO.map(badge).join("");
 }
 
-pintarAvisoCookies();
+iniciarAnalitica();
+prepararInstalar();
 aplicarModoSoloInicio();
 init();
 renderSponsors();
