@@ -3496,6 +3496,9 @@ async function postAppsScript(payload){
     delete payload.clave;
     payload.claveStaff = STAFF.clave;
   }
+  /* Si en pantalla está la copia guardada, lo que escribe espera a que
+     lleguen los datos frescos (ver COPIA_PUBLICA). Leer no espera. */
+  if(ESPERA_FRESCOS && !esLectura(payload && payload.action)) await ESPERA_FRESCOS;
 
   let ultimoError = null;
   for(let i = 0; i <= ESPERAS_REINTENTO.length; i++){
@@ -3720,6 +3723,61 @@ let ERRORES_CARGA = [];
 let CARGANDO = false;
 const FILA_CARGANDO = '<tr><td class="empty-state">Cargando datos…</td></tr>';
 
+/* ABRIR CON LA COPIA GUARDADA (22 oct 2026).
+
+   Cada lectura a Apps Script cuesta 1.5–2.5 s de piso y el arranque tarda
+   ~4–5 s aunque las lecturas ya salen juntas. Mientras tanto se pinta la
+   copia de la última vez, como ya hace la página pública, con un letrero de
+   "actualizando…".
+
+   Solo se guardan Equipos, Rol y Resultados (~70 KB): con eso Hoy y el Rol
+   se ven al instante. Asistencia y Estadísticas (~800 KB) llegan frescas,
+   porque en la misma tablet viven los respaldos de la hoja digital y no se
+   pueden quedar sin espacio. NADA privado va a la copia: ni jugadores, ni
+   correos, ni pagos.
+
+   Mientras se ve la copia, todo lo que ESCRIBE espera a que lleguen los datos
+   frescos (ver postAppsScript), para que nadie guarde encima de algo viejo.
+   Una copia de más de 3 días ya no se usa. */
+const COPIA_PUBLICA = "ligaAdminCopia_v1";
+const COPIA_HOJAS = ["Equipos", "Rol de Partidos", "Resultados"];
+const COPIA_MAX_HORAS = 72;
+let DATOS_FRESCOS = false;     // ya llegó al menos una lectura de verdad
+let MOSTRANDO_COPIA = 0;       // hora (ms) de la copia que está en pantalla; 0 = ninguna
+let ACTUALIZANDO = false;      // initData está trabajando
+let ESPERA_FRESCOS = null;     // promesa que se cumple al terminar la carga
+let CUMPLIR_FRESCOS = null;
+
+function guardarCopiaPublica(datos, ahora){
+  try{
+    const hojas = {};
+    COPIA_HOJAS.forEach(n => { if(datos[n]) hojas[n] = datos[n]; });
+    localStorage.setItem(COPIA_PUBLICA, JSON.stringify({ ts: ahora, hojas: hojas }));
+  }catch(e){ /* sin espacio o sin localStorage: se sigue igual, solo sin copia */ }
+}
+function leerCopiaPublica(ahora){
+  try{
+    const c = JSON.parse(localStorage.getItem(COPIA_PUBLICA) || "null");
+    if(!c || !c.ts || !c.hojas) return null;
+    if(ahora - c.ts > COPIA_MAX_HORAS * 36e5) return null;
+    return c;
+  }catch(e){ return null; }
+}
+/* Las acciones que solo leen no tienen que esperar a los datos frescos. */
+function esLectura(accion){ return /^(leer|entrar|previo)/.test(String(accion || "")); }
+
+/* Lo que sale de las hojas públicas, en un solo lugar: lo usan la copia
+   guardada y la lectura fresca. */
+function aplicarHojasPublicas(datos){
+  if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
+                            CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
+  if(datos["Rol de Partidos"])             MATCHES = mapRolCsv(datos["Rol de Partidos"]);
+  if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
+  if(datos["Asistencia"]){           ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
+                                     ASISTENCIA_FILAS = datos["Asistencia"]; }
+  if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
+}
+
 /* Nombre + equipo + fecha de alta, del más reciente al más viejo. */
 function mapAltasJugadores(rows){
   return (rows || [])
@@ -3740,8 +3798,16 @@ function mapAltasJugadores(rows){
 async function initData(){
   let usedFallback = false;
   ERRORES_CARGA = [];   // se reinicia en cada carga
-  CARGANDO = true;
-  repintarVistaActual();   // muestra "Cargando datos…" de inmediato
+  ACTUALIZANDO = true;
+  /* La primera vez, si hay copia de la última visita, se pinta ya. */
+  if(!DATOS_FRESCOS && !MOSTRANDO_COPIA){
+    const copia = leerCopiaPublica(Date.now());
+    if(copia){ aplicarHojasPublicas(copia.hojas); MOSTRANDO_COPIA = copia.ts; }
+  }
+  if(MOSTRANDO_COPIA && !ESPERA_FRESCOS) ESPERA_FRESCOS = new Promise(r => { CUMPLIR_FRESCOS = r; });
+  CARGANDO = !MOSTRANDO_COPIA;   // con copia no hay "Cargando datos…": se ve la copia
+  repintarVistaActual();   // muestra la copia o "Cargando datos…" de inmediato
+  pintarAvisoCarga();
 
   if(CONFIG.leerEnVivo && CONFIG.appsScriptUrl){
     /* LAS TRES LECTURAS SALEN AL MISMO TIEMPO (22 oct 2026).
@@ -3788,13 +3854,10 @@ async function initData(){
 
     const datos = rPublico.status === "fulfilled" ? rPublico.value : null;
     if(datos){
-      if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
-                                CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
-      if(datos["Rol de Partidos"])             MATCHES = mapRolCsv(datos["Rol de Partidos"]);
-      if(datos["Resultados"])            RESULTADOS = mapResultadosCsv(datos["Resultados"]);
-      if(datos["Asistencia"]){           ASISTENCIA = mapAsistenciaCsv(datos["Asistencia"]);
-                                         ASISTENCIA_FILAS = datos["Asistencia"]; }
-      if(datos["Estadísticas"])   ESTADISTICAS_ADMIN = datos["Estadísticas"];
+      aplicarHojasPublicas(datos);
+      DATOS_FRESCOS = true;
+      MOSTRANDO_COPIA = 0;
+      guardarCopiaPublica(datos, Date.now());
     } else {
       usedFallback = true;
       ERRORES_CARGA.push("equipos y calendario" + (errorPublico.mensaje ? " (" + errorPublico.mensaje + ")" : ""));
@@ -3859,6 +3922,10 @@ async function initData(){
   // el reintento automático nunca se armaba.
 
   CARGANDO = false;
+  ACTUALIZANDO = false;
+  /* Lo que estaba esperando para escribir ya puede salir, haya llegado todo o
+     no: si algo falló, el letrero lo dice y no se deja a nadie colgado. */
+  if(CUMPLIR_FRESCOS){ CUMPLIR_FRESCOS(); CUMPLIR_FRESCOS = null; ESPERA_FRESCOS = null; }
   repintarVistaActual();   // cambia "Cargando datos…" por los datos reales
   pintarAvisoCarga();
 
@@ -3868,15 +3935,23 @@ async function initData(){
 }
 
 /* Letrero arriba con lo que no cargó, y el motivo si Google lo dijo. */
-function textoAvisoCarga(errores, quedanReintentos){
+/* Ojo: NO llamarla horaCorta, que ya existe y la usa el rol (una segunda
+   declaración la pisaría). */
+function horaDeLaCopia(ts){
+  return new Date(ts).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+}
+function textoAvisoCarga(errores, quedanReintentos, copiaTs, actualizando){
+  // "a.m." ya trae su punto: sin esto salía "3:22 a.m.." con doble punto.
+  const copia = copiaTs ? ("Estás viendo la copia de las " + horaDeLaCopia(copiaTs) + ".").replace(/\.\.$/, ".") + " " : "";
+  if(copiaTs && actualizando) return "⏳ " + copia + "Actualizando… lo que guardes espera a que lleguen los datos nuevos.";
   if(!errores || !errores.length) return "";
-  return "⚠️ No se pudo cargar: " + errores.join(" · ") + ". " +
+  return "⚠️ No se pudo cargar: " + errores.join(" · ") + ". " + copia +
     (quedanReintentos ? "Se vuelve a intentar solo en unos segundos." : "Recarga la página; si sigue igual, avísale a Mauricio.");
 }
 function pintarAvisoCarga(){
   const caja = document.getElementById("avisoCarga");
   if(!caja) return;
-  const t = textoAvisoCarga(ERRORES_CARGA, _reintentosAuto < 3);
+  const t = textoAvisoCarga(ERRORES_CARGA, _reintentosAuto < 3, MOSTRANDO_COPIA, ACTUALIZANDO);
   caja.textContent = t;
   caja.style.display = t ? "block" : "none";
 }
