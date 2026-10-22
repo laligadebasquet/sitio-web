@@ -798,6 +798,16 @@
     gap:12px;
   }
   .section-heading .line{flex:1;height:1px;background:var(--gray-line);}
+  /* Sanciones: activas con barra naranja, pasadas en gris. */
+  .san-h{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-soft);margin:18px 0 10px;}
+  .san-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+  .san-caso{background:#fff;border:1px solid var(--gray-line);border-left:4px solid #9A9A9A;border-radius:10px;padding:12px 14px;}
+  .san-caso.activa{border-left-color:var(--orange);}
+  .san-jugador{font-weight:800;font-size:15px;color:var(--text);}
+  .san-sub{font-size:12px;color:var(--text-soft);margin-top:2px;}
+  .san-sancion{font-size:13px;font-weight:800;margin-top:8px;color:var(--text);}
+  .san-caso.activa .san-sancion{color:var(--orange-dark);}
+  .san-vacio{font-size:13px;color:var(--text-soft);padding:6px 0 4px;}
   #resultadosBox .section-heading{margin-top:36px;}
   .jornada-nav{
     display:flex;
@@ -5956,14 +5966,142 @@ function renderConcentrado(){
   el.innerHTML = '<div class="section-heading">Concentrado<span class="line"></span></div><div class="empty-state">Esta sección estará disponible próximamente.</div>';
 }
 
-/* Sanciones: listado de faltas/expulsiones y su sanción correspondiente,
-   conforme al Tabulador de Sanciones del reglamento. Se llena más adelante
-   con datos reales; por ahora muestra que no hay sanciones registradas y
-   aclara que esta sección aplica desde el inicio de la temporada, en caso
-   de que haya sanciones. */
-function renderSanciones(){
+/* ============================================================
+   SANCIONES (Mauricio, 21 oct 2026)
+
+   Dos partes:
+     · ACTIVAS: el jugador todavía no cumple su suspensión. Cuándo fue
+       sancionado, cuántos partidos son y cuántos le faltan.
+     · PASADAS: ya la cumplió (o es de antes del 21 oct, cuando todavía no
+       había dictamen): el jugador y la sanción que recibió.
+
+   Del Apps Script solo llegan las que ya pasaron o ya tienen dictamen, y
+   sin la descripción de lo que pasó (eso es para el capitán y el jugador,
+   por correo). Se piden aparte y solo al abrir la sección: así no se le
+   suma otra espera de 2 s a todo el que entra a la página.
+   ============================================================ */
+/* ---------- ¿La sanción sigue activa? ----------
+   (Mauricio, 21 oct 2026.) Esta misma función está en index.html y en
+   admin.html, letra por letra; prueba_sanciones_dictamen.js revisa que no se
+   separen. La usan la sección Sanciones de la página, la pestaña Sanciones
+   del Admin y la hoja digital.
+
+   Las de antes de SANCIONES_REPORTE_DESDE ya pasaron: no llevan reporte ni
+   dictamen. Las demás cuentan solas: cada partido que juega el equipo
+   DESPUÉS del partido de la sanción y desde el día del dictamen es un
+   partido cumplido. "Desde el día del dictamen" es para que un partido
+   jugado mientras se revisaba el caso no cuente como cumplido.
+
+   Del tabulador también salen "TEMPORADA" (el resto de la temporada: activa
+   hasta la final) y "DEFINITIVA" (no vuelve a jugar: activa siempre). */
+const SANCIONES_REPORTE_DESDE = "2026-10-21";
+const SANCIONES_FIN_TEMPORADA = "2026-11-21";
+
+function fechaSancionISO(v){
+  const t = String(v == null ? "" : v).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if(m) return m[1] + "-" + m[2] + "-" + m[3];
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(t);
+  if(m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  return "";
+}
+
+function textoDeSancion(partidos){
+  if(partidos === "TEMPORADA") return "Suspendido el resto de la temporada";
+  if(partidos === "DEFINITIVA") return "No podrá volver a participar en los torneos de la liga";
+  const n = Number(partidos);
+  return "Suspensión de " + n + (n === 1 ? " partido" : " partidos");
+}
+
+function estadoSancion(s, resultados, hoy){
+  const fecha = fechaSancionISO(s.fecha);
+  const yaPaso = !!fecha && fecha < SANCIONES_REPORTE_DESDE;
+  const dictaminada = fechaSancionISO(s.dictaminada);
+  const p = String(s.partidos == null ? "" : s.partidos).trim().toUpperCase();
+  const nada = { yaPaso, dictaminada: false, partidos: null, cumplidos: 0, faltan: 0, activa: false, texto: "" };
+  if(!dictaminada || p === "") return nada;
+  if(p === "DEFINITIVA" || p === "TEMPORADA"){
+    const d = new Date();
+    const h = hoy || (d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2));
+    return { yaPaso, dictaminada: true, partidos: p, cumplidos: 0, faltan: null,
+             activa: p === "DEFINITIVA" || h <= SANCIONES_FIN_TEMPORADA, texto: textoDeSancion(p) };
+  }
+  const partidos = Number(p);
+  if(isNaN(partidos)) return nada;
+  const eq = nombreEquipo(s.equipo);
+  const jugados = (resultados || []).filter(r=>{
+    const f = fechaSancionISO(r.fecha);
+    return f && f > fecha && f >= dictaminada &&
+      (nombreEquipo(r.local) === eq || nombreEquipo(r.visitante || r.visit) === eq);
+  }).length;
+  const cumplidos = Math.min(jugados, partidos);
+  return { yaPaso, dictaminada: true, partidos, cumplidos, faltan: partidos - cumplidos,
+           activa: partidos - cumplidos > 0, texto: textoDeSancion(partidos) };
+}
+
+let SANCIONES_PUB = null;          // null = no se han pedido
+let SANCIONES_PIDIENDO = false;
+
+function mapSancionesCsv(rows){
+  return (rows || []).filter(r => r["Jugador"]).map(r => ({
+    fecha: r["Fecha"], categoria: String(r["Categoría"] || "").trim(),
+    local: nombreEquipo(r["Local"]), visit: nombreEquipo(r["Visitante"]),
+    equipo: nombreEquipo(r["Equipo"]), jugador: String(r["Jugador"] || "").trim().toUpperCase(),
+    partidos: r["Partidos"], dictaminada: r["Dictaminada"]
+  }));
+}
+
+async function cargarSancionesPublicas(){
+  if(SANCIONES_PIDIENDO || SANCIONES_PUB) return;
+  SANCIONES_PIDIENDO = true;
+  const datos = await leerDelSheet(["Sanciones"], 20000);
+  SANCIONES_PIDIENDO = false;
+  SANCIONES_PUB = datos && datos["Sanciones"] ? mapSancionesCsv(datos["Sanciones"]) : [];
+  if(!datos) SANCIONES_PUB = null;   // falló: que se pueda volver a intentar
+  renderSanciones(!datos);
+}
+
+function renderSanciones(fallo){
   const el = document.getElementById("view-sanciones");
-  el.innerHTML = '<div class="section-heading">Sanciones<span class="line"></span></div><div class="empty-state">No hay sanciones registradas por el momento. Esta sección aplica desde el inicio de la temporada, en caso de que haya sanciones.</div>';
+  if(!el) return;
+  const titulo = '<div class="section-heading">Sanciones<span class="line"></span></div>';
+  if(!SANCIONES_PUB){
+    el.innerHTML = titulo + (fallo
+      ? '<div class="empty-state">No se pudieron cargar las sanciones. <button class="res-btn" onclick="cargarSancionesPublicas()">Reintentar</button></div>'
+      : '<div class="empty-state">Cargando sanciones…</div>');
+    if(!fallo && el.classList.contains("active")) cargarSancionesPublicas();
+    return;
+  }
+
+  const lista = SANCIONES_PUB.map(s => Object.assign({}, s, { est: estadoSancion(s, RESULTADOS) }))
+    .sort((a, b) => String(fechaSancionISO(b.fecha)).localeCompare(String(fechaSancionISO(a.fecha))));
+  const activas = lista.filter(s => s.est.activa);
+  const pasadas = lista.filter(s => !s.est.activa);
+  const rival = s => s.equipo === s.local ? s.visit : s.local;
+
+  const tarjeta = (s, activa) => {
+    let sancion;
+    if(!s.est.dictaminada) sancion = "Sancionado · ya pasó";
+    else if(typeof s.est.partidos !== "number") sancion = s.est.texto;   // resto de la temporada o definitiva
+    else if(activa) sancion = `${s.est.texto} · le ${s.est.faltan === 1 ? "falta 1" : "faltan " + s.est.faltan}`;
+    else sancion = `${s.est.texto} · cumplida`;
+    return `<div class="san-caso${activa ? " activa" : ""}">
+      <div class="san-jugador">${s.jugador}</div>
+      <div class="san-sub">${s.equipo}${s.categoria ? " · " + s.categoria : ""}</div>
+      <div class="san-sub">Sancionado el ${fechaCorta(fechaSancionISO(s.fecha))} vs ${rival(s)}</div>
+      <div class="san-sancion">${sancion}</div>
+    </div>`;
+  };
+
+  el.innerHTML = titulo +
+    `<h3 class="san-h">Sanciones activas</h3>` +
+    (activas.length
+      ? `<div class="san-grid">${activas.map(s => tarjeta(s, true)).join("")}</div>`
+      : '<div class="san-vacio">Ningún jugador tiene una sanción activa.</div>') +
+    `<h3 class="san-h">Sanciones pasadas</h3>` +
+    (pasadas.length
+      ? `<div class="san-grid">${pasadas.map(s => tarjeta(s, false)).join("")}</div>`
+      : '<div class="san-vacio">No hay sanciones pasadas.</div>');
 }
 
 /* Reglamento oficial "REGLAMENTO DE COMPETENCIA — TEMPORADA AGOSTO 2026", tal
@@ -7673,6 +7811,7 @@ document.querySelectorAll("nav.tabs button[data-view]").forEach(btn=>{
     marcarMenuActivo();
     marcarBarraCel(btn.dataset.view);
     vistaAnalitica(btn.dataset.view);
+    if(btn.dataset.view === "sanciones" && !SANCIONES_PUB) cargarSancionesPublicas();
   });
 });
 

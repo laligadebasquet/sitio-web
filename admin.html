@@ -921,6 +921,17 @@
   /* ---------- SANCIONES ---------- */
   .sc-caso{border-left:3px solid #E24B4A;border-radius:0 12px 12px 0;}
   .sc-caso.listo{border-left-color:#2E7D46;}
+  .sc-caso.activa{border-left-color:#F37228;}
+  .hd-jug.sancionado{opacity:.55;}
+  .hd-sancionado{margin-left:8px;font-size:10px;font-weight:900;color:#ffb3b3;background:#2a1313;
+    border:1px solid #7a2a2a;border-radius:20px;padding:2px 8px;white-space:nowrap;}
+  .sc-caso.paso{border-left-color:#555;opacity:.75;}
+  .sc-dictamen-caja{margin-top:14px;padding-top:12px;border-top:1px solid #2a2a2a;}
+  .sc-dictamen{margin-top:12px;font-size:13px;font-weight:800;color:#F37228;}
+  .sc-versiones{display:grid;gap:8px;}
+  .sc-version{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;}
+  .sc-version-quien{font-size:11px;font-weight:900;color:#F37228;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .sc-version-texto{font-size:13px;color:#ddd;white-space:pre-wrap;}
   .sc-cabeza{
     display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;
   }
@@ -2121,11 +2132,16 @@
        faltas; el reporte se escribe después y con calma. -->
   <section class="view" id="view-sanciones">
     <div class="card">
-      <h2>Sanciones por describir</h2>
+      <h2>Sanciones</h2>
       <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
         Cuando un jugador junta <strong>dos faltas técnicas o flagrantes</strong> en
-        un partido, aparece aquí. Escribe qué sucedió y guárdalo. Lo que
-        escribas queda en el reporte del partido.
+        un partido, aparece aquí. <strong>1)</strong> Francisco, Juan Pablo y Marcelo
+        escriben cada quien su versión de lo que sucedió.
+        <strong>2)</strong> Con las versiones de Juan Pablo y Francisco, Mauricio
+        escoge del tabulador en cuál cayó (los partidos se ponen solos), y al
+        capitán y al jugador les llega un correo. Mientras la suspensión esté
+        activa sale en la página y el jugador no se puede registrar en la hoja
+        del partido.
       </p>
       <button class="mini-btn" onclick="cargarSanciones()">🔄 Actualizar</button>
       <div id="scResumen" class="mn-tiempos" style="margin-top:12px;"></div>
@@ -2886,9 +2902,16 @@ function renderHoy(){
       deben.length ? `<button class="hoy-btn" onclick="PAGOS_FILTRO = 'deben'; irA('pagos');">Ver los que deben →</button>` : "", deben.length ? "" : "ok");
   }
   if(puede("sanciones")){
-    const sin = HOY.pedido && !HOY.cargando ? SANCIONES.filter(s => !String(s.descripcion || "").trim()) : null;
-    ponerBadge("badge-sanciones", sin ? sin.length : 0);
-    html += tarjeta("Sanciones sin descripción", sin ? sin.length : null,
+    // Las que ya pasaron no cuentan: esas no llevan reporte.
+    const sin = HOY.pedido && !HOY.cargando ? SANCIONES.filter(scPendienteReporte) : null;
+    const porDictaminar = HOY.pedido && !HOY.cargando && !STAFF ? SANCIONES.filter(scPendienteDictamen) : [];
+    ponerBadge("badge-sanciones", sin ? sin.length + porDictaminar.length : 0);
+    if(porDictaminar.length){
+      html += tarjeta("Sanciones por dictaminar", porDictaminar.length,
+        lista(porDictaminar, 5, s => `<li>${s.jugador || ""} <span class="hoy-gris">${s.equipo || ""}</span></li>`),
+        `<button class="hoy-btn" onclick="irA('sanciones')">Dictaminar →</button>`, "alerta");
+    }
+    html += tarjeta(STAFF ? "Sanciones sin tu versión" : "Sanciones sin descripción", sin ? sin.length : null,
       !sin ? cargandoTxt : sin.length
         ? lista(sin, 5, s => `<li>${s.jugador || ""} <span class="hoy-gris">${s.equipo || ""}</span></li>`)
         : '<span class="hoy-gris">Nada pendiente.</span>',
@@ -3691,6 +3714,8 @@ async function initData(){
     const datos = await leerDelSheetConReintentos([
       "Equipos","Rol de Partidos","Resultados","Asistencia","Estadísticas"
     ]);
+    // Aparte y sin esperarla: si falla, el Admin carga igual (ver hdCargarSanciones).
+    hdCargarSanciones();
     if(datos){
       if(datos["Equipos"]){                 EQUIPOS = mapEquiposCsv(datos["Equipos"]);
                                 CATEGORIA_POR_EQUIPO = mapCategoriaPorEquipo(datos["Equipos"]); }
@@ -6880,6 +6905,49 @@ function hdRepetidos(lado){
   return rep;
 }
 
+/* ---------- Jugadores con sanción activa (Mauricio, 21 oct 2026) ----------
+   Mientras no cumpla su suspensión, la mesa no lo puede marcar presente ni
+   agregarlo con "+ Llegó", y al intentarlo le sale por qué. Las sanciones
+   se leen por la puerta pública (solo trae las dictaminadas y las que ya
+   pasaron, sin la descripción) para que funcione igual con la clave de
+   Mauricio que con la del staff. Se piden aparte del resto: si fallan, el
+   Admin carga igual y la hoja digital simplemente no bloquea a nadie. */
+let SANCIONES_HD = [];
+
+async function hdCargarSanciones(){
+  try{
+    const datos = await leerDelSheet(["Sanciones"], 20000);
+    if(datos && datos["Sanciones"]){
+      SANCIONES_HD = datos["Sanciones"].filter(r => r["Jugador"]).map(r => ({
+        fecha: r["Fecha"], equipo: nombreEquipo(r["Equipo"]), jugador: String(r["Jugador"] || ""),
+        local: nombreEquipo(r["Local"]), visit: nombreEquipo(r["Visitante"]),
+        partidos: r["Partidos"], dictaminada: r["Dictaminada"]
+      }));
+      if(HD && !HD.cerrado) hdRender();
+    }
+  }catch(e){ console.warn("No se pudieron leer las sanciones:", e); }
+}
+
+/* La sanción activa de este jugador, o null. */
+function hdSancionActiva(equipo, nombre){
+  const eq = nombreEquipo(equipo), jug = aMayusSinAcentos(nombre);
+  for(const s of SANCIONES_HD){
+    if(s.equipo !== eq || aMayusSinAcentos(s.jugador) !== jug) continue;
+    const est = estadoSancion(s, RESULTADOS);
+    if(est.activa) return { s, est };
+  }
+  return null;
+}
+
+function hdRazonSancion(nombre, x){
+  const rival = x.s.equipo === x.s.local ? x.s.visit : x.s.local;
+  return "🚫 " + nombre + " tiene una SANCIÓN ACTIVA y no puede jugar este partido.\n\n" +
+    "Fue sancionado el " + mnFechaLarga(fechaSancionISO(x.s.fecha)) + (rival ? " (vs " + rival + ")" : "") + ".\n" +
+    x.est.texto + (typeof x.est.partidos === "number"
+      ? ": lleva " + x.est.cumplidos + " y le " + (x.est.faltan === 1 ? "falta 1." : "faltan " + x.est.faltan + ".")
+      : ".");
+}
+
 /* Azul: vino / no vino. Solo antes de arrancar. */
 function hdPresente(lado, indice){
   if(!HD || hdYaInicio()) return;
@@ -6888,6 +6956,8 @@ function hdPresente(lado, indice){
   if(hdEsPresente(j)){
     j.presente = false;
   }else{
+    const sancion = hdSancionActiva(HD[lado], j.nombre);
+    if(sancion){ alert(hdRazonSancion(j.nombre, sancion)); return; }
     if(!String(j.jersey || "").trim()){
       alert("Antes de marcar a " + j.nombre + " ponle su número de jersey.");
       return;
@@ -6914,6 +6984,8 @@ function hdLlego(lado, indice){
   if(Number(HD.cuarto || 0) > HD_LLEGO_HASTA_CUARTO){ alert("Del 3º cuarto en adelante ya no se puede agregar a nadie."); return; }
   const j = HD.jugadores[lado][indice];
   if(!j) return;
+  const sancion = hdSancionActiva(HD[lado], j.nombre);
+  if(sancion){ alert(hdRazonSancion(j.nombre, sancion)); return; }
   if(!String(j.jersey || "").trim()){
     const n = prompt("¿Qué número trae " + j.nombre + "?", "");
     if(!n || !String(n).trim()) return;
@@ -7549,8 +7621,8 @@ function hdFalta(lado, indice, tipo){
      aparece en su pestaña para que escriba qué pasó. */
   if(tipo === "ftf" && j.ftf === HD_FTF_SANCION){
     alert("🟥 " + j.nombre + " llegó a " + HD_FTF_SANCION + " faltas técnicas o flagrantes.\n\n" +
-          "Eso es SANCIÓN. Al cerrar el partido le va a llegar a Francisco para que " +
-          "escriba qué sucedió.");
+          "Eso es SANCIÓN. Al cerrar el partido le va a llegar al staff (Francisco, Juan Pablo y Marcelo) " +
+          "para que escriba qué sucedió.");
   }
   if(totalFaltas === 5){
     alert("🚨 " + j.nombre + " llegó a 5 faltas.\n\nQueda FUERA del partido.");
@@ -7866,7 +7938,8 @@ function hdPrevioHTML(){
       const vino = hdEsPresente(j);
       const num = String(j.jersey || "").trim();
       const otro = !!j.habitual && num && num !== j.habitual;
-      html += `<div class="hd-jug${vino ? " presente" : ""}${sinNumero ? " sin-numero" : ""}">
+      const sancion = hdSancionActiva(HD[lado], j.nombre);
+      html += `<div class="hd-jug${vino ? " presente" : ""}${sinNumero ? " sin-numero" : ""}${sancion ? " sancionado" : ""}">
         <button class="hd-circulo${vino ? " presente" : ""}${sinNumero ? " sin-numero" : ""}"
                 onclick="hdPresente('${lado}',${i})"
                 title="${sinNumero ? "Ponle su número para poder marcarlo" : (vino ? "Quitar a " + j.nombre + " (no vino)" : "Marcar que " + j.nombre + " sí vino")}"
@@ -7879,6 +7952,7 @@ function hdPrevioHTML(){
         <div class="hd-jug-info">
           <div class="hd-jug-nombre">
             <span class="hd-nombre-link" onclick="hdFotoDe('${lado}',${i})" title="Ver la foto de ${j.nombre}">${j.nombre}</span>
+            ${sancion ? `<span class="hd-sancionado" title="${sancion.est.texto}">🚫 SANCIONADO</span>` : ""}
           </div>
         </div>
       </div>`;
@@ -7969,6 +8043,15 @@ function hdIniciarPartido(){
   }
   if(String(HD.arbitro1).trim() === String(HD.arbitro2).trim()){
     alert("El árbitro 1 y el árbitro 2 no pueden ser la misma persona.");
+    return;
+  }
+  /* Alguien pudo quedar en azul antes de que llegaran las sanciones (o de un
+     respaldo de antes del dictamen). Aquí ya no pasa. */
+  const suspendidos = ["local","visit"].flatMap(lado => HD.jugadores[lado]
+    .filter(j => hdEsPresente(j) && hdSancionActiva(HD[lado], j.nombre)).map(j => j.nombre + " (" + HD[lado] + ")"));
+  if(suspendidos.length){
+    alert("🚫 Tienen sanción activa y no pueden jugar:\n\n" + suspendidos.join("\n") +
+          "\n\nQuítales el azul para poder iniciar.");
     return;
   }
   const conRepetidos = ["local","visit"].filter(lado => hdRepetidos(lado).size)
@@ -8673,7 +8756,7 @@ function hdColumnaEquipo(lado){
               title="${aTiempo ? "Agregar a alguien del roster que acaba de llegar" : "Del 3º cuarto en adelante ya no se puede agregar a nadie"}">+ Llegó</button>
       ${aTiempo ? "" : '<span class="hoy-gris" style="font-size:12px;"> ya no se puede agregar a nadie (3º cuarto)</span>'}
       ${HD_LLEGO === lado && aTiempo ? '<div class="hd-llego-lista">' + faltan.map(({j, i}) =>
-        `<button class="mini-btn" onclick="hdLlego('${lado}',${i})">${j.jersey ? "#" + j.jersey + " " : ""}${j.nombre}</button>`).join("") + '</div>' : ""}
+        `<button class="mini-btn" onclick="hdLlego('${lado}',${i})">${j.jersey ? "#" + j.jersey + " " : ""}${j.nombre}${hdSancionActiva(HD[lado], j.nombre) ? " 🚫" : ""}</button>`).join("") + '</div>' : ""}
     </div>`;
   }
 
@@ -8971,6 +9054,65 @@ function renderCedulas(){ hdLlenarSelector(); hdRender(); }
    ============================================================ */
 let SANCIONES = [];
 
+/* ---------- ¿La sanción sigue activa? ----------
+   (Mauricio, 21 oct 2026.) Esta misma función está en index.html y en
+   admin.html, letra por letra; prueba_sanciones_dictamen.js revisa que no se
+   separen. La usan la sección Sanciones de la página, la pestaña Sanciones
+   del Admin y la hoja digital.
+
+   Las de antes de SANCIONES_REPORTE_DESDE ya pasaron: no llevan reporte ni
+   dictamen. Las demás cuentan solas: cada partido que juega el equipo
+   DESPUÉS del partido de la sanción y desde el día del dictamen es un
+   partido cumplido. "Desde el día del dictamen" es para que un partido
+   jugado mientras se revisaba el caso no cuente como cumplido.
+
+   Del tabulador también salen "TEMPORADA" (el resto de la temporada: activa
+   hasta la final) y "DEFINITIVA" (no vuelve a jugar: activa siempre). */
+const SANCIONES_REPORTE_DESDE = "2026-10-21";
+const SANCIONES_FIN_TEMPORADA = "2026-11-21";
+
+function fechaSancionISO(v){
+  const t = String(v == null ? "" : v).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if(m) return m[1] + "-" + m[2] + "-" + m[3];
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(t);
+  if(m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  return "";
+}
+
+function textoDeSancion(partidos){
+  if(partidos === "TEMPORADA") return "Suspendido el resto de la temporada";
+  if(partidos === "DEFINITIVA") return "No podrá volver a participar en los torneos de la liga";
+  const n = Number(partidos);
+  return "Suspensión de " + n + (n === 1 ? " partido" : " partidos");
+}
+
+function estadoSancion(s, resultados, hoy){
+  const fecha = fechaSancionISO(s.fecha);
+  const yaPaso = !!fecha && fecha < SANCIONES_REPORTE_DESDE;
+  const dictaminada = fechaSancionISO(s.dictaminada);
+  const p = String(s.partidos == null ? "" : s.partidos).trim().toUpperCase();
+  const nada = { yaPaso, dictaminada: false, partidos: null, cumplidos: 0, faltan: 0, activa: false, texto: "" };
+  if(!dictaminada || p === "") return nada;
+  if(p === "DEFINITIVA" || p === "TEMPORADA"){
+    const d = new Date();
+    const h = hoy || (d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2));
+    return { yaPaso, dictaminada: true, partidos: p, cumplidos: 0, faltan: null,
+             activa: p === "DEFINITIVA" || h <= SANCIONES_FIN_TEMPORADA, texto: textoDeSancion(p) };
+  }
+  const partidos = Number(p);
+  if(isNaN(partidos)) return nada;
+  const eq = nombreEquipo(s.equipo);
+  const jugados = (resultados || []).filter(r=>{
+    const f = fechaSancionISO(r.fecha);
+    return f && f > fecha && f >= dictaminada &&
+      (nombreEquipo(r.local) === eq || nombreEquipo(r.visitante || r.visit) === eq);
+  }).length;
+  const cumplidos = Math.min(jugados, partidos);
+  return { yaPaso, dictaminada: true, partidos, cumplidos, faltan: partidos - cumplidos,
+           activa: partidos - cumplidos > 0, texto: textoDeSancion(partidos) };
+}
+
 async function cargarSanciones(){
   const caja = document.getElementById("scLista");
   if(!caja) return;
@@ -8984,19 +9126,53 @@ async function cargarSanciones(){
   }
 }
 
+/* El tabulador de sanciones de Mauricio. La misma lista que
+   TABULADOR_SANCIONES_ en el Apps Script (prueba_sanciones_dictamen.js
+   revisa que coincidan): aquí solo se enseña; los partidos los pone el
+   servidor según el renglón que se escoja. */
+const TABULADOR_SANCIONES = [
+  { id: "expulsion", texto: "Expulsión por falta flagrante o técnica", partidos: 1 },
+  { id: "reincide-flagrante", texto: "Reincidencia en expulsión por falta flagrante", partidos: "TEMPORADA" },
+  { id: "reincide-tecnica", texto: "Reincidencia en expulsión por falta técnica", partidos: 2 },
+  { id: "arbitros", texto: "Expulsión por desaprobar o insultar al cuerpo arbitral o a la mesa de control", partidos: 1 },
+  { id: "arbitros-repite", texto: "Repetir la acción contra el cuerpo arbitral o la mesa de control", partidos: 3 },
+  { id: "arbitros-reincide", texto: "Reincidir nuevamente contra el cuerpo arbitral o la mesa de control", partidos: "TEMPORADA" },
+  { id: "alinear-ausente", texto: "Alinear a un jugador sin que esté presente", partidos: 2 },
+  { id: "alinear-castigado", texto: "Alinear a un jugador castigado o no elegible para jugar (el equipo pierde el partido por default)", partidos: 3 },
+  { id: "agresion-arbitros", texto: "Agredir físicamente al cuerpo arbitral", partidos: "DEFINITIVA" },
+  { id: "agresion-rival", texto: "Agredir físicamente a integrantes del equipo contrario o de su porra", partidos: "DEFINITIVA" }
+];
+/* Para dictaminar hacen falta estas dos versiones (la de Marcelo suma). */
+const SANCIONES_REPORTES_NECESARIOS = ["Juan Pablo", "Francisco"];
+function scFaltanReportes(s){ return SANCIONES_REPORTES_NECESARIOS.filter(n => !scVersiones(s)[n]); }
+
+/* Lo que le falta a cada sanción. Las que ya pasaron no esperan nada.
+
+   Cada staff escribe SU versión (Francisco, Juan Pablo y Marcelo, 22 oct
+   2026): a cada uno le falta la suya. A Mauricio le "falta reporte" solo si
+   nadie ha escrito nada, y puede dictaminar en cuanto haya al menos una. */
+function scVersiones(s){ return s.versiones || {}; }
+function scMiVersion(s){ return STAFF ? (scVersiones(s)[STAFF.nombre] || null) : null; }
+function scPendienteReporte(s){
+  if(s.yaPaso) return false;
+  return STAFF ? !scMiVersion(s) : !Object.keys(scVersiones(s)).length;
+}
+function scPendienteDictamen(s){ return !s.yaPaso && !scFaltanReportes(s).length && !s.dictaminada; }
+
 function renderSanciones(){
   const caja = document.getElementById("scLista");
   const resumen = document.getElementById("scResumen");
   if(!caja) return;
 
-  const faltan = SANCIONES.filter(s=>!String(s.descripcion || "").trim());
+  const faltan = SANCIONES.filter(scPendienteReporte);
+  const porDictaminar = SANCIONES.filter(scPendienteDictamen);
   if(resumen){
+    const partes = [];
+    if(faltan.length) partes.push(`<b>${faltan.length}</b> ${faltan.length === 1 ? "espera" : "esperan"} el reporte de lo que pasó`);
+    if(!STAFF && porDictaminar.length) partes.push(`<b>${porDictaminar.length}</b> ${porDictaminar.length === 1 ? "espera" : "esperan"} tu dictamen`);
     resumen.innerHTML = !SANCIONES.length
       ? "No ha habido ninguna sanción en la temporada."
-      : (faltan.length
-          ? `<b>${faltan.length}</b> ${faltan.length === 1 ? "sanción espera" : "sanciones esperan"} tu reporte. ` +
-            `<span style="color:var(--text-soft);">${SANCIONES.length - faltan.length} ya ${SANCIONES.length - faltan.length === 1 ? "está descrita" : "están descritas"}.</span>`
-          : `Las <b>${SANCIONES.length}</b> sanciones de la temporada ya están descritas.`);
+      : (partes.length ? partes.join(" · ") + "." : "No hay nada pendiente.");
   }
 
   if(!SANCIONES.length){
@@ -9007,24 +9183,72 @@ function renderSanciones(){
   }
 
   caja.innerHTML = SANCIONES.map((s, i)=>{
-    const listo = !!String(s.descripcion || "").trim();
-    return `<div class="card sc-caso${listo ? " listo" : ""}">
-      <div class="sc-cabeza">
+    const cabeza = `<div class="sc-cabeza">
         <div>
           <div class="sc-jugador">${s.jersey ? "#" + s.jersey + " " : ""}${s.jugador}</div>
           <div class="mn-sub">${s.equipo} · ${s.local} vs ${s.visit} · Semana ${s.semana} · ${mnFechaLarga(s.fecha)}</div>
         </div>
         <div class="sc-ftf">${s.ftf} FTF</div>
-      </div>
-      <label for="scTexto${i}">¿Qué sucedió?</label>
-      <textarea id="scTexto${i}" rows="4" placeholder="Describe lo que pasó: quién, cuándo, qué se dijo o hizo, y qué decidieron los árbitros.">${s.descripcion || ""}</textarea>
+      </div>`;
+
+    // Las de antes del corte: solo se dice que fue sancionado. Sin caja.
+    if(s.yaPaso){
+      return `<div class="card sc-caso paso">${cabeza}
+        <div class="mn-nota" style="margin:0;">Sancionado · ya pasó${String(s.descripcion || "").trim() ? " · " + s.descripcion : ""}</div>
+      </div>`;
+    }
+
+    const versiones = scVersiones(s);
+    const nombres = Object.keys(versiones);
+    const mia = scMiVersion(s);
+    const listo = STAFF ? !!mia : nombres.length > 0;
+    const est = estadoSancion(s, RESULTADOS);
+    const dictamenTxt = !est.dictaminada ? ""
+      : est.texto + (typeof est.partidos !== "number" ? (est.activa ? "" : " · ya terminó")
+        : " · " + (est.activa ? `cumplidos ${est.cumplidos}, le ${est.faltan === 1 ? "falta 1" : "faltan " + est.faltan}` : "ya la cumplió"));
+    const faltanReportes = scFaltanReportes(s);
+    const puedeDictaminar = !faltanReportes.length;
+
+    /* El dictamen es solo de Mauricio: el staff no ve la caja, solo el
+       resultado. */
+    const dictamen = STAFF
+      ? (est.dictaminada ? `<div class="sc-dictamen">${dictamenTxt}</div>` : "")
+      : `<div class="sc-dictamen-caja">
+          <label for="scMotivo${i}">Tabulador: ¿en cuál cayó?</label>
+          <select id="scMotivo${i}" onchange="scVerPartidos(${i})" style="width:100%;margin-top:4px;"${puedeDictaminar ? "" : " disabled"}>
+            <option value="">— Escoge del tabulador —</option>
+            ${TABULADOR_SANCIONES.map(t => `<option value="${t.id}"${s.motivo === t.texto ? " selected" : ""}>${t.texto}</option>`).join("")}
+          </select>
+          <div class="sc-dictamen" id="scPartidos${i}">${s.motivo ? (TABULADOR_SANCIONES.find(t => t.texto === s.motivo) ? textoDeSancion(TABULADOR_SANCIONES.find(t => t.texto === s.motivo).partidos) : "") : ""}</div>
+          <div class="sc-pie" style="margin-top:8px;">
+            <button class="save-btn" style="margin:0;" onclick="dictaminarSancion(${i})"${puedeDictaminar ? "" : " disabled"}>
+              ${est.dictaminada ? "Corregir y volver a avisar" : "Dictaminar y avisar"}</button>
+            <span class="mn-nota" style="margin:0;">${!puedeDictaminar ? "Falta la versión de " + faltanReportes.join(" y ") + "."
+              : est.dictaminada ? dictamenTxt + (s.notificada ? " · " + s.notificada : "")
+              : "Al dictaminar le llega un correo al capitán y otro al jugador."}</span>
+          </div>
+          <div class="msg" id="scDicMsg${i}"></div>
+        </div>`;
+
+    /* El staff escribe solo la suya y no ve la de los demás: así cada
+       versión sale de lo que vio cada quien. Mauricio ve todas, sin caja. */
+    const escribir = STAFF ? `
+      <label for="scTexto${i}">Tu versión: ¿qué sucedió?</label>
+      <textarea id="scTexto${i}" rows="4" placeholder="Describe lo que pasó: quién, cuándo, qué se dijo o hizo, y qué decidieron los árbitros.">${mia ? mia.texto : ""}</textarea>
       <div class="sc-pie">
-        <button class="save-btn" style="margin:0;" onclick="guardarSancion(${i})">${listo ? "Actualizar reporte" : "Guardar reporte"}</button>
-        <span class="mn-nota" style="margin:0;">${listo
-          ? "Escrito por " + s.escribio + (s.cuando ? " el " + s.cuando : "")
-          : "Todavía sin describir"}</span>
+        <button class="save-btn" style="margin:0;" onclick="guardarSancion(${i})">${mia ? "Actualizar mi versión" : "Guardar mi versión"}</button>
+        <span class="mn-nota" style="margin:0;">${mia ? "Guardada" + (mia.cuando ? " el " + mia.cuando : "") : "Todavía no escribes tu versión"}</span>
       </div>
-      <div class="msg" id="scMsg${i}"></div>
+      <div class="msg" id="scMsg${i}"></div>` : `
+      <div class="sc-versiones">${nombres.length
+        ? nombres.map(n => `<div class="sc-version"><div class="sc-version-quien">Versión de ${n}${versiones[n].cuando ? " · " + versiones[n].cuando : ""}</div>
+            <div class="sc-version-texto">${String(versiones[n].texto || "").replace(/</g, "&lt;")}</div></div>`).join("")
+        : '<div class="mn-nota" style="margin:0;">Todavía nadie del staff escribe su versión.</div>'}
+      </div>`;
+
+    return `<div class="card sc-caso${listo ? " listo" : ""}${est.activa ? " activa" : ""}">${cabeza}
+      ${escribir}
+      ${dictamen}
     </div>`;
   }).join("");
 }
@@ -9047,12 +9271,64 @@ async function guardarSancion(i){
       action: "guardarDescripcionSancion", clave: CONFIG.adminPassword,
       fila: s.fila, jugadorEsperado: s.jugador, descripcion: texto
     });
+    s.versiones = Object.assign({}, s.versiones, { [STAFF ? STAFF.nombre : r.sancion.escribio]: { texto, cuando: r.sancion.cuando } });
     s.descripcion = texto;
-    s.escribio = r.sancion.escribio;
     s.cuando = r.sancion.cuando;
-    aviso("Guardado. Ya sale en el reporte del partido.", true);
+    renderSanciones();
+    const m2 = document.getElementById("scMsg" + i);
+    if(m2){ m2.className = "msg ok"; m2.textContent = "Guardada tu versión. Mauricio ya la puede ver."; }
   }catch(e){
     aviso("No se pudo guardar: " + e.message, false);
+  }
+}
+
+/* Mauricio decide cuántos partidos. El servidor guarda y manda el correo al
+   capitán y al jugador; aquí solo se enseña cómo le fue. */
+/* Al escoger el renglón del tabulador se enseña cuántos partidos son. */
+function scVerPartidos(i){
+  const sel = document.getElementById("scMotivo" + i);
+  const t = TABULADOR_SANCIONES.find(x => x.id === (sel && sel.value));
+  const caja = document.getElementById("scPartidos" + i);
+  if(caja) caja.textContent = t ? textoDeSancion(t.partidos) : "";
+}
+
+async function dictaminarSancion(i){
+  const s = SANCIONES[i];
+  if(!s || STAFF) return;
+  const sel = document.getElementById("scMotivo" + i);
+  const t = TABULADOR_SANCIONES.find(x => x.id === (sel && sel.value));
+  const msg = document.getElementById("scDicMsg" + i);
+  const aviso = (txt, bien)=>{
+    if(!msg) return;
+    msg.className = "msg" + (bien === true ? " ok" : bien === false ? " err" : "");
+    msg.textContent = txt;
+  };
+  if(!t) return aviso("Escoge del tabulador en cuál cayó.", false);
+  if(!confirm(s.jugador + " (" + s.equipo + ")\n\n" + t.texto + "\n→ " + textoDeSancion(t.partidos) +
+              ".\n\nLe va a llegar un correo al capitán y otro al jugador. ¿Sigo?")) return;
+
+  aviso("Guardando y avisando…");
+  try{
+    const r = await postAppsScript({
+      action: "dictaminarSancion", clave: CONFIG.adminPassword,
+      fila: s.fila, jugadorEsperado: s.jugador, motivo: t.id
+    });
+    s.partidos = String(r.sancion.partidos);
+    s.motivo = r.sancion.motivo;
+    s.dictaminada = r.sancion.dictaminada;
+    s.dictamino = "Mauricio";
+    s.notificada = r.sancion.notificada;
+    renderSanciones();
+    const m2 = document.getElementById("scDicMsg" + i);
+    if(m2){
+      const ok = r.sancion.aviso && r.sancion.aviso.enviado;
+      const faltaron = (r.sancion.aviso && r.sancion.aviso.faltaron) || [];
+      m2.className = "msg " + (ok ? "ok" : "err");
+      m2.textContent = ok ? "Listo. Se avisó a " + r.sancion.aviso.para.join(", ") + "." + (faltaron.length ? " No salió: " + faltaron.join(", ") + "." : "")
+                          : "El dictamen quedó, pero el correo no salió: " + (r.sancion.aviso && r.sancion.aviso.motivo);
+    }
+  }catch(e){
+    aviso("No se pudo: " + e.message, false);
   }
 }
 
@@ -11596,6 +11872,11 @@ const CORREO_CAMPOS = {
   tituloParcial:     { etiqueta: "Título del parcial", filas: 0 },
   tituloPatros:      { etiqueta: "Título del bloque de patrocinadores", filas: 0 },
   letraChicaPatros:  { etiqueta: "Letra chica de los cupones (vigencia, condiciones)", filas: 3 },
+  cuerpoDefinitiva:  { etiqueta: "Cuerpo cuando ya no puede volver a participar", filas: 3 },
+  consulta:          { etiqueta: "Dónde consultar (vacío = no sale)", filas: 2 },
+  nota:              { etiqueta: "Nota de las que no se alcanzan a cumplir (solo sale con 2 partidos o más)", filas: 2 },
+  contacto:          { etiqueta: "Contacto para dudas (vacío = no sale)", filas: 2 },
+  despedida:         { etiqueta: "Despedida (antes del cierre; vacío = no sale)", filas: 2 },
   cierre:            { etiqueta: "Frase de cierre", filas: 2 }
 };
 
@@ -11608,7 +11889,9 @@ const CORREO_MARCAS = {
   recordatorioOliver: "",
   recordatorioStaff: "",
   rol: "{{semana}}",
-  cedula: "{{local}} {{visit}} {{ptsLocal}} {{ptsVisit}} {{categoria}}"
+  cedula: "{{local}} {{visit}} {{ptsLocal}} {{ptsVisit}} {{categoria}}",
+  sancionCapitan: "{{capitan}} {{jugador}} {{equipo}} {{rival}} {{fecha}} {{sancion}} {{motivo}} · los partidos que no puede jugar se agregan solos",
+  sancionJugador: "{{jugador}} {{equipo}} {{rival}} {{fecha}} {{sancion}} {{motivo}} · los partidos que no puede jugar se agregan solos"
 };
 
 async function renderCorreos(){
