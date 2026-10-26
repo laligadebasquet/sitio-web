@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- Ícono al agregar la página a la pantalla de inicio del celular (15 oct
      2026). Sin esto el teléfono inventaba uno con la letra "L". Es el logo de
-     los aros con la pelota, sobre negro. -->
+     los aros con el balón, sobre negro. -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="La Liga">
@@ -71,7 +71,7 @@
     align-items:center;
     gap:12px;
   }
-  /* Emblema del logo (la pelota). PNG con fondo transparente,
+  /* Emblema del logo (el balón). PNG con fondo transparente,
      funciona sobre la cabecera negra sin recortes. */
   .brand-logo{
     height:56px;
@@ -507,21 +507,17 @@
     text-transform:uppercase;color:#8A8A92;}
 
   /* Aviso de YouTube: una sola barra clicable de punta a punta. */
+  /* Desde el 22 oct es solo el botón (Mauricio): el texto "Todos los
+     partidos se transmiten…" se quitó. Franja negra delgada, botón al centro. */
   .yt-aviso{
-    display:flex;align-items:center;justify-content:space-between;gap:14px;
-    flex-wrap:wrap;text-decoration:none;
-    background:#000;border-radius:14px;padding:16px 20px;margin-bottom:26px;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    text-decoration:none;
+    background:#000;border-radius:14px;padding:12px 16px;margin-bottom:26px;
   }
-  .yt-aviso-texto{
-    color:#fff;font-weight:800;font-size:15px;letter-spacing:.3px;
-    text-transform:uppercase;line-height:1.35;
-  }
-  /* La invitación va en su propio renglón, más marcada que el aviso. */
-  .yt-aviso-texto strong{display:block;color:#FF4D4D;font-weight:900;}
   .yt-aviso-btn{
     display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
-    background:#FF0000;color:#fff;border-radius:999px;padding:9px 18px;
-    font-weight:800;font-size:12px;letter-spacing:.5px;text-transform:uppercase;
+    background:#FF0000;color:#fff;border-radius:999px;padding:11px 26px;
+    font-weight:900;font-size:13px;letter-spacing:.6px;text-transform:uppercase;
   }
   .yt-aviso:hover .yt-aviso-btn{filter:brightness(1.12);}
 
@@ -537,8 +533,204 @@
     display:grid;grid-template-columns:1fr 1fr;gap:12px;
     align-items:stretch;margin-bottom:26px;
   }
-  @media(max-width:880px){ .inicio-tira{grid-template-columns:1fr;} }
-  .inicio-tira .yt-aviso{margin-bottom:0;height:100%;}
+  /* Del 22 oct al cierre del 3x3 la tira lleva el bloque del torneo.
+     Mauricio (22 oct, noche): el 3x3 a la IZQUIERDA ocupando los dos
+     renglones; a la derecha patrocinadores arriba y abajo solo el botón rojo
+     de YouTube. Igual en el celular, en dos columnas: apilados se comían la
+     pantalla de inicio.
+     Sin espacio muerto: la que manda en la altura es la columna derecha (lo
+     que miden los logos y el botón) y la animación del 3x3 se estira o se
+     encoge para llenar su tarjeta (ver .t3-lienzo). Antes era al revés y
+     patrocinadores quedaba con negro arriba y abajo. */
+  .inicio-tira.con-3x3{
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+    grid-template-rows:1fr auto;
+    grid-template-areas:"t3 patros" "t3 yt";
+  }
+  .inicio-tira.con-3x3 .patros{grid-area:patros;gap:12px;padding:14px 0;}
+  .inicio-tira.con-3x3 .t3-tarjeta{grid-area:t3;}
+  /* YouTube: solo el botón rojo, a todo lo ancho, sin la franja negra. */
+  .inicio-tira.con-3x3 .yt-aviso{grid-area:yt;background:transparent;padding:0;border-radius:999px;}
+  .inicio-tira.con-3x3 .yt-aviso-btn{width:100%;justify-content:center;padding:13px 16px;font-size:14px;}
+  @media(min-width:881px){
+    .inicio-tira.con-3x3 .patros-titulo{font-size:14px;}
+    .inicio-tira.con-3x3 .patros-titulo span{font-size:11px;}
+    .inicio-tira.con-3x3 .patro-btn{height:92px;min-width:180px;}
+    .inicio-tira.con-3x3 .patro-btn img{height:48px;}
+  }
+  @media(max-width:880px){
+    .inicio-tira{grid-template-columns:1fr;}
+    .inicio-tira.con-3x3{gap:8px;margin-bottom:20px;}
+    .inicio-tira.con-3x3 .patros{padding:8px 0;gap:6px;}
+    .inicio-tira.con-3x3 .patros-titulo{font-size:10px;letter-spacing:.6px;padding:0 6px;}
+    .inicio-tira.con-3x3 .patros-titulo span{font-size:8px;letter-spacing:.3px;}
+    .inicio-tira.con-3x3 .patro-btn{height:64px;min-width:112px;padding:6px 9px;margin:0 3px;border-radius:8px;}
+    .inicio-tira.con-3x3 .patro-btn img{height:30px;}
+    .inicio-tira.con-3x3 .zurit-nom{font-size:18px;}
+    .inicio-tira.con-3x3 .yt-aviso-btn{padding:10px 8px;font-size:11px;gap:6px;}
+    .inicio-tira.con-3x3 .yt-aviso-btn svg{width:15px;height:15px;}
+  }
+  .inicio-tira .yt-aviso{margin-bottom:0;}
+
+  /* ============================================================
+     TORNEO 3x3: la tarjeta de la tira y su ventana de inscripción
+
+     La animación es la versión final "Logo" de 3x3/animacion.html (23 oct):
+     el fondo de toda la tarjeta lo pone la animación (ver t3Cuadro). Debajo,
+     solo la fecha y el botón: "TORNEO 3×3" sobraba, el 3×3 ya lo dice.
+     Toda la tarjeta es un botón: en el celular nadie atina a uno chiquito.
+     ============================================================ */
+  .t3-tarjeta{
+    display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:6px;
+    background:#0B0B0B;border:none;border-radius:14px;padding:12px 14px 14px;
+    cursor:pointer;text-align:center;font-family:inherit;color:#fff;min-width:0;
+  }
+  /* La animación llena lo que la tarjeta tenga de alto: el lienzo no aporta
+     altura propia (el svg va encima, absoluto) más allá de su mínimo. */
+  .t3-lienzo{position:relative;flex:1 1 auto;min-height:110px;display:block;}
+  .t3-anim{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .t3-texto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;}
+  /* La fecha en blanco (Mauricio); cuando la animación pone el fondo blanco,
+     t3Cuadro la pasa a negro con --t3-tinta, si no desaparecía. */
+  .t3-fechas{color:var(--t3-tinta,#fff);font-weight:900;font-size:15px;letter-spacing:.8px;text-transform:uppercase;}
+  /* Azul de INVIERNO 2026 (Mauricio, 23 oct), con letra blanca. */
+  .t3-btn{
+    background:#3E6BF0;color:#fff;border-radius:999px;
+    padding:9px 20px;font-weight:900;font-size:13px;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
+  }
+  /* En la compu la tarjeta es ancha y baja: la animación a la izquierda y la
+     fecha con el botón a la derecha, para que no sobre negro a los lados. */
+  @media(min-width:881px){
+    .t3-tarjeta{flex-direction:row;align-items:stretch;gap:18px;padding:14px 24px 14px 14px;}
+    .t3-lienzo{flex:1 1 58%;min-height:150px;}
+    .t3-texto{flex:0 0 auto;gap:12px;}
+    .t3-fechas{font-size:20px;}
+    .t3-btn{padding:11px 22px;font-size:14px;}
+  }
+  @media(max-width:880px){
+    .t3-tarjeta{padding:10px 8px 12px;gap:6px;}
+    .t3-lienzo{min-height:96px;}
+    .t3-texto{gap:7px;}
+    .t3-fechas{font-size:12px;letter-spacing:.5px;}
+    .t3-btn{padding:7px 11px;font-size:10px;letter-spacing:.3px;}
+  }
+  /* El botón late suave: la tarjeta tiene que provocar inscribirse, no solo
+     informar (Mauricio: "les genera algo, se quieren inscribir"). Un halo
+     azul que crece y se apaga cada 2.4 s; nada se mueve de lugar. */
+  .t3-btn{animation:t3Late 2.4s ease-out infinite;}
+  @keyframes t3Late{
+    0%{box-shadow:0 0 0 0 rgba(62,107,240,.65);}
+    70%{box-shadow:0 0 0 12px rgba(62,107,240,0);}
+    100%{box-shadow:0 0 0 0 rgba(62,107,240,0);}
+  }
+  @media(prefers-reduced-motion:reduce){ .t3-btn{animation:none;} }
+  .t3-tarjeta:hover .t3-btn{background:#2F57D6;}
+  .t3-tarjeta:focus-visible{outline:3px solid #F37228;outline-offset:2px;}
+
+  .modal-box.t3-caja{max-width:540px;max-height:92vh;}
+  /* En la pestaña Inscripción el formulario ya trae su propio relleno. */
+  .insc-form.t3-pestana{padding:0;overflow:hidden;}
+  .t3-pestana-titulo{background:#000;color:#fff;font-weight:800;font-size:14px;letter-spacing:.3px;padding:14px 20px;border-bottom:4px solid var(--orange);}
+  .t3-cuerpo{padding:18px 20px 22px;}
+  /* Hasta arriba: último día y cupo limitado. */
+  .t3-tope{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px;
+    font-size:13px;line-height:1.4;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid var(--gray-line);}
+  .t3-tope b{font-weight:900;}
+  .t3-tope span{color:var(--orange-dark);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+  .t3-tope.cerrada{color:var(--text-soft);}
+  /* Horarios · Premios · Reglas: tres botones, un panel abierto a la vez. */
+  /* Cuatro botones en un solo renglón, también en el celular. */
+  .t3-info{display:flex;gap:6px;margin-bottom:12px;}
+  .t3-info-btn{flex:1 1 0;min-width:0;padding:7px 4px;border-radius:999px;border:2px solid #000;background:#fff;color:#000;cursor:pointer;
+    font-family:inherit;font-weight:900;font-size:11px;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;}
+  /* En 375 px "HORARIOS" tocaba el borde de su botón: menos aire a los lados
+     y borde más delgado para que las cuatro palabras respiren. */
+  @media(max-width:420px){ .t3-info{gap:4px;} .t3-info-btn{font-size:9.5px;letter-spacing:0;padding:7px 2px;border-width:1.5px;} }
+  .t3-info-btn:hover{background:#000;color:#fff;}
+  /* La ventana de información va encima de la del formulario. */
+  .modal-overlay.t3-info-modal{z-index:110;}
+  .t3-info-modal .roster-body{font-size:14px;line-height:1.55;}
+  .t3-premios{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+  .t3-premios li{background:#fff;border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;}
+  .t3-premios b{font-weight:900;color:var(--orange-dark);text-transform:uppercase;font-size:12px;letter-spacing:.4px;}
+  .t3-reglas{margin:0;padding-left:18px;display:grid;gap:6px;}
+  .t3-reglas-sub{margin:14px 0 6px;font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--orange);}
+  .t3-bloques{margin:0;padding-left:18px;display:grid;gap:5px;}
+  .t3-desempate{margin:4px 0 0;padding-left:20px;display:grid;gap:2px;}
+  .t3-panel-nota{margin:10px 0 0;font-size:12.5px;}
+  /* El contacto del capitán: lo que ya tenemos, tapado, y "Usar otro". */
+  .t3-contacto{border:1px solid var(--gray-line);border-radius:10px;padding:12px 14px 2px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;}
+  .t3-contacto-titulo{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;}
+  .t3-dato{display:flex;align-items:baseline;gap:10px;font-size:14px;flex-wrap:wrap;}
+  .t3-dato span{font-size:12px;color:var(--text-soft);min-width:56px;}
+  .t3-link{border:none;background:none;padding:0;color:var(--orange-dark);font:inherit;font-weight:800;font-size:12px;cursor:pointer;text-decoration:underline;}
+  .t3-contacto .t3-vacio{padding:0 0 10px;font-size:12px;}
+  .t3-reglas-cortas{font-size:13px;color:var(--text-soft);line-height:1.55;margin:0 0 16px;}
+  .t3-cats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .t3-cat{
+    padding:10px 8px;border-radius:9px;border:2px solid var(--gray-line);background:#fff;cursor:pointer;
+    font-family:inherit;font-weight:800;font-size:13px;color:var(--text);
+  }
+  .t3-cat.on{border-color:var(--orange);background:rgba(243,114,40,.1);}
+  .t3-cat.llena{color:var(--text-soft);}
+  .t3-cat small{display:block;font-size:10px;font-weight:800;color:var(--orange-dark);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+  .t3-espera-botones{display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:6px;}
+  .t3-listo-espera{border:2px solid var(--orange);background:rgba(243,114,40,.08);}
+  .t3-regla-cat{font-size:12px;color:var(--text-soft);margin-top:6px;}
+  .t3-jug{
+    display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--gray-line);font-size:14px;
+  }
+  .t3-ini{
+    width:34px;height:34px;border-radius:50%;background:var(--gray-bg);flex:0 0 auto;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--text-soft);
+  }
+  .t3-ini img{width:100%;height:100%;object-fit:cover;}
+  .t3-jug-info{flex:1;min-width:0;}
+  .t3-jug-nom{font-weight:800;line-height:1.25;}
+  .t3-jug-sub{font-size:12px;color:var(--text-soft);line-height:1.3;}
+  .t3-jug-no{font-size:12px;color:var(--loss);font-weight:700;line-height:1.3;}
+  .t3-fuerza{
+    font-size:11px;font-weight:900;border-radius:6px;padding:2px 7px;background:var(--gray-bg);color:var(--text-soft);
+  }
+  .t3-fuerza.a{background:rgba(243,114,40,.15);color:var(--orange-dark);}
+  .t3-chico{
+    border:1px solid var(--gray-line);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;
+    font-family:inherit;font-weight:800;font-size:12px;color:var(--text);white-space:nowrap;
+  }
+  .t3-chico:hover{border-color:var(--orange);}
+  .t3-chico.cap{background:#000;color:#fff;border-color:#000;}
+  .t3-vacio{font-size:13px;color:var(--text-soft);padding:6px 0 2px;}
+  .t3-nuevo{border:1px dashed var(--gray-line);border-radius:10px;padding:14px 14px 4px;margin-top:10px;}
+  .t3-foto{display:flex;align-items:center;gap:12px;}
+  /* Los costos ya no van en el formulario (Mauricio, 23 oct): viven en el
+     botón Pagos. Las casillas necesitan el aire que antes daba esa caja. */
+  .t3-check:first-of-type{margin-top:6px;}
+  .t3-check{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5;margin-bottom:10px;cursor:pointer;}
+  .t3-check input{margin-top:3px;flex:0 0 auto;}
+  /* Azul de INVIERNO 2026, igual que el botón de la tarjeta (Mauricio, 25 oct). */
+  .t3-enviar{
+    width:100%;padding:13px;border:none;border-radius:10px;background:#3E6BF0;color:#fff;cursor:pointer;
+    font-family:inherit;font-weight:900;font-size:15px;letter-spacing:.5px;text-transform:uppercase;margin-top:6px;
+  }
+  .t3-enviar:hover{background:#2F57D6;}
+  .t3-enviar:disabled{opacity:.6;cursor:wait;}
+  .t3-listo{text-align:center;padding:10px 4px;}
+  .t3-listo-big{font-size:36px;font-weight:900;color:var(--orange);line-height:1.05;text-transform:uppercase;}
+  .t3-listo-big-espera{font-size:24px;}
+  .t3-listo-sub{margin-top:6px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+  .t3-reglas-cortas small{display:inline-block;margin-top:4px;font-size:12px;color:var(--text-soft);}
+  .t3-listo-liga{font-weight:900;font-size:15px;letter-spacing:1px;text-transform:uppercase;margin-top:6px;display:flex;flex-direction:column;gap:2px;}
+  .t3-listo-liga span{font-size:12px;letter-spacing:2px;color:var(--text-soft);}
+  .t3-listo h4{font-size:20px;margin:18px 0 2px;}
+  .t3-listo-cat{font-size:13px;font-weight:800;color:var(--orange-dark);text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;}
+  .t3-listo-jug{list-style:none;padding:0;margin:0 0 14px;font-size:14px;line-height:1.7;}
+  .t3-listo-jug b{color:var(--orange-dark);font-size:12px;}
+  .t3-listo-bloque{background:var(--gray-bg);border-radius:10px;padding:10px 12px;margin:0 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;}
+  .t3-listo-bloque b{font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;}
+  .t3-listo-bloque .t3-chico{margin-top:6px;}
+  .t3-listo-limite{margin-top:6px;font-size:13px;line-height:1.45;color:var(--orange-dark);font-weight:700;}
+  .t3-listo-limite b{font-weight:900;}
+  .t3-listo-nota{font-size:13px;color:var(--text-soft);margin:4px 0 12px;}
 
   .patros{
     background:#000;border-radius:14px;padding:12px 0;overflow:hidden;
@@ -2426,12 +2618,8 @@
 
       <!-- Mitad YouTube, mitad patrocinadores. La lista de marcas y sus
            beneficios vive en PATROS, allá abajo en el script. -->
-      <div class="inicio-tira">
-        <a class="yt-aviso" href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" target="_blank" rel="noopener">
-          <span class="yt-aviso-texto">
-            Todos los partidos se transmiten por YouTube
-            <strong>¡Suscríbete a nuestro canal!</strong>
-          </span>
+      <div class="inicio-tira con-3x3" id="inicioTira">
+        <a class="yt-aviso" href="https://www.youtube.com/channel/UCHH7p6lP-rhy6Xa7LCuZFKA" target="_blank" rel="noopener" aria-label="Ver el canal de YouTube de La Liga de Basquet">
           <span class="yt-aviso-btn">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
               <path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.9 2.6 12 2.6 12 2.6h0s-4.9 0-8.2.3c-.5 0-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S0 8.1 0 10v1.9c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.6 1 1.9.2 8.3.3 8.3.3s4.9 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V10c0-1.9-.2-3.8-.2-3.8zM9.5 14.3V7.7l6.4 3.3-6.4 3.3z"></path>
@@ -2445,6 +2633,50 @@
           </div>
           <div class="patros-cinta"><div class="patros-pista" id="patrosPista"></div></div>
         </div>
+        <!-- Torneo 3x3 (23 nov – 3 dic 2026). Mauricio no quiso pestaña:
+             va aquí, en el inicio, con la animación del logo. Al tocarla se
+             abre la inscripción encima de la página. Se quita sola después
+             del torneo (ver T3_FIN_TORNEO). -->
+        <button type="button" class="t3-tarjeta" id="t3Tarjeta" onclick="abrir3x3()" aria-label="Torneo 3x3, del 23 de noviembre al 3 de diciembre: inscribe tu equipo">
+          <span class="t3-lienzo"><svg class="t3-anim" id="t3Anim" viewBox="450 70 700 600" aria-hidden="true">
+            <defs>
+              <radialGradient id="t3Esfera" cx="0.36" cy="0.32" r="0.75">
+                <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+                <stop offset="0.3" stop-color="#FFFFFF" stop-opacity="0"/>
+                <stop offset="0.7" stop-color="#000000" stop-opacity="0.08"/>
+                <stop offset="1" stop-color="#000000" stop-opacity="0.45"/>
+              </radialGradient>
+              <radialGradient id="t3DegSombra"><stop offset="0" stop-color="#000000" stop-opacity="0.85"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
+              <radialGradient id="t3DegPiso"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect id="t3Fondo" x="0" y="0" width="1600" height="900" fill="#0B0B0B"/>
+            <g id="t3Piezas">
+              <polyline id="t3AroAfuera" fill="none" stroke="#F37228" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline id="t3AroAdentro" fill="none" stroke="#F37228" stroke-linecap="round" stroke-linejoin="round"/>
+              <ellipse id="t3PisoLuz" rx="0" ry="0" fill="url(#t3DegPiso)"/>
+              <ellipse id="t3SombraBalon" rx="0" ry="0" fill="url(#t3DegSombra)"/>
+              <g id="t3Balon">
+                <circle id="t3BalonCirculo" r="76.5" fill="#F37228"/>
+                <circle id="t3BalonAzul" r="0" fill="#2747B8"/>
+                <path id="t3GajoArriba" fill="#F37228"/><path id="t3GajoDer" fill="#F37228"/>
+                <path id="t3GajoAbajo" fill="#F37228"/><path id="t3GajoIzq" fill="#F37228"/>
+                <polyline id="t3Costura1" fill="none" stroke="#111" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline id="t3Costura2" fill="none" stroke="#111" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline id="t3Costura3" fill="none" stroke="#111" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline id="t3Costura4" fill="none" stroke="#111" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <line id="t3CosturaV" x1="0" y1="0" x2="0" y2="0" stroke="#111" stroke-width="3.6" stroke-linecap="round"/>
+                <line id="t3CosturaH" x1="0" y1="0" x2="0" y2="0" stroke="#111" stroke-width="3.6" stroke-linecap="round"/>
+                <circle r="76.5" fill="url(#t3Esfera)"/>
+                <circle r="76.5" fill="none" stroke="#111" stroke-width="4.5"/>
+                <circle id="t3Destello" r="80" fill="#FFFFFF" opacity="0"/>
+              </g>
+            </g>
+          </svg></span>
+          <span class="t3-texto">
+            <span class="t3-fechas">23 nov – 3 dic</span>
+            <span class="t3-btn" id="t3TarjetaBtn">Inscribe tu equipo</span>
+          </span>
+        </button>
       </div>
 
       <!-- En la computadora, Inicio va en dos columnas: los partidos a la
@@ -2546,6 +2778,32 @@
   <section class="view" id="view-inscripcion"></section>
   <section class="view" id="view-video"></section>
 </main>
+
+<!-- Horarios, Premios y Reglas del 3x3 se abren en su propia ventana,
+     encima del formulario, como HORARIOS y FORMAS DE PAGO del 5x5 (Mauricio,
+     22 oct): abiertos dentro del formulario se comían mucho espacio. -->
+<div class="modal-overlay t3-info-modal" id="t3InfoModal" onclick="if(event.target===this) cerrarInfo3x3()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="t3InfoTitulo">
+    <div class="modal-header">
+      <div><h3 id="t3InfoTitulo">Formato</h3><span>La Liga de Basquet 3×3</span></div>
+      <button class="modal-close" onclick="cerrarInfo3x3()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="roster-body" id="t3InfoCuerpo"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="t3Modal" onclick="if(event.target===this) cerrar3x3()">
+  <div class="modal-box t3-caja" role="dialog" aria-modal="true" aria-labelledby="t3ModalTitulo">
+    <div class="modal-header">
+      <div>
+        <h3 id="t3ModalTitulo">La Liga de Basquet 3×3</h3>
+        <span>Del lunes 23 de noviembre al jueves 3 de diciembre</span>
+      </div>
+      <button class="modal-close" onclick="cerrar3x3()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="t3-cuerpo" id="t3Cuerpo"></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="rosterModal" onclick="if(event.target===this) cerrarRoster()">
   <div class="modal-box">
@@ -2839,6 +3097,10 @@ function leerDelSheet(hojas, timeoutMs, opciones){
         if(respuesta.inscripcionesAbiertas !== undefined){
           INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
           if(typeof refrescarFormEquipo === "function") refrescarFormEquipo();
+        }
+        if(respuesta.altasAbiertas !== undefined){
+          ALTAS_ABIERTAS = !!respuesta.altasAbiertas;
+          if(typeof refrescarFormJugador === "function") refrescarFormJugador();
         }
         if(respuesta.avisosRol) AVISOS_ROL = respuesta.avisosRol;
         resolve(respuesta.hojas);
@@ -3143,7 +3405,12 @@ function aplicarDatos(datos){
   if(datos["Resultados"])   RESULTADOS = mapResultadosCsv(datos["Resultados"]);
   if(datos["Rol de Partidos"]) ROL = mapRolCsv(datos["Rol de Partidos"]);
   if(datos["Equipos"])      EQUIPOS = mapEquiposCsv(datos["Equipos"]);
-  if(datos["Integrantes"]){ ROSTERS = mapIntegrantesCsv(datos["Integrantes"]); marcarFotosQueYaLlegaron(); }
+  if(datos["Integrantes"]){
+    ROSTERS = mapIntegrantesCsv(datos["Integrantes"]); marcarFotosQueYaLlegaron();
+    // El buscador del 3x3 necesita el nombre y el equipo crudos (ver claveJugador3x3).
+    T3_FILAS_INTEGRANTES = datos["Integrantes"];
+    if(typeof buscar3x3 === "function") buscar3x3();
+  }
   if(datos["Asistencia"])   ASISTENCIA_JUGADOS = mapAsistenciaCsv(datos["Asistencia"]);
   if(datos["Cédulas"])      CEDULAS_PUB = mapCedulasCsv(datos["Cédulas"]);
   if(datos["Estadísticas"]) ESTADISTICAS = mapEstadisticasCsv(datos["Estadísticas"]);
@@ -3241,6 +3508,7 @@ async function init(){
   renderContacto();
   renderInscripcion();
   renderPatrocinadores();
+  prepararTarjeta3x3();
   aplicarDeepLink();
 
   if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl){
@@ -6902,7 +7170,7 @@ function categoriaCorta(categoria){
   return (categoria || "").replace(/^(Varonil|Femenil)\s*/i, "").trim();
 }
 
-/* Fila de pelotas de basquet: una pelota por cada partido jugado, para que
+/* Fila de balones de basquet: un balón por cada partido jugado, para que
    se entienda de un vistazo que cada 🏀 representa un partido jugado. */
 function pelotasHTML(partidos){
   const n = Number(partidos) || 0;
@@ -7197,6 +7465,894 @@ function irAReglamento(cat){
 /* Deep-link para que un correo (u otro enlace externo) pueda abrir la
    Consola directo en el Reglamento con la categoría correcta, por ejemplo:
    https://TU-DOMINIO/Consola_Liga_Basquetbol.html?view=reglamento&cat=varonil */
+/* ============================================================
+   TORNEO 3x3 (23 nov – 3 dic 2026)
+
+   Mauricio, 22 oct 2026: los equipos de 3x3 se arman con jugadores que YA
+   están en la liga, mezclados de los equipos que quieran. El capitán los
+   busca por nombre: nadie vuelve a llenar el alta ni a subir su foto. Hasta
+   el viernes 6 de noviembre solo entran jugadores de la liga; del 7 al 15
+   se abre al público y se puede agregar a alguien de fuera con un alta corta.
+
+   Las reglas se revisan aquí para avisar al momento, y otra vez en el Apps
+   Script (validarEquipo3x3_), que es el que manda.
+   ============================================================ */
+/* Mismos valores que T3_FIN_ETAPA_LIGA_ y T3_CIERRE_ del Apps Script. */
+const T3_FIN_ETAPA_LIGA = "2026-11-06";
+const T3_CIERRE = "2026-11-15";
+const T3_FIN_TORNEO = "2026-12-03";
+const T3_CATEGORIAS = ["Femenil A","Varonil A","Femenil B","Varonil B"];
+const T3_MAX_JUGADORES = 4, T3_MIN_JUGADORES = 3, T3_MAX_A_EN_B = 1;
+const T3_CUOTA = 500, T3_ARBITRAJE = 150;
+/* Lista de espera (Mauricio, 23 oct): una categoría con sus 8 equipos ya
+   no se rechaza. Se puede escoger, sale esta explicación y el equipo entra
+   a la lista; si un inscrito no paga en 72 horas, entra el primero de la
+   lista. Quien decide si de verdad quedó en espera es el Apps Script. */
+const T3_ESPERA_TEXTO = `
+    <p><b>Esta categoría ya tiene su cupo completo</b>, pero puedes inscribir a tu equipo en la <b>lista de espera</b>.</p>
+    <div class="pagos-reglas"><ul>
+      <li>Los equipos inscritos tienen <b>72 horas</b> para pagar su inscripción. Si alguno no paga, su lugar se libera.</li>
+      <li>Ese lugar lo toma el <b>primer equipo de la lista de espera</b>, en el orden en que se inscribieron.</li>
+      <li>Te avisamos por correo en el caso de que se libere un espacio.</li>
+    </ul></div>`;
+
+const T3 = {
+  etapa: "", ocupados: {}, llenas: {}, cat: "", jugadores: [], capitan: 0,
+  /* De la hoja de Mauricio, vía leer3x3: la fuerza de cada jugador y quién
+     es la misma persona aunque esté en dos equipos. */
+  fuerzas: {}, personas: {},
+  nuevoFoto: "", armado: false
+};
+
+function hoyClave3x3(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function etapa3x3(hoy){
+  if(hoy <= T3_FIN_ETAPA_LIGA) return "liga";
+  if(hoy <= T3_CIERRE) return "abierta";
+  return "cerrada";
+}
+/* La misma llave que claveJugador3x3_ del Apps Script. */
+function claveJugador3x3(nombreCompleto, equipo){
+  const limpia = t => normalizar(t).replace(/\s+/g," ");
+  return limpia(nombreCompleto) + "|" + limpia(equipo);
+}
+const fuerzaDe3x3 = cat => { const m = /\b([AB])\s*$/i.exec(String(cat || "").trim()); return m ? m[1].toUpperCase() : ""; };
+const ramaDe3x3 = cat => /femenil/i.test(String(cat || "")) ? "Femenil" : "Varonil";
+const esc3x3 = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* Las filas de Integrantes tal como llegan (nombre completo y equipo sin
+   retocar): con eso se arma la llave que el Apps Script reconoce. */
+let T3_FILAS_INTEGRANTES = [];
+let _t3Cache = null;
+function jugadoresLiga3x3(){
+  if(_t3Cache && _t3Cache.filas === T3_FILAS_INTEGRANTES && _t3Cache.equipos === EQUIPOS &&
+     _t3Cache.fuerzas === T3.fuerzas) return _t3Cache.lista;
+  const catDe = {};
+  EQUIPOS.forEach(e => { catDe[normalizar(e.nombre).replace(/\s+/g," ")] = e.categoria; });
+  const vistos = {}, lista = [];
+  T3_FILAS_INTEGRANTES.forEach(r => {
+    const completo = String(r["Nombre Completo"] || "").trim(), equipo = String(r["Equipo"] || "").trim();
+    if(!completo || !equipo) return;
+    const categoria = catDe[normalizar(nombreEquipo(equipo)).replace(/\s+/g," ")];
+    if(!categoria) return;                       // sin categoría no se puede revisar la regla A/B
+    const clave = claveJugador3x3(completo, equipo);
+    if(vistos[clave]) return;
+    vistos[clave] = true;
+    const nombre = nombreJugador(completo, r["Apellido"]);
+    lista.push({ clave, completo, equipo, equipoVer: nombreEquipo(equipo), nombre, categoria,
+                 fuerza: fuerzaDe3x3(categoria), rama: ramaDe3x3(categoria),
+                 buscar: normalizar(nombre + " " + completo) });
+  });
+  /* 23 jugadores están en dos equipos, varios en uno A y otro B (22 oct
+     2026). Si cada renglón traía su propia fuerza, un capitán podía meter a
+     uno de A por su equipo B y brincarse el "máximo 1 de A".
+     Quién es la misma persona y su fuerza los decide Mauricio en su hoja
+     (llegan con leer3x3): Sebastian Rosan está en un equipo A y uno B y él
+     dijo B; tres que se llaman igual son personas distintas. Mientras esa
+     respuesta no llega, o para alguien que no está en la hoja, la persona
+     se junta por nombre y es A si cualquiera de sus equipos es A. */
+  const conHoja = Object.keys(T3.personas).length > 0;
+  lista.forEach(j => { j.persona = T3.personas[j.clave] || (conHoja ? j.clave : "n|" + j.clave.split("|")[0]); });
+  const esA = {};
+  lista.forEach(j => { if(j.fuerza === "A") esA[j.persona] = true; });
+  lista.forEach(j => { j.fuerza = T3.fuerzas[j.clave] || (esA[j.persona] ? "A" : j.fuerza); });
+  /* Una persona sale UNA vez en la búsqueda, con todos sus equipos y su
+     fuerza (Mauricio, 22 oct: Diego Salas salía por Hot Goofys y por We The
+     South). La representa su primer renglón. */
+  const equiposDe = {};
+  lista.forEach(j => {
+    const e = equiposDe[j.persona] = equiposDe[j.persona] || [];
+    if(!e.includes(j.equipoVer)) e.push(j.equipoVer);
+  });
+  const yaSalio = {};
+  lista.forEach(j => {
+    j.equipos = equiposDe[j.persona];
+    j.principal = !yaSalio[j.persona];
+    yaSalio[j.persona] = true;
+  });
+  _t3Cache = { filas: T3_FILAS_INTEGRANTES, equipos: EQUIPOS, fuerzas: T3.fuerzas, lista };
+  return lista;
+}
+
+/* Por qué NO se puede agregar a alguien a este equipo, o "" si sí. */
+function motivoNoAgregable3x3(j){
+  /* El mismo jugador sale una vez por cada equipo de 5x5 en el que está
+     dado de alta: se compara la persona, no el renglón. */
+  if(T3.jugadores.some(x => x.clave === j.clave || (!x.nuevo && x.persona === j.persona))) return "Ya está en tu equipo";
+  const ocupadoEn = T3.ocupados[j.clave] || T3.ocupados[j.persona];
+  if(ocupadoEn) return "Ya está en " + ocupadoEn;
+  if(T3.jugadores.length >= T3_MAX_JUGADORES) return "Tu equipo ya tiene " + T3_MAX_JUGADORES;
+  if(fuerzaDe3x3(T3.cat) === "B" && j.fuerza === "A" &&
+     T3.jugadores.filter(x => x.fuerza === "A").length >= T3_MAX_A_EN_B) return "Ya tienes " + T3_MAX_A_EN_B + " jugador de categoría A";
+  return "";
+}
+
+/* ---------- la animación de la tarjeta ----------
+   Es la versión final "Logo" de 3x3/animacion.html (Mauricio, 23 oct), pero
+   en la tarjeta SOLO la parte del balón (Mauricio, 23 oct: "solamente el
+   balón dando los 3 botes y transformándose, sin La Liga de Basquet, sin
+   Invierno 2026"). El logo se queda como es y el balón bota tres veces;
+   con cada bote se va volviendo el balón 3x3 (amarillo, X azul, costuras
+   naranjas), cada aro da media vuelta sobre su eje y se va haciendo negro, y
+   el fondo pasa de negro a blanco. Se queda así unos segundos y vuelve a
+   empezar. Mismos tiempos que el prototipo. Toda la tarjeta toma el color
+   del fondo de la animación, para que no se vea un cuadro blanco en una
+   tarjeta negra. */
+const T3A_N = 160, T3A_VUELTA = 6, T3A_NARANJA = "#F37228", T3A_R = 76.5;
+const T3A_BALON = { amarillo: "#FFC72C", azul: "#2747B8", costura: "#E8681E" };
+const T3A_NEGRO = "#0B0B0B", T3A_BLANCO = "#FFFFFF", T3A_TINTA = "#111111";
+const t3Lerp = (a, b, t) => a + (b - a) * t;
+const t3Lim = t => Math.max(0, Math.min(1, t));
+const t3Tramo = (t, a, b) => t3Lim((t - a) / (b - a));
+const t3Suave = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+function t3MezclaHex(a, b, t){
+  const h = s => [1,3,5].map(i => parseInt(s.slice(i, i+2), 16));
+  const A = h(a), B = h(b);
+  return "#" + A.map((v, i) => Math.round(t3Lerp(v, B[i], t3Lim(t))).toString(16).padStart(2, "0")).join("");
+}
+function t3Aro(r){
+  const p = [];
+  for(let i = 0; i < T3A_N; i++){ const a = t3Lerp(Math.PI, Math.PI*3, i/(T3A_N-1)); p.push([r*Math.cos(a), r*Math.sin(a)]); }
+  return p;
+}
+function t3Suaviza(P, n){
+  const Q = P.map(p => [p[0] - 160, p[1] - 160]), out = [];
+  for(let i = 0; i < n; i++){
+    const u = i / (n - 1) * (Q.length - 1), k = Math.min(Math.floor(u), Q.length - 2), t = u - k;
+    const p0 = Q[Math.max(k - 1, 0)], p1 = Q[k], p2 = Q[k + 1], p3 = Q[Math.min(k + 2, Q.length - 1)];
+    const f = (a, b, c, d) => 0.5 * ((2*b) + (-a + c)*t + (2*a - 5*b + 4*c - d)*t*t + (-a + 3*b - 3*c + d)*t*t*t);
+    out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+  }
+  return out;
+}
+const t3Mezcla = (A, B, t) => A.map((p, i) => [t3Lerp(p[0], B[i][0], t), t3Lerp(p[1], B[i][1], t)]);
+const t3Puntos = P => P.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+/* El balón 3x3: cuatro gajos amarillos sobre azul; entre ellos queda la X. */
+const T3A_GAJOS = {
+  t3GajoArriba: { de: -125, a: -55, c: [0, 12.7] },  t3GajoDer: { de: -35, a: 35, c: [-12.7, 0] },
+  t3GajoAbajo:  { de: 55, a: 125, c: [0, -12.7] },   t3GajoIzq: { de: 145, a: 215, c: [12.7, 0] }
+};
+const t3EnBorde = g => [T3A_R * Math.cos(g * Math.PI/180), T3A_R * Math.sin(g * Math.PI/180)];
+function t3GajoRuta(g){
+  const [x0, y0] = t3EnBorde(g.de), [x1, y1] = t3EnBorde(g.a);
+  return "M" + x0.toFixed(2) + " " + y0.toFixed(2) + " A" + T3A_R + " " + T3A_R + " 0 0 1 " + x1.toFixed(2) + " " + y1.toFixed(2) +
+         " Q" + g.c[0] + " " + g.c[1] + " " + x0.toFixed(2) + " " + y0.toFixed(2) + " Z";
+}
+function t3GajoCostura(g){
+  const P0 = t3EnBorde(g.de), P1 = t3EnBorde(g.a), C = g.c, out = [];
+  for(let i = 0; i < 40; i++){
+    const t = i / 39;
+    out.push([(1-t)*(1-t)*P0[0] + 2*(1-t)*t*C[0] + t*t*P1[0], (1-t)*(1-t)*P0[1] + 2*(1-t)*t*C[1] + t*t*P1[1]]);
+  }
+  return out;
+}
+/* Cada costura del logo (calcadas del PNG de 320 px) se va a la del balón
+   3x3 que le queda más cerca, para que no se crucen al cambiar. */
+const T3A_COSTURAS = [
+  ["t3Costura1", t3Suaviza([[128,89],[143,107],[158,128],[172,155],[184,182],[193,205],[200,226]], 40), t3GajoCostura(T3A_GAJOS.t3GajoAbajo).reverse()],
+  ["t3Costura2", t3Suaviza([[90,190],[97,160],[108,138],[125,121],[145,110],[165,101],[185,98],[208,99]], 40), t3GajoCostura(T3A_GAJOS.t3GajoArriba)],
+  ["t3Costura3", t3Suaviza([[157,83],[158,93],[162,100],[175,108],[195,122],[213,138],[229,155],[235,170]], 40), t3GajoCostura(T3A_GAJOS.t3GajoDer)],
+  ["t3Costura4", t3Suaviza([[100,115],[113,112],[124,116],[130,124],[132,140],[132,165],[131,190],[133,210],[140,232]], 40), t3GajoCostura(T3A_GAJOS.t3GajoIzq)]
+];
+function t3Cuadro(t){
+  const $ = id => document.getElementById(id);
+  const svg = $("t3Anim");
+  if(!svg) return;
+  if(!$("t3GajoArriba").getAttribute("d")) Object.keys(T3A_GAJOS).forEach(id => $(id).setAttribute("d", t3GajoRuta(T3A_GAJOS[id])));
+  const s = 1.6, cx = 800, cy = 380;
+
+  // tres botes; al tocar el piso el balón se aplasta tantito
+  const BOTES = [0.4, 0.9, 1.4], DUR = 0.5, ALTURA = 105 * s, INICIO = 1.9;
+  let salto = 0, aplasta = 0;
+  BOTES.forEach(b => { const u = t3Tramo(t, b, b + DUR); if(u > 0 && u < 1) salto = -ALTURA * 4 * u * (1 - u); });
+  BOTES.forEach(b => { const d = Math.abs(t - (b + DUR)); if(d < 0.07) aplasta = Math.max(aplasta, 1 - d / 0.07); });
+
+  // con cada bote: el fondo va de negro a blanco y los aros de naranja a negro
+  const paso = b => t3Suave(t3Tramo(t, b + DUR - 0.03, b + DUR + 0.28));
+  const forma3 = (paso(BOTES[0]) + paso(BOTES[1]) + paso(BOTES[2])) / 3;
+  const fondo = t3MezclaHex(T3A_NEGRO, T3A_BLANCO, forma3);
+  $("t3Fondo").setAttribute("fill", fondo);
+  const tarjeta = $("t3Tarjeta");
+  if(tarjeta){
+    tarjeta.style.background = fondo;
+    // la fecha se lee en blanco sobre negro y en negro sobre blanco
+    tarjeta.style.setProperty("--t3-tinta", t3MezclaHex(T3A_BLANCO, T3A_TINTA, forma3));
+  }
+  const tinta = t3MezclaHex(T3A_NARANJA, T3A_TINTA, forma3);
+  /* Cada aro da media vuelta por bote sobre su propio eje, sin moverse: el
+     chico hacia la derecha y el grande hacia la izquierda. Media vuelta lo
+     deja igual, así que al final queda el logo tal cual. Con perspectiva. */
+  [["t3AroAfuera", 146*s, 24*s, -1], ["t3AroAdentro", 101*s, 23*s, 1]].forEach(([id, r, g, sentido]) => {
+    const ang = sentido * Math.PI * forma3 * 3, c = Math.cos(ang), sn = Math.sin(ang), CAM = 520 * s;
+    const P = t3Aro(r).map(([x, y]) => { const f = CAM / (CAM - x * sn); return [cx + x * c * f, cy + y * f]; });
+    $(id).setAttribute("points", t3Puntos(P));
+    $(id).setAttribute("stroke-width", g.toFixed(1));
+    $(id).setAttribute("stroke", tinta);
+  });
+
+  /* El balón cambia en cada golpe contra el piso, con un destello:
+     1º amarillo y costuras del 3x3; 2º la X azul; 3º costuras naranjas. */
+  const golpe = b => t3Suave(t3Tramo(t, b + DUR - 0.03, b + DUR + 0.16));
+  const k1 = golpe(BOTES[0]), k2 = golpe(BOTES[1]), k3 = golpe(BOTES[2]);
+  let flash = 0;
+  BOTES.forEach(b => { const d = t - (b + DUR); if(d >= -0.01 && d < 0.3) flash = Math.max(flash, 0.5 * Math.exp(-Math.max(0, d) * 13)); });
+  const sx = 1 + 0.10 * aplasta, sy = 1 - 0.12 * aplasta, baja = T3A_R * s * (1 - sy);
+  $("t3Balon").setAttribute("transform", "translate(" + cx + "," + (cy + salto + baja).toFixed(1) + ") scale(" + (s * sx).toFixed(3) + "," + (s * sy).toFixed(3) + ")");
+  const piel = t3MezclaHex(T3A_NARANJA, T3A_BALON.amarillo, k1);
+  const costura = t3MezclaHex(T3A_TINTA, T3A_BALON.costura, k3), grosor = t3Lerp(3.6, 4.4, k3).toFixed(2);
+  $("t3BalonCirculo").setAttribute("fill", piel);
+  $("t3BalonAzul").setAttribute("r", (T3A_R * k2).toFixed(2));
+  Object.keys(T3A_GAJOS).forEach(id => $(id).setAttribute("fill", piel));
+  T3A_COSTURAS.forEach(([id, logo, nueva]) => {
+    $(id).setAttribute("points", t3Puntos(t3Mezcla(logo, nueva, k1)));
+    $(id).setAttribute("stroke", costura); $(id).setAttribute("stroke-width", grosor);
+  });
+  ["t3CosturaV", "t3CosturaH"].forEach((id, i) => {        // la cruz crece desde el centro en el 1er bote
+    const l = T3A_R * k1;
+    $(id).setAttribute(i ? "x1" : "y1", (-l).toFixed(2)); $(id).setAttribute(i ? "x2" : "y2", l.toFixed(2));
+    $(id).setAttribute("stroke", costura); $(id).setAttribute("stroke-width", grosor);
+    $(id).setAttribute("opacity", k1 > 0.001 ? "1" : "0");
+  });
+  $("t3Destello").setAttribute("opacity", flash.toFixed(3));
+  // sombra en el piso: arriba del bote se achica y aclara; se va al tercer bote
+  const alto01 = t3Lim(-salto / ALTURA), pisoY = cy + T3A_R * s + 4 * s, enPiso = 1 - t3Lim((t - INICIO) / 0.3);
+  [["t3SombraBalon", 0.95 - 0.35 * alto01, 1 - 0.55 * alto01, 0.8 * enPiso * (1 - 0.6 * alto01)], ["t3PisoLuz", 2.2, 1, enPiso]].forEach(([id, a, k, op]) => {
+    $(id).setAttribute("cx", cx); $(id).setAttribute("cy", pisoY.toFixed(1));
+    $(id).setAttribute("rx", (T3A_R * s * a * k * (1 + 0.15 * aplasta)).toFixed(1));
+    $(id).setAttribute("ry", (T3A_R * s * 0.16 * a * k).toFixed(1));
+    $(id).setAttribute("opacity", op.toFixed(3));
+  });
+
+  /* Al final de la vuelta se apaga tantito y vuelve a prender en el logo:
+     sin esto el balón 3x3 brincaba de golpe al logo. */
+  const fuera = t3Tramo(t, T3A_VUELTA - 0.35, T3A_VUELTA), dentro = 1 - t3Tramo(t, 0, 0.25);
+  svg.style.opacity = (1 - Math.max(fuera, dentro)).toFixed(3);
+}
+
+function arrancarAnimacion3x3(){
+  if(!document.getElementById("t3Anim")) return;
+  /* A quien le molesta el movimiento se le queda quieta en el balón 3x3
+     con LA LIGA DE BASQUET y la línea amarilla. */
+  if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches){ t3Cuadro(4.3); return; }
+  let visible = true, inicio = performance.now();
+  if("IntersectionObserver" in window){
+    new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(document.getElementById("t3Tarjeta"));
+  }
+  const paso = ahora => {
+    if(visible) t3Cuadro(((ahora - inicio) / 1000) % T3A_VUELTA);
+    requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
+/* La tarjeta vive del 22 oct al último día del torneo. Después se quita y
+   la tira vuelve a sus dos mitades, sin tener que subir nada. */
+function prepararTarjeta3x3(){
+  const tarjeta = document.getElementById("t3Tarjeta");
+  if(!tarjeta) return;
+  const hoy = hoyClave3x3();
+  if(hoy > T3_FIN_TORNEO){
+    tarjeta.remove();
+    document.getElementById("inicioTira").classList.remove("con-3x3");
+    return;
+  }
+  if(etapa3x3(hoy) === "cerrada") document.getElementById("t3TarjetaBtn").textContent = "Inscripciones cerradas";
+  arrancarAnimacion3x3();
+}
+
+/* ---------- la ventana de inscripción ---------- */
+/* El formulario es UNO y vive en dos lugares (Mauricio, 22 oct): la ventana
+   que abre la tarjeta del inicio y la pestaña Inscripción › Torneo 3x3. El
+   mismo nodo se mueve de uno a otro, así no hay dos juegos de ids y lo que
+   el capitán ya llenó no se pierde al cambiar de lugar. */
+function abrir3x3(){
+  document.getElementById("t3Modal").classList.add("open");
+  montar3x3(document.querySelector("#t3Modal .t3-caja"));
+}
+/* Antes de rearmar la pestaña Inscripción, el formulario regresa a la
+   ventana (escondida): si se quedara adentro, el innerHTML lo borraría. */
+function devolver3x3(){
+  const cuerpo = document.getElementById("t3Cuerpo"), caja = document.querySelector("#t3Modal .t3-caja");
+  if(cuerpo && caja && cuerpo.parentNode !== caja) caja.appendChild(cuerpo);
+}
+function montar3x3(destino){
+  const cuerpo = document.getElementById("t3Cuerpo");
+  if(destino && cuerpo.parentNode !== destino) destino.appendChild(cuerpo);
+  if(!T3.armado){ armarFormulario3x3(); T3.armado = true; }
+  pintarEtapa3x3();
+  pintarJugadores3x3();
+  /* Quién ya está ocupado y qué categoría se llenó lo sabe el Apps Script.
+     Mientras contesta (~2 s) el formulario ya se puede llenar; el servidor
+     vuelve a revisar todo al inscribir. */
+  if(CONFIG.appsScriptUrl){
+    enviarAlSheet({ action: "leer3x3" }).then(r => {
+      const t = r.torneo || {};
+      T3.etapa = t.etapa || T3.etapa;
+      T3.ocupados = t.ocupados || {};
+      T3.llenas = t.llenas || {};
+      T3.fuerzas = t.fuerzas || {};
+      T3.personas = t.personas || {};
+      /* Con la hoja de Mauricio la fuerza de alguien ya agregado puede
+         cambiar (Sebastian Rosan pasa a B): se vuelve a leer de la lista. */
+      const porClave = {};
+      jugadoresLiga3x3().forEach(j => { porClave[j.clave] = j; });
+      T3.jugadores = T3.jugadores.map(j => j.nuevo || !porClave[j.clave] ? j : Object.assign({ liga: true }, porClave[j.clave]));
+      pintarEtapa3x3(); pintarCategorias3x3(); pintarJugadores3x3(); buscar3x3();
+    }).catch(err => console.warn("leer3x3:", err.message));
+  }
+}
+function cerrar3x3(){ document.getElementById("t3Modal").classList.remove("open"); }
+document.addEventListener("keydown", e => {
+  if(e.key !== "Escape") return;
+  const info = document.getElementById("t3InfoModal");
+  if(info && info.classList.contains("open")) cerrarInfo3x3(); else cerrar3x3();
+});
+
+/* Lo que se abre con los botones Horarios, Premios y Reglas (Mauricio,
+   22 oct). Los horarios van lo más breve posible, como él los dictó: los
+   bloques, no el rol (ese sale al cerrar inscripciones). Las reglas son las
+   suyas, tal cual. */
+/* Los días y la hora de cada categoría: salen en la pantalla de éxito y en
+   el correo para que todo el equipo sepa desde ya cuándo juega. Mismos
+   valores que T3_HORARIOS_ del Apps Script (prueba_3x3.js lo revisa). */
+/* "finales": el jueves 3 de diciembre (Mauricio, 23 oct). Cada rama se
+   cita 20 minutos antes para calentar: nadie entra frío a una semifinal.
+   Las dos categorías de la rama juegan en paralelo, A en el lado 1 y B en
+   el lado 2: primero 1º vs 4º, luego 2º vs 3º (una sola tabla de 8, ver
+   rol/SIMULACION_3x3.md), y las dos finales al mismo tiempo. */
+const T3_HORARIOS = {
+  "Femenil A": { dias: "Lunes 23, miércoles 25 y lunes 30 de noviembre", hora: "8:10 a 9:30 pm",
+                 finales: "Semifinales 8:30 y 8:50 pm · Final 9:10 pm" },
+  "Varonil A": { dias: "Lunes 23, miércoles 25 y lunes 30 de noviembre", hora: "9:30 a 10:50 pm",
+                 finales: "Semifinales 9:30 y 9:50 pm · Final 10:10 pm" },
+  "Femenil B": { dias: "Martes 24, jueves 26 de noviembre y martes 1 de diciembre", hora: "8:10 a 9:30 pm",
+                 finales: "Semifinales 8:30 y 8:50 pm · Final 9:10 pm" },
+  "Varonil B": { dias: "Martes 24, jueves 26 de noviembre y martes 1 de diciembre", hora: "9:30 a 10:50 pm",
+                 finales: "Semifinales 9:30 y 9:50 pm · Final 10:10 pm" }
+};
+/* Dónde pagar: los mismos datos del 5x5 (abrirPagos), sin formas de pago:
+   en el 3x3 hay un solo costo de inscripción y el arbitraje por partido. */
+const T3_DONDE_PAGAR = `
+    <p class="pagos-titulo">Dónde pagar</p>
+    <div class="pagos-metodo">
+      <div class="pagos-metodo-nombre">Transferencia bancaria</div>
+      <p><strong>BANORTE</strong></p>
+      <p class="pagos-cuenta">4189 1434 1115 8077</p>
+      <p>A nombre de <strong>Mauricio Oliver</strong></p>
+      <p>Manda tu comprobante al <strong>81 1781 7451</strong> o a <strong>control@laligadebasquet.com</strong>.</p>
+    </div>
+    <div class="pagos-metodo">
+      <div class="pagos-metodo-nombre">Efectivo</div>
+      <p>En el gimnasio, con <strong>Oliver</strong> o <strong>Juan</strong>.</p>
+    </div>`;
+
+/* Cómo se paga (Mauricio, 22 oct). Las mismas reglas van en el correo. */
+const T3_REGLAS_PAGO = `
+    <div class="pagos-reglas"><ul>
+      <li>Para terminar tu inscripción hay que liquidar los <b>$500</b> de inscripción en las <b>72 horas</b> siguientes. Si no, el lugar se libera automáticamente.</li>
+      <li>Para empezar los partidos, el equipo debe liquidar el <b>arbitraje de todos sus partidos</b> de la etapa regular. Al cerrar inscripciones sabrán cuántos juegan como mínimo.</li>
+      <li>El arbitraje de <b>semifinales y finales</b> se paga en mesa antes del inicio del partido.</li>
+    </ul></div>`;
+
+/* "sábado 25 de octubre, 11:40 pm": 72 horas después de ahora. */
+function limitePago3x3(desde){
+  // Redondeado hacia arriba a la hora en punto, igual que finPago3x3Ms_ del
+  // servidor: la pantalla y el correo tienen que decir la misma hora.
+  const hora = 3600 * 1000;
+  const d = new Date(Math.ceil(((desde || Date.now()) + 72 * hora) / hora) * hora);
+  const dias = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const h = d.getHours(), m = String(d.getMinutes()).padStart(2, "0");
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}, ${(h % 12) || 12}:${m} ${h < 12 ? "am" : "pm"}`;
+}
+
+const T3_PANELES = {
+  // Formato en el orden del torneo (Mauricio, 23 oct): cómo se compite, la
+  // etapa regular (días, horas), cómo se desempata al cerrarla y las finales.
+  horarios: `
+    <ul class="t3-bloques">
+      <li><b>Sistema de competencia:</b> se define según los equipos inscritos.</li>
+      <li><b>Etapa regular:</b> mínimo 2 y máximo 3 días con partidos por categoría, sin contar el jueves 3 de finales. Mínimo 2 partidos por día.</li>
+      <li><b>Femenil A y Varonil A:</b> lunes y miércoles.</li>
+      <li><b>Femenil B y Varonil B:</b> martes y jueves.</li>
+      <li><b>Femenil:</b> 8:10 a 9:30 pm. <b>Varonil:</b> 9:30 a 10:50 pm.</li>
+      <li><b>Criterios de desempate:</b>
+        <ol class="t3-desempate"><li>Victorias</li><li>Partido entre sí</li><li>Mayor promedio de puntos anotados</li></ol></li>
+      <li><b>Semifinales y finales:</b> jueves 3 de diciembre. Femenil: semifinales 8:30 y 8:50, final 9:10 pm. Varonil: semifinales 9:30 y 9:50, final 10:10 pm.</li>
+    </ul>`,
+  premios: `
+    <ul class="t3-premios">
+      <li><b>Campeón</b> Trofeo y $2,000</li>
+      <li><b>Subcampeón</b> Trofeo</li>
+      <li><b>MVP de la final</b> Trofeo</li>
+    </ul>
+    <p class="t3-panel-nota"><b>¡Y más sorpresas!</b></p>`,
+  pagos: `
+    <div class="pagos-formas">
+      <div class="pagos-forma"><span class="pagos-forma-txt"><b>Inscripción</b> por equipo</span><span class="pagos-forma-monto">$500</span></div>
+      <div class="pagos-forma"><span class="pagos-forma-txt"><b>Arbitraje</b> por partido</span><span class="pagos-forma-monto">$150</span></div>
+    </div>
+    ${T3_REGLAS_PAGO}
+    ${T3_DONDE_PAGAR}`,
+  // Ordenadas como pasa una noche (Mauricio, 23 oct): quién puede jugar,
+  // llegar a la cancha, empezar, cómo se gana, la jugada, cambios y faltas.
+  reglas: `
+    <p class="t3-panel-nota" style="margin:0 0 10px;"><b>El torneo se juega bajo las reglas FIBA 3x3, con balón oficial de 3x3.</b></p>
+    <p class="t3-reglas-sub">Equipos</p>
+    <ul class="t3-reglas">
+      <li>Un jugador solo puede estar en un equipo. En categoría B puede jugar máximo 1 jugador de categoría A.</li>
+      <li>Cada equipo juega con playeras del mismo color.</li>
+    </ul>
+    <p class="t3-reglas-sub">Antes del partido</p>
+    <ul class="t3-reglas">
+      <li>Hay 10 minutos de tolerancia para presentar 3 jugadores e iniciar el partido. Si no, el equipo pierde por default.</li>
+      <li>El default se marca como ganado sin puntos, igual que en FIBA: no cuenta para el promedio de puntos anotados.</li>
+      <li>La primera posesión se decide con un volado.</li>
+    </ul>
+    <p class="t3-reglas-sub">Cómo se gana</p>
+    <ul class="t3-reglas">
+      <li>Dura 10 minutos o gana el equipo que anote 21 puntos primero.</li>
+      <li>Las canastas valen 2 puntos fuera de la línea y 1 punto dentro de ella.</li>
+      <li>Si hay empate después de los 10 minutos, gana el equipo que anote primero 2 puntos.</li>
+    </ul>
+    <p class="t3-reglas-sub">Durante el partido</p>
+    <ul class="t3-reglas">
+      <li>El tiempo de posesión es de 12 segundos.</li>
+      <li>Hay que salir de la línea de 2 puntos en cualquier cambio de posesión de ofensiva a defensa, haya sido por robo, rebote, air ball o pérdida.</li>
+      <li>Si tienen la posesión y ganan el rebote ofensivo, ahí mismo pueden tirar, siempre y cuando el otro equipo no haya tenido control del balón.</li>
+      <li>En bola de 2, el balón es para el equipo que estaba defendiendo. No hay alternancia.</li>
+    </ul>
+    <p class="t3-reglas-sub">Cambios y tiempo fuera</p>
+    <ul class="t3-reglas">
+      <li>Para los cambios el balón tiene que estar muerto. No tienen que preguntar, solo los realizan.</li>
+      <li>Cada equipo tiene un tiempo fuera de 30 segundos por partido.</li>
+    </ul>
+    <p class="t3-reglas-sub">Faltas</p>
+    <ul class="t3-reglas">
+      <li>Faltas acumuladas: de la 7 a la 9 son dos tiros libres; a partir de la 10, dos tiros libres y la posesión.</li>
+    </ul>`
+};
+
+function armarFormulario3x3(){
+  T3.etapa = etapa3x3(hoyClave3x3());
+  document.getElementById("t3Cuerpo").innerHTML = `
+    <div class="t3-tope" id="t3Etapa"></div>
+    <div class="t3-info" role="group" aria-label="Información del torneo">
+      <button type="button" class="t3-info-btn" onclick="abrirInfo3x3('horarios')">Formato</button>
+      <button type="button" class="t3-info-btn" onclick="abrirInfo3x3('premios')">Premios</button>
+      <button type="button" class="t3-info-btn" onclick="abrirInfo3x3('pagos')">Pagos</button>
+      <button type="button" class="t3-info-btn" onclick="abrirInfo3x3('reglas')">Reglas</button>
+    </div>
+    <div id="t3Form">
+      <p class="t3-reglas-cortas">Equipos de <b>mínimo 3 y máximo 4 integrantes</b>: júntate con quien quieras de cualquier equipo de la liga.*<br>
+        <small>*En categoría B solo puede jugar 1 jugador de categoría A.</small></p>
+      <div class="insc-campo">
+        <label for="t3Nombre">Nombre del equipo <span class="req">*</span></label>
+        <input id="t3Nombre" maxlength="40" autocomplete="off" placeholder="Ej. LOS DE LA ESQUINA">
+      </div>
+      <div class="insc-campo">
+        <label>Categoría <span class="req">*</span></label>
+        <div class="t3-cats" id="t3Cats"></div>
+        <div class="t3-regla-cat" id="t3ReglaCat"></div>
+      </div>
+      <div class="insc-campo">
+        <label>Jugadores <span id="t3Cuenta"></span></label>
+        <div id="t3Sel"></div>
+        <input id="t3Buscar" type="search" autocomplete="off" placeholder="Busca por nombre" oninput="buscar3x3()" style="margin-top:10px;">
+        <div id="t3Res"></div>
+        <div id="t3NuevoCaja"></div>
+      </div>
+      <div id="t3Contacto"></div>
+      <label class="t3-check"><input type="checkbox" id="t3Resp"> Como capitán respondo por mis jugadores: están de acuerdo en jugar y sus datos son correctos.</label>
+      <label class="t3-check"><input type="checkbox" id="t3Regl"> Acepto las reglas del torneo.</label>
+      <div class="insc-msg" id="t3Msg"></div>
+      <button type="button" class="t3-enviar" id="t3Btn" onclick="enviar3x3()">Inscribir equipo</button>
+    </div>`;
+  pintarCategorias3x3();
+  pintarContacto3x3();
+}
+
+// "Formato" y no "Horarios": el botón también trae el sistema de competencia
+// y los desempates (Mauricio, 23 oct). La llave sigue siendo "horarios".
+const T3_TITULOS = { horarios: "Formato", premios: "Premios", pagos: "Pagos", reglas: "Reglas" };
+function abrirInfo3x3(cual){
+  document.getElementById("t3InfoTitulo").textContent = T3_TITULOS[cual];
+  document.getElementById("t3InfoCuerpo").innerHTML = T3_PANELES[cual];
+  document.getElementById("t3InfoModal").classList.add("open");
+}
+function cerrarInfo3x3(){ document.getElementById("t3InfoModal").classList.remove("open"); }
+
+/* Hasta arriba: el último día y que el cupo es limitado (Mauricio, 22 oct).
+   El aviso de la etapa "solo jugadores de la liga" ya no sale en ningún
+   lado (23 oct): el botón de jugador nuevo aparece solo el sábado 7. */
+function pintarEtapa3x3(){
+  const el = document.getElementById("t3Etapa");
+  if(!el) return;
+  el.className = "t3-tope" + (T3.etapa === "cerrada" ? " cerrada" : "");
+  el.innerHTML = T3.etapa === "cerrada"
+    ? "Las inscripciones del 3x3 ya cerraron. Dudas: WhatsApp 81 1781 7451"
+    : "<b>Inscripciones hasta el domingo 15 de noviembre</b><span>Cupo limitado por categoría</span>";
+  const form = document.getElementById("t3Form");
+  if(form) form.style.display = T3.etapa === "cerrada" ? "none" : "";
+}
+
+/* ---- El contacto del capitán ----
+   Si el capitán ya es capitán o subcapitán en el 5x5, su celular ya lo
+   tenemos, y el correo lo tiene cualquier jugador de la liga (Mauricio,
+   22 oct). Aquí solo llega tapado (81 •••• ••51): la página es pública. Si
+   no lo tenemos, o el capitán prefiere otro, se escribe. */
+function capitanActual3x3(){ return T3.jugadores[T3.capitan] || null; }
+
+function sincronizarCapitan3x3(){
+  const cap = capitanActual3x3();
+  const clave = cap ? cap.clave : "";
+  if((T3.contacto || {}).para === clave) return;
+  T3.contacto = { para: clave, tel: "", correo: "", otroTel: false, otroCorreo: false, cargando: false };
+  if(!cap){ pintarContacto3x3(); return; }
+  if(cap.nuevo){ T3.contacto.correo = cap.correo; pintarContacto3x3(); return; }
+  if(!CONFIG.appsScriptUrl){ pintarContacto3x3(); return; }
+  T3.contacto.cargando = true;
+  pintarContacto3x3();
+  enviarAlSheet({ action: "contacto3x3", nombreCompleto: cap.completo, equipo: cap.equipo }).then(r => {
+    if(T3.contacto.para !== clave) return;            // ya cambiaron de capitán
+    const c = r.contacto || {};
+    Object.assign(T3.contacto, { tel: c.telefono || "", correo: c.correo || "", cargando: false });
+    pintarContacto3x3();
+  }).catch(() => {
+    if(T3.contacto.para !== clave) return;
+    T3.contacto.cargando = false;
+    pintarContacto3x3();
+  });
+}
+
+function necesitaTel3x3(){ const c = T3.contacto || {}; return !c.tel || c.otroTel; }
+function necesitaCorreo3x3(){ const c = T3.contacto || {}; return !c.correo || c.otroCorreo; }
+
+function pintarContacto3x3(){
+  const el = document.getElementById("t3Contacto");
+  if(!el) return;
+  const cap = capitanActual3x3(), c = T3.contacto || {};
+  const tel = document.getElementById("t3Tel"), correo = document.getElementById("t3Correo");
+  const guardado = { tel: tel ? tel.value : "", correo: correo ? correo.value : "" };
+  if(!cap){ el.innerHTML = ""; return; }
+  if(c.cargando){
+    el.innerHTML = `<div class="t3-contacto"><span class="t3-contacto-titulo">Capitán: ${esc3x3(cap.nombre)}</span><span class="t3-vacio">Buscando sus datos…</span></div>`;
+    return;
+  }
+  const filaGuardada = (que, valor, campo) => `
+    <div class="t3-dato"><span>${que}</span><b>${esc3x3(valor)}</b>
+      <button type="button" class="t3-link" onclick="otroDato3x3('${campo}')">Usar otro</button></div>`;
+  el.innerHTML = `
+    <div class="t3-contacto">
+      <span class="t3-contacto-titulo">Capitán: ${esc3x3(cap.nombre)}</span>
+      ${necesitaTel3x3()
+        ? `<div class="insc-campo"><label for="t3Tel">Celular del capitán <span class="req">*</span></label>
+             <input id="t3Tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="81 1234 5678"></div>`
+        : filaGuardada("Celular", c.tel, "tel")}
+      ${necesitaCorreo3x3()
+        ? `<div class="insc-campo"><label for="t3Correo">Correo del capitán <span class="req">*</span></label>
+             <input id="t3Correo" type="email" autocomplete="email" placeholder="tu@correo.com"></div>`
+        : filaGuardada("Correo", c.correo, "correo")}
+      ${!necesitaTel3x3() || !necesitaCorreo3x3() ? `<span class="t3-vacio">Ya los tenemos registrados: no hace falta escribirlos.</span>` : ""}
+    </div>`;
+  const t2 = document.getElementById("t3Tel"), c2 = document.getElementById("t3Correo");
+  if(t2) t2.value = guardado.tel;
+  if(c2) c2.value = guardado.correo;
+}
+function otroDato3x3(campo){
+  if(campo === "tel") T3.contacto.otroTel = true; else T3.contacto.otroCorreo = true;
+  pintarContacto3x3();
+  const el = document.getElementById(campo === "tel" ? "t3Tel" : "t3Correo");
+  if(el) el.focus();
+}
+
+function pintarCategorias3x3(){
+  const el = document.getElementById("t3Cats");
+  if(!el) return;
+  el.innerHTML = T3_CATEGORIAS.map(c => {
+    const llena = !!T3.llenas[c];
+    return `<button type="button" class="t3-cat${T3.cat === c ? " on" : ""}${llena ? " llena" : ""}"
+      onclick="escogerCategoria3x3('${c}')">${c}${llena ? `<small>Lista de espera</small>` : ""}</button>`;
+  }).join("");
+  const btn = document.getElementById("t3Btn");
+  if(btn && !btn.disabled) btn.textContent = T3.cat && T3.llenas[T3.cat] ? "Entrar a la lista de espera" : "Inscribir equipo";
+  document.getElementById("t3ReglaCat").textContent = !T3.cat ? "" :
+    fuerzaDe3x3(T3.cat) === "B" ? "En categoría B puede jugar máximo 1 jugador de categoría A."
+                                : "Pueden jugar jugadores de categoría A y B.";
+}
+
+function escogerCategoria3x3(cat, aceptaEspera){
+  if(T3.llenas[cat] && !aceptaEspera){
+    document.getElementById("t3InfoTitulo").textContent = "Lista de espera · " + cat;
+    document.getElementById("t3InfoCuerpo").innerHTML = T3_ESPERA_TEXTO + `
+      <div class="t3-espera-botones">
+        <button type="button" class="t3-enviar" onclick="cerrarInfo3x3(); escogerCategoria3x3('${cat}', true)">Entrar a la lista de espera</button>
+        <button type="button" class="t3-chico" onclick="cerrarInfo3x3()">Escoger otra categoría</button>
+      </div>`;
+    document.getElementById("t3InfoModal").classList.add("open");
+    return;
+  }
+  /* Si cambia de rama, los jugadores de la otra se van; si pasa a B con
+     dos de A, se quedan pero marcados, para que él escoja a quién sacar. */
+  const antes = T3.jugadores.length;
+  T3.cat = cat;
+  T3.jugadores = T3.jugadores.filter(j => j.nuevo || j.rama === ramaDe3x3(cat));
+  if(T3.capitan >= T3.jugadores.length) T3.capitan = 0;
+  mostrarMsgInsc("t3Msg", antes !== T3.jugadores.length ? "info" : "", antes !== T3.jugadores.length
+    ? "Quitamos a los jugadores de la otra rama: este equipo es " + ramaDe3x3(cat).toLowerCase() + "." : "");
+  pintarCategorias3x3(); pintarJugadores3x3(); buscar3x3();
+}
+
+function inicial3x3(nombre){ return String(nombre || "").split(" ").map(w => w[0] || "").join("").slice(0,2); }
+
+function pintarJugadores3x3(){
+  const el = document.getElementById("t3Sel");
+  if(!el) return;
+  const enA = T3.jugadores.filter(j => j.fuerza === "A").length;
+  const excedidos = fuerzaDe3x3(T3.cat) === "B" && enA > T3_MAX_A_EN_B;
+  document.getElementById("t3Cuenta").textContent = "· " + T3.jugadores.length + " de " + T3_MAX_JUGADORES;
+  el.innerHTML = !T3.jugadores.length
+    ? `<div class="t3-vacio">${T3.cat ? "Agrega de 3 a 4 jugadores, tú incluido. Busca a cada uno por su nombre." : "Primero escoge la categoría."}</div>`
+    : T3.jugadores.map((j, i) => `
+      <div class="t3-jug">
+        <div class="t3-ini">${j.foto ? `<img src="${j.foto}" alt="">` : esc3x3(inicial3x3(j.nombre))}</div>
+        <div class="t3-jug-info">
+          <div class="t3-jug-nom">${esc3x3(j.nombre)}</div>
+          <div class="t3-jug-sub">${j.nuevo ? "Nuevo · el Consejo lo clasifica A o B" : esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
+          ${excedidos && j.fuerza === "A" ? `<div class="t3-jug-no">Solo cabe 1 jugador de categoría A</div>` : ""}
+        </div>
+        ${j.fuerza ? `<span class="t3-fuerza${j.fuerza === "A" ? " a" : ""}">${j.fuerza}</span>` : ""}
+        <button type="button" class="t3-chico${T3.capitan === i ? " cap" : ""}" onclick="capitan3x3(${i})"
+          aria-pressed="${T3.capitan === i}" title="${T3.capitan === i ? "Es el capitán" : "Hacer capitán"}">${T3.capitan === i ? "★ Capitán" : "Capitán"}</button>
+        <button type="button" class="t3-chico" onclick="quitar3x3(${i})" aria-label="Quitar a ${esc3x3(j.nombre)}">✕</button>
+      </div>`).join("");
+  const buscar = document.getElementById("t3Buscar");
+  const lleno = T3.jugadores.length >= T3_MAX_JUGADORES;
+  buscar.disabled = !T3.cat || lleno;
+  buscar.placeholder = !T3.cat ? "Primero escoge la categoría" : lleno ? "Tu equipo ya está completo" : "Busca por nombre";
+  pintarNuevo3x3();
+  sincronizarCapitan3x3();
+}
+
+function capitan3x3(i){ T3.capitan = i; pintarJugadores3x3(); }
+function quitar3x3(i){
+  T3.jugadores.splice(i, 1);
+  if(T3.capitan === i) T3.capitan = 0; else if(T3.capitan > i) T3.capitan--;
+  pintarJugadores3x3(); buscar3x3();
+}
+
+function buscar3x3(){
+  const el = document.getElementById("t3Res"), input = document.getElementById("t3Buscar");
+  if(!el || !input) return;
+  const q = normalizar(input.value).split(/\s+/).filter(Boolean);
+  if(!q.length || !T3.cat){ el.innerHTML = ""; return; }
+  const todos = jugadoresLiga3x3();
+  if(!todos.length){ el.innerHTML = `<div class="t3-vacio">Cargando a los jugadores de la liga…</div>`; return; }
+  const rama = ramaDe3x3(T3.cat);
+  /* Se busca en todos sus renglones (el nombre puede venir escrito distinto
+     en cada equipo), pero sale una vez por persona. */
+  const porPersona = {};
+  todos.forEach(j => { if(j.rama === rama && q.every(p => j.buscar.includes(p)) && !porPersona[j.persona]) porPersona[j.persona] = j; });
+  const hallados = Object.values(porPersona).slice(0, 8);
+  el.innerHTML = hallados.length ? hallados.map(j => {
+    const no = motivoNoAgregable3x3(j);
+    return `<div class="t3-jug">
+      <div class="t3-ini">${esc3x3(inicial3x3(j.nombre))}</div>
+      <div class="t3-jug-info">
+        <div class="t3-jug-nom">${esc3x3(j.nombre)}</div>
+        <div class="t3-jug-sub">${esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
+        ${no ? `<div class="t3-jug-no">${esc3x3(no)}</div>` : ""}
+      </div>
+      <span class="t3-fuerza${j.fuerza === "A" ? " a" : ""}">${j.fuerza}</span>
+      ${no ? "" : `<button type="button" class="t3-chico" onclick="agregar3x3('${escaparComilla(j.clave)}')">Agregar</button>`}
+    </div>`;
+  }).join("") : `<div class="t3-vacio">No encontramos a nadie así en ${rama.toLowerCase()}.${T3.etapa === "abierta" ? " Si no está en la liga, agrégalo como jugador nuevo." : ""}</div>`;
+}
+
+function agregar3x3(clave){
+  const j = jugadoresLiga3x3().find(x => x.clave === clave);
+  if(!j) return;
+  const no = motivoNoAgregable3x3(j);
+  if(no) return mostrarMsgInsc("t3Msg","err", j.nombre + ": " + no + ".");
+  T3.jugadores.push(Object.assign({ liga: true }, j));
+  document.getElementById("t3Buscar").value = "";
+  mostrarMsgInsc("t3Msg","","");
+  pintarJugadores3x3(); buscar3x3();
+}
+
+/* Jugador de fuera: solo en la convocatoria abierta. Un alta corta con
+   foto; esos datos quedan para su perfil cuando juegue 5x5. Los menores
+   no: necesitan carta responsiva e INE del tutor, y eso va con la liga. */
+function pintarNuevo3x3(){
+  const el = document.getElementById("t3NuevoCaja");
+  if(!el) return;
+  // En la etapa de la liga no se anuncia nada aquí (Mauricio, 23 oct): el
+  // botón de jugador nuevo simplemente aparece el sábado 7.
+  if(T3.etapa !== "abierta" || !T3.cat || T3.jugadores.length >= T3_MAX_JUGADORES){ el.innerHTML = ""; return; }
+  if(!el.dataset.abierto){
+    el.innerHTML = `<button type="button" class="t3-chico" style="margin-top:10px;" onclick="abrirNuevo3x3()">+ Jugador que no está en la liga</button>`;
+    return;
+  }
+}
+function abrirNuevo3x3(){
+  const el = document.getElementById("t3NuevoCaja");
+  el.dataset.abierto = "1";
+  T3.nuevoFoto = "";
+  el.innerHTML = `<div class="t3-nuevo">
+    <div class="insc-fila">
+      <div class="insc-campo"><label for="t3NNombre">Nombre</label><input id="t3NNombre" autocomplete="off"></div>
+      <div class="insc-campo"><label for="t3NApellido">Apellido</label><input id="t3NApellido" autocomplete="off"></div>
+    </div>
+    <div class="insc-fila">
+      <div class="insc-campo"><label for="t3NFecha">Fecha de nacimiento</label><input id="t3NFecha" type="date"></div>
+      <div class="insc-campo"><label for="t3NCorreo">Correo</label><input id="t3NCorreo" type="email" autocomplete="off"></div>
+    </div>
+    <div class="insc-campo t3-foto">
+      <div class="t3-ini" id="t3NFotoVer" style="width:52px;height:52px;">📷</div>
+      <label class="t3-chico" style="margin:0;">Foto de su cara<input type="file" accept="image/*" style="display:none" onchange="fotoNuevo3x3(this)"></label>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button type="button" class="t3-chico cap" onclick="agregarNuevo3x3()">Agregar al equipo</button>
+      <button type="button" class="t3-chico" onclick="cerrarNuevo3x3()">Cancelar</button>
+    </div>
+  </div>`;
+}
+function cerrarNuevo3x3(){
+  const el = document.getElementById("t3NuevoCaja");
+  delete el.dataset.abierto;
+  pintarNuevo3x3();
+}
+/* Mismo recorte y compresión que la foto del alta de jugador (cuadrada,
+   320 px, JPEG que quepa en ~45 mil caracteres). */
+function fotoNuevo3x3(input){
+  const archivo = input.files && input.files[0];
+  input.value = "";
+  if(!archivo || !/^image\//.test(archivo.type)) return mostrarMsgInsc("t3Msg","err","Ese archivo no es una imagen.");
+  const lector = new FileReader();
+  lector.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const lado = Math.min(img.width, img.height), destino = Math.min(320, lado);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = destino;
+      canvas.getContext("2d").drawImage(img, (img.width - lado)/2, (img.height - lado)/2, lado, lado, 0, 0, destino, destino);
+      let calidad = 0.8, uri = canvas.toDataURL("image/jpeg", calidad);
+      while(uri.length > 45000 && calidad > 0.3){ calidad -= 0.1; uri = canvas.toDataURL("image/jpeg", calidad); }
+      T3.nuevoFoto = uri;
+      document.getElementById("t3NFotoVer").innerHTML = `<img src="${uri}" alt="">`;
+    };
+    img.onerror = () => mostrarMsgInsc("t3Msg","err","No se pudo leer la imagen. Intenta con otra.");
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+function agregarNuevo3x3(){
+  const v = id => document.getElementById(id).value.trim();
+  const nombre = v("t3NNombre"), apellido = v("t3NApellido"), fecha = v("t3NFecha"), correo = v("t3NCorreo");
+  if(!nombre || !apellido) return mostrarMsgInsc("t3Msg","err","Escribe nombre y apellido del jugador nuevo.");
+  if(!fecha) return mostrarMsgInsc("t3Msg","err","Falta su fecha de nacimiento.");
+  const edad = calcularEdad(fecha);
+  if(edad === null || edad < 18) return mostrarMsgInsc("t3Msg","err","Los menores de edad se inscriben con su tutor: escríbenos a control@laligadebasquet.com.");
+  if(!correoTieneFormatoValido(correo)) return mostrarMsgInsc("t3Msg","err","El correo del jugador nuevo no parece válido.");
+  if(!T3.nuevoFoto) return mostrarMsgInsc("t3Msg","err","Falta la foto del jugador nuevo.");
+  const clave = "nuevo|" + normalizar(correo);
+  if(T3.jugadores.some(j => j.clave === clave)) return mostrarMsgInsc("t3Msg","err","Ese correo ya está en tu equipo.");
+  T3.jugadores.push({ nuevo: true, liga: false, clave, nombre: aMayusSinAcentos(nombre + " " + apellido.split(" ")[0]),
+                      nombrePila: nombre, apellido, fechaNacimiento: fecha, correo, foto: T3.nuevoFoto, fuerza: "" });
+  mostrarMsgInsc("t3Msg","","");
+  cerrarNuevo3x3();
+  pintarJugadores3x3();
+}
+
+/* Lo mismo que revisa el Apps Script, para no hacer esperar 2 s a alguien
+   por un error que ya se veía. Devuelve el texto del error o "". */
+function revisarEquipo3x3(){
+  const nombre = document.getElementById("t3Nombre").value.trim();
+  if(!nombre) return "Escribe el nombre del equipo.";
+  if(!T3.cat) return "Escoge la categoría.";
+  if(T3.jugadores.length < T3_MIN_JUGADORES) return "Faltan " + (T3_MIN_JUGADORES - T3.jugadores.length) + " jugador(es): el equipo necesita al menos " + T3_MIN_JUGADORES + ".";
+  if(fuerzaDe3x3(T3.cat) === "B" && T3.jugadores.filter(j => j.fuerza === "A").length > T3_MAX_A_EN_B)
+    return "En categoría B solo puede jugar " + T3_MAX_A_EN_B + " jugador de categoría A. Quita a uno.";
+  if((T3.contacto || {}).cargando) return "Espera un segundo: estamos buscando los datos del capitán.";
+  if(necesitaTel3x3() && (document.getElementById("t3Tel") || {value:""}).value.replace(/\D/g, "").length < 10)
+    return "Escribe el celular del capitán a 10 dígitos.";
+  if(necesitaCorreo3x3() && !correoTieneFormatoValido((document.getElementById("t3Correo") || {value:""}).value.trim()))
+    return "El correo del capitán no parece válido.";
+  if(!document.getElementById("t3Resp").checked) return "Marca que como capitán respondes por tus jugadores.";
+  if(!document.getElementById("t3Regl").checked) return "Falta aceptar las reglas del torneo.";
+  return "";
+}
+
+async function enviar3x3(){
+  const error = revisarEquipo3x3();
+  if(error) return mostrarMsgInsc("t3Msg","err", error);
+  const btn = document.getElementById("t3Btn");
+  btn.disabled = true; btn.textContent = "Inscribiendo…";
+  mostrarMsgInsc("t3Msg","info","Inscribiendo a tu equipo…");
+  const nombre = document.getElementById("t3Nombre").value.trim();
+  try{
+    const resp = await enviarAlSheet({
+      action: "inscribirEquipo3x3",
+      nombreEquipo: nombre, categoria: T3.cat, capitan: T3.capitan,
+      /* Vacíos = "usen el que ya tienen": el servidor los pone. */
+      telCapitan: necesitaTel3x3() ? document.getElementById("t3Tel").value.trim() : "",
+      correoCapitan: necesitaCorreo3x3() ? document.getElementById("t3Correo").value.trim() : "",
+      responsable: true, reglamentoAceptado: true,
+      jugadores: T3.jugadores.map(j => j.nuevo
+        ? { nuevo: true, nombre: j.nombrePila, apellido: j.apellido, fechaNacimiento: j.fechaNacimiento, correo: j.correo, foto: j.foto }
+        : { nombreCompleto: j.completo, equipo: j.equipo })
+    });
+    T3.jugadores.forEach(j => { T3.ocupados[j.clave] = aMayusSinAcentos(nombre); });
+    /* El servidor decide si quedó en espera: si alguien tomó el último lugar
+       mientras éste llenaba el formulario, entra a la lista sin error. */
+    const r = (resp && resp.inscripcion) || {};
+    pintarListo3x3(nombre, r.listaEspera ? (r.lugarEspera || 1) : 0);
+  }catch(err){
+    mostrarMsgInsc("t3Msg","err","No se pudo inscribir: " + err.message);
+    btn.disabled = false; pintarCategorias3x3();
+  }
+}
+
+/* La pantalla de éxito (Mauricio, 22 oct): ¡Bienvenido! al centro, la
+   liga y la temporada; los jugadores sin su equipo de 5x5 (ya no importa
+   de dónde vienen); los horarios de SU categoría para que todos sepan desde
+   ya cuándo juegan; y los pagos, con botón a los datos de pago. */
+function pintarListo3x3(nombre, lugarEspera){
+  const h = T3_HORARIOS[T3.cat] || {};
+  const espera = lugarEspera > 0;
+  const bloqueEspera = espera ? `
+      <div class="t3-listo-bloque t3-listo-espera"><b>Lista de espera · lugar ${lugarEspera}</b>
+        <span>Si un equipo inscrito no paga en 72 horas, su lugar es para el primero de la lista.</span>
+        <span>Te avisamos por correo en el caso de que se libere un espacio.</span></div>` : "";
+  const limite = espera ? "" :
+    `<span class="t3-listo-limite">Para terminar tu inscripción, paga los $${T3_CUOTA} antes del <b>${limitePago3x3()}</b>. Si no, el lugar se libera automáticamente.</span>`;
+  document.getElementById("t3Cuerpo").innerHTML = `
+    <div class="t3-listo">
+      <div class="t3-listo-big${espera ? " t3-listo-big-espera" : ""}">${espera ? "¡Estás en la lista de espera!" : "¡Bienvenido!"}</div>
+      <div class="t3-listo-liga">La Liga de Basquet<span>Invierno 2026</span></div>
+      <h4>${esc3x3(aMayusSinAcentos(nombre))}</h4>
+      <p class="t3-listo-cat">${esc3x3(T3.cat)}</p>
+      <ul class="t3-listo-jug">${T3.jugadores.map((j, i) => `<li>${esc3x3(j.nombre)}${i === T3.capitan ? " <b>★ Capitán</b>" : ""}</li>`).join("")}</ul>
+      ${bloqueEspera}
+      <div class="t3-listo-bloque"><b>Horarios</b>
+        <span>${esc3x3(h.dias || "")}</span><span>${esc3x3(h.hora || "")}</span>
+        <span class="t3-listo-sub">Jueves 3 de diciembre</span>
+        <span>${esc3x3(h.finales || "")}</span></div>
+      <div class="t3-listo-bloque"><b>Pagos</b>
+        <span>Inscripción: $${T3_CUOTA}</span><span>Arbitraje: $${T3_ARBITRAJE} por partido</span>
+        ${limite}
+        <button type="button" class="t3-chico" onclick="abrirInfo3x3('pagos')">Ver datos y reglas de pago</button></div>
+      <p class="t3-listo-nota">Te mandamos la confirmación al correo del capitán.</p>
+      <button type="button" class="t3-enviar" onclick="otroEquipo3x3()">Inscribir otro equipo</button>
+    </div>`;
+}
+function otroEquipo3x3(){
+  Object.assign(T3, { cat: "", jugadores: [], capitan: 0, nuevoFoto: "", contacto: null });
+  armarFormulario3x3(); pintarEtapa3x3(); pintarJugadores3x3();
+}
+
 function aplicarDeepLink(){
   const params = new URLSearchParams(location.search);
   const view = params.get("view");
@@ -7205,6 +8361,12 @@ function aplicarDeepLink(){
   // ?view=pagos&cat=varonil — abre directo la ventana de FORMAS DE PAGO.
   // No es una pestaña del menú, es la misma ventana que sale al inscribir,
   // así que se abre a mano y aquí se acaba.
+  // ?view=3x3 — el link del mensaje del torneo: abre la inscripción del
+  // 3x3 encima del inicio (no es pestaña, Mauricio no la quiso).
+  if(view === "3x3"){
+    abrir3x3();
+    return;
+  }
   if(view === "pagos"){
     const rama = /femenil/i.test(params.get("cat") || "") ? "Femenil" : "Varonil";
     abrirPagos(rama);
@@ -7219,12 +8381,13 @@ function aplicarDeepLink(){
     renderReglamento(cat);
   }
   if(view === "inscripcion"){
-    const tab = params.get("tab") === "jugador" ? "jugador" : "equipo";
+    const tab = params.get("tab") === "jugador" ? "jugador" : params.get("tab") === "3x3" ? "3x3" : "equipo";
     renderInscripcion(tab);
   }
 }
 
 function renderInscripcion(categoriaTab){
+  devolver3x3();
   const el = document.getElementById("view-inscripcion");
   const tab = categoriaTab || inscripcionTab;
   inscripcionTab = tab;
@@ -7235,10 +8398,14 @@ function renderInscripcion(categoriaTab){
     <div class="insc-toggle">
       <button class="${tab === "equipo" ? "active" : ""}" onclick="renderInscripcion('equipo')">INSCRIBIR EQUIPO</button>
       <button class="${tab === "jugador" ? "active" : ""}" onclick="renderInscripcion('jugador')">ALTA DE JUGADOR</button>
+      <button class="${tab === "3x3" ? "active" : ""}" onclick="renderInscripcion('3x3')">TORNEO 3X3</button>
     </div>
     ${aviso}
-    <div id="inscEquipoCaja">${tab === "equipo" ? formEquipoHTML() : formJugadorHTML()}</div>
+    ${tab === "3x3"
+      ? `<div class="insc-form t3-pestana"><div class="t3-pestana-titulo">La Liga de Basquet 3×3 · del lunes 23 de noviembre al jueves 3 de diciembre</div><div id="t3Pestana"></div></div>`
+      : `<div id="inscEquipoCaja">${tab === "equipo" ? formEquipoHTML() : formJugadorHTML()}</div>`}
   `;
+  if(tab === "3x3"){ montar3x3(document.getElementById("t3Pestana")); return; }
   // El formulario se acaba de rearmar: el select vuelve a estar vacío, así
   // que el link de FORMAS DE PAGO tiene que quedar escondido otra vez.
   if(tab === "equipo") sincronizarLinkPagos();
@@ -7251,6 +8418,16 @@ function opcionesCategoria(){
 /* Mientras la liga tenga cerradas las inscripciones, aquí no hay formulario
    sino aviso. Es lo honesto: más vale decirlo antes de que llenen todo. */
 let INSCRIPCIONES_ABIERTAS = true;
+
+/* El alta de jugadores tiene su propio candado en Admin (22 oct 2026).
+   Arranca abierta hasta que el Sheet diga otra cosa: con el backend viejo,
+   que no manda altasAbiertas, la pestaña sigue como siempre. */
+let ALTAS_ABIERTAS = true;
+function refrescarFormJugador(){
+  if(inscripcionTab !== "jugador") return;
+  const caja = document.querySelector("#inscEquipoCaja");
+  if(caja) caja.innerHTML = formJugadorHTML();
+}
 
 function refrescarFormEquipo(){
   if(inscripcionTab !== "equipo") return;
@@ -7356,6 +8533,20 @@ function seleccionarMenoresEquipo(val){
 }
 
 function formJugadorHTML(){
+  if(!ALTAS_ABIERTAS){
+    return `
+    <div class="insc-form">
+      <div class="insc-cerradas">
+        <div class="insc-cerradas-titulo">Alta de jugadores cerrada</div>
+        <p>En este momento ya no se pueden dar de alta jugadores.</p>
+        <p><a class="insc-wa" href="https://wa.me/528117817451" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+            <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.7-.9-2.9-1.6-4-3.6-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.3 5.2 4.6 1.9.8 2.7.9 3.7.8.6-.1 1.8-.7 2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4zM12 2.2C6.6 2.2 2.2 6.6 2.2 12c0 1.7.5 3.4 1.3 4.8L2.1 21.9l5.2-1.4c1.4.8 3 1.2 4.7 1.2 5.4 0 9.8-4.4 9.8-9.8S17.4 2.2 12 2.2zm0 17.8c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-3-1.3-4.6C3.6 7.4 7.4 3.6 12 3.6S20.4 7.4 20.4 12 16.6 20 12 20z"></path>
+          </svg>
+          Manda WhatsApp al 81 1781 7451</a></p>
+      </div>
+    </div>`;
+  }
   return `
     <div class="insc-form">
       <p class="insc-intro">
