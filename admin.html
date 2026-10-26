@@ -978,6 +978,30 @@
   .cat-btn:hover{border-color:#666;color:#fff;}
   .cat-btn.active{background:#E8365D;border-color:#E8365D;color:#fff;}
 
+  /* ---- Torneo 3x3 (26 oct 2026): las inscripciones del torneo, por
+     categoría, con su botón de Pagado. ---- */
+  .t3a-resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:4px 0 14px;}
+  .t3a-cat{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;}
+  .t3a-cat b{display:block;font-size:13px;letter-spacing:.04em;text-transform:uppercase;}
+  .t3a-cat .t3a-cupo{font-size:22px;font-weight:900;margin:2px 0;}
+  .t3a-cat span{display:block;font-size:12px;color:var(--text-soft);}
+  .t3a-titulo{margin:18px 0 8px;font-size:14px;letter-spacing:.06em;text-transform:uppercase;}
+  .t3a-equipo{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;}
+  .t3a-equipo.t3a-apagado{opacity:.5;}
+  .t3a-nombre{font-weight:900;font-size:15px;}
+  .t3a-jug{font-size:12px;color:var(--text-soft);line-height:1.6;}
+  .t3a-jug strong{color:var(--text);}
+  .t3a-cap{font-size:12px;line-height:1.6;}
+  .t3a-estado{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:3px 8px;border:1px solid;}
+  .t3a-estado.pagado{color:var(--win);border-color:var(--win);background:rgba(51,224,138,.12);}
+  .t3a-estado.pendiente{color:#F5B342;border-color:#F5B342;background:rgba(245,179,66,.12);}
+  .t3a-estado.espera{color:#7FA6FF;border-color:#7FA6FF;background:rgba(127,166,255,.12);}
+  .t3a-estado.liberado{color:var(--text-soft);border-color:var(--line);}
+  .t3a-lado{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right;font-size:12px;}
+  .t3a-lado .save-btn{width:auto;margin:0;padding:8px 14px;font-size:12px;}
+  .t3a-lado .save-btn.gris{background:#5A5A5A;}
+  @media(max-width:600px){ .t3a-equipo{grid-template-columns:1fr;} .t3a-lado{align-items:flex-start;text-align:left;} }
+
   /* ---- Candado de inscripciones ---- */
   .candado-fila{display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
   .candado-estado{font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.05em;}
@@ -2341,6 +2365,22 @@
         <button class="save-btn" id="altasBtn" onclick="cambiarAltas()" disabled>…</button>
       </div>
       <div class="msg" id="altasMsg" style="display:none;"></div>
+    </div>
+
+    <!-- Torneo 3x3 (26 oct 2026, Mauricio): quién se inscribió, cuántos
+         lugares quedan por categoría y el botón de Pagado, para no escribirlo
+         a mano en la hoja "Inscripción 3x3". -->
+    <div class="card" id="t3AdminCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h2 style="margin:0;">Torneo 3x3</h2>
+        <button class="mini-btn" id="t3AdminRecargar" onclick="cargar3x3Admin(true)">↻ Actualizar</button>
+      </div>
+      <div class="oliver-sub" style="margin:6px 0 10px;">
+        Del 23 nov al 3 dic. Al marcar <strong>Pagado</strong> el equipo ya no se libera a las 72 horas.
+        El arbitraje no se lleva aquí.
+      </div>
+      <div id="t3AdminCuerpo"><div class="empty-state">Abriendo…</div></div>
+      <div class="msg" id="t3AdminMsg" style="display:none;"></div>
     </div>
 
     <div class="card">
@@ -5848,6 +5888,132 @@ async function cambiarAltas(){
     msg.className = "msg err";
     msg.textContent = "No se pudo cambiar: " + err.message;
     btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   TORNEO 3x3 EN EL ADMIN (26 oct 2026)
+
+   La hoja "Inscripción 3x3" trae un renglón por jugador; aquí se juntan por
+   Id Equipo. Se pide una sola vez al abrir Inscripciones (cada llamada a
+   Apps Script cuesta 1.5–2.5 s) y con el botón Actualizar. Solo el Admin:
+   trae celulares y correos, y el servidor exige la clave.
+   ============================================================ */
+const T3A_CATEGORIAS = ["Femenil A", "Varonil A", "Femenil B", "Varonil B"];
+let T3A_PEDIDO = false, T3A_DATOS = null;
+const t3aEsc = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+async function cargar3x3Admin(aMano){
+  const cuerpo = document.getElementById("t3AdminCuerpo");
+  if(!cuerpo) return;
+  if(STAFF){ document.getElementById("t3AdminCard").style.display = "none"; return; }
+  T3A_PEDIDO = true;
+  const btn = document.getElementById("t3AdminRecargar");
+  btn.disabled = true;
+  if(aMano || !T3A_DATOS) cuerpo.innerHTML = '<div class="empty-state">Cargando las inscripciones del 3x3…</div>';
+  try{
+    const data = await postAppsScript({ action: "leerInscripciones3x3", clave: CONFIG.adminPassword });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    T3A_DATOS = data.torneo3x3;
+    pintar3x3Admin();
+  }catch(err){
+    cuerpo.innerHTML = '<div class="empty-state" style="color:#F37228;font-weight:700;">No se pudieron cargar las inscripciones del 3x3: ' + t3aEsc(err.message) + '</div>';
+    T3A_PEDIDO = false;              // que vuelva a intentar al regresar a la pestaña
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* Renglones de la hoja → equipos. */
+function equipos3x3Admin(filas){
+  const porId = {};
+  filas.forEach(f => {
+    const id = String(f["Id Equipo"] || "").trim();
+    if(!id) return;
+    const e = porId[id] = porId[id] || { id, equipo: f["Equipo"], categoria: f["Categoría"], fecha: f["Timestamp"],
+                                         estatus: f["Estatus"], limite: f["Limite de pago"], jugadores: [], cap: null };
+    const j = { nombre: [f["Jugador"], f["Apellido"]].filter(Boolean).join(" "), equipo5x5: f["Equipo 5x5"],
+                fuerza: f["Fuerza 5x5"], nuevo: f["Nuevo"] === "Sí", correo: f["Correo Jugador"] };
+    // El nombre de los de la liga ya viene completo en "Jugador"; el apellido es para los nuevos.
+    if(!j.nuevo) j.nombre = f["Jugador"];
+    e.jugadores.push(j);
+    if(f["Capitán"] === "Sí") e.cap = { nombre: j.nombre, tel: f["Teléfono Capitán"], correo: f["Correo Capitán"] };
+  });
+  return Object.values(porId);
+}
+function tipo3x3Admin(estatus){
+  const s = String(estatus || "");
+  if(/pagad/i.test(s)) return "pagado";
+  if(/^liberado/i.test(s)) return "liberado";
+  if(/^lista de espera/i.test(s)) return "espera";
+  return "pendiente";
+}
+
+function pintar3x3Admin(){
+  const cuerpo = document.getElementById("t3AdminCuerpo");
+  if(!cuerpo || !T3A_DATOS) return;
+  const cupo = T3A_DATOS.cupo || 8;
+  const equipos = equipos3x3Admin(T3A_DATOS.filas || []);
+  if(!equipos.length){
+    cuerpo.innerHTML = '<div class="empty-state">Todavía no se inscribe ningún equipo al 3x3.</div>';
+    return;
+  }
+  const orden = { pagado: 0, pendiente: 0, espera: 1, liberado: 2 };
+  const resumen = T3A_CATEGORIAS.map(cat => {
+    const suyos = equipos.filter(e => e.categoria === cat);
+    const n = t => suyos.filter(e => tipo3x3Admin(e.estatus) === t).length;
+    const conLugar = n("pagado") + n("pendiente");
+    return `<div class="t3a-cat"><b>${cat}</b><div class="t3a-cupo">${conLugar} de ${cupo}</div>
+      <span>${n("pagado")} pagado${n("pagado") === 1 ? "" : "s"} · ${n("pendiente")} por pagar</span>
+      ${n("espera") ? `<span>${n("espera")} en lista de espera</span>` : ""}</div>`;
+  }).join("");
+  const bloques = T3A_CATEGORIAS.map(cat => {
+    const suyos = equipos.filter(e => e.categoria === cat)
+      .sort((a, b) => orden[tipo3x3Admin(a.estatus)] - orden[tipo3x3Admin(b.estatus)] || String(a.fecha).localeCompare(String(b.fecha)));
+    if(!suyos.length) return "";
+    return `<h3 class="t3a-titulo">${cat}</h3>` + suyos.map(e => {
+      const tipo = tipo3x3Admin(e.estatus);
+      const jug = e.jugadores.map(j => `<strong>${t3aEsc(j.nombre)}</strong>${e.cap && j.nombre === e.cap.nombre ? " ★" : ""}` +
+        (j.nuevo ? " · nuevo" : ` · ${t3aEsc(j.equipo5x5)}${j.fuerza ? " · " + t3aEsc(j.fuerza) : ""}`)).join("<br>");
+      const cap = e.cap ? `Capitán: <strong>${t3aEsc(e.cap.nombre)}</strong> · ${t3aEsc(e.cap.tel)} · ${t3aEsc(e.cap.correo)}` : "";
+      const boton = tipo === "pendiente"
+        ? `<button class="save-btn" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', true)">Marcar pagado</button>`
+        : tipo === "pagado"
+        ? `<button class="save-btn gris" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', false)">Quitar pagado</button>` : "";
+      const nota = tipo === "pendiente" && e.limite ? `Paga antes del ${t3aEsc(e.limite)}`
+                 : tipo === "liberado" ? "No pagó a tiempo" : tipo === "espera" ? "Sin lugar todavía" : "";
+      return `<div class="t3a-equipo${tipo === "liberado" ? " t3a-apagado" : ""}">
+        <div><div class="t3a-nombre">${t3aEsc(e.equipo)}</div>
+          <div class="t3a-jug">${jug}</div>
+          <div class="t3a-cap">${cap}</div>
+          <div class="t3a-jug">Inscrito: ${t3aEsc(e.fecha)}</div></div>
+        <div class="t3a-lado"><span class="t3a-estado ${tipo}">${t3aEsc(e.estatus)}</span>
+          ${nota ? `<span>${nota}</span>` : ""}${boton}</div>
+      </div>`;
+    }).join("");
+  }).join("");
+  cuerpo.innerHTML = `<div class="t3a-resumen">${resumen}</div>${bloques}`;
+}
+
+async function marcarPago3x3Admin(id, pagado){
+  const msg = document.getElementById("t3AdminMsg");
+  const e = equipos3x3Admin(T3A_DATOS.filas || []).find(x => x.id === id);
+  const nombre = e ? e.equipo : id;
+  if(!pagado && !confirm("¿Quitarle el pagado a " + nombre + "?\n\nVuelve a contar sus 72 horas desde que se inscribió: si ya pasaron, se libera su lugar.")) return;
+  msg.style.display = "block"; msg.className = "msg";
+  msg.textContent = (pagado ? "Marcando pagado a " : "Quitando el pagado a ") + nombre + "…";
+  document.querySelectorAll("#t3AdminCuerpo .save-btn").forEach(b => b.disabled = true);
+  try{
+    const data = await postAppsScript({ action: "marcarPago3x3", clave: CONFIG.adminPassword, idEquipo: id, pagado: !!pagado });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    (T3A_DATOS.filas || []).forEach(f => { if(String(f["Id Equipo"]).trim() === id) f["Estatus"] = data.pago3x3.estatus; });
+    pintar3x3Admin();
+    msg.className = "msg ok";
+    msg.textContent = nombre + ": " + data.pago3x3.estatus + ".";
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo: " + err.message;
+    document.querySelectorAll("#t3AdminCuerpo .save-btn").forEach(b => b.disabled = false);
   }
 }
 
@@ -10236,6 +10402,7 @@ function renderCruces(){
    ============================================================ */
 
 function renderInscripciones(){
+  if(!T3A_PEDIDO) cargar3x3Admin(false);
   const tabla = document.getElementById("inscripcionesTable");
   const orden = {"Pendiente":0, "Aprobado":1, "Rechazado":2};
   const lista = [...INSCRIPCIONES].sort((a,b)=>{
