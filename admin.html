@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Ícono al agregar la página a la pantalla de inicio del celular (15 oct
      2026). Sin esto el teléfono inventaba uno con la letra "L". Es el logo de
-     los aros con la pelota, sobre negro. -->
+     los aros con el balón, sobre negro. -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="admin.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Liga Admin">
@@ -2326,6 +2326,23 @@
       <div class="msg" id="candadoMsg" style="display:none;"></div>
     </div>
 
+    <!-- El alta de jugadores con su propio candado (22 oct 2026): se puede
+         tener cerrada la inscripción de equipos y abierta el alta, o al
+         revés. -->
+    <div class="card" id="candadoAltasCard">
+      <h2>Alta de jugadores</h2>
+      <div class="candado-fila">
+        <div>
+          <div class="candado-estado" id="altasEstado">Consultando…</div>
+          <div class="oliver-sub" id="altasDetalle">
+            Esto manda sobre la pestaña Alta de jugador de la página.
+          </div>
+        </div>
+        <button class="save-btn" id="altasBtn" onclick="cambiarAltas()" disabled>…</button>
+      </div>
+      <div class="msg" id="altasMsg" style="display:none;"></div>
+    </div>
+
     <div class="card">
       <h2>Inscripciones de equipos</h2>
       <div class="empty-state" style="text-align:left; padding:0 0 14px 0;">
@@ -3421,6 +3438,10 @@ function leerDelSheet(hojas, timeoutMs, opciones, alError){
         if(respuesta.inscripcionesAbiertas !== undefined){
           INSCRIPCIONES_ABIERTAS = !!respuesta.inscripcionesAbiertas;
           if(typeof pintarCandado === "function") pintarCandado();
+        }
+        if(respuesta.altasAbiertas !== undefined){
+          ALTAS_ABIERTAS = !!respuesta.altasAbiertas;
+          if(typeof pintarCandadoAltas === "function") pintarCandadoAltas();
         }
         if(respuesta.avisosRol){
           AVISOS_ROL = respuesta.avisosRol;
@@ -5771,6 +5792,58 @@ async function cambiarInscripciones(){
     msg.textContent = van
       ? "Inscripciones abiertas: la página ya acepta equipos nuevos."
       : "Inscripciones cerradas: la página ya no acepta equipos nuevos.";
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo cambiar: " + err.message;
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   CANDADO DEL ALTA DE JUGADORES
+
+   El mismo candado que el de inscripciones, aparte. Cerrado, la pestaña
+   Alta de jugador dice "En este momento ya no se pueden dar de alta
+   jugadores. Manda WhatsApp al 81 1781 7451" y el Apps Script rechaza el
+   alta aunque alguien la mande a mano.
+   ============================================================ */
+let ALTAS_ABIERTAS = null;   // null = todavía no se sabe
+
+function pintarCandadoAltas(){
+  const estado = document.getElementById("altasEstado");
+  const btn = document.getElementById("altasBtn");
+  const detalle = document.getElementById("altasDetalle");
+  if(!estado || !btn || ALTAS_ABIERTAS === null) return;
+  if(ALTAS_ABIERTAS){
+    estado.textContent = "Abierta";
+    estado.className = "candado-estado abiertas";
+    detalle.textContent = "Cualquier jugador con el código de su equipo puede darse de alta.";
+    btn.textContent = "🔒 Cerrar alta de jugadores";
+  } else {
+    estado.textContent = "Cerrada";
+    estado.className = "candado-estado cerradas";
+    detalle.textContent = "La página dice: En este momento ya no se pueden dar de alta jugadores. Manda WhatsApp al 81 1781 7451.";
+    btn.textContent = "🔓 Abrir alta de jugadores";
+  }
+  btn.disabled = false;
+}
+
+async function cambiarAltas(){
+  const btn = document.getElementById("altasBtn");
+  const msg = document.getElementById("altasMsg");
+  const van = !ALTAS_ABIERTAS;
+  if(!van && !confirm("¿Cerrar el alta de jugadores?\n\nDesde ese momento nadie se puede dar de alta desde la página. Se puede volver a abrir cuando quieras.")) return;
+  btn.disabled = true;
+  msg.style.display = "block";
+  msg.className = "msg";
+  msg.textContent = van ? "Abriendo…" : "Cerrando…";
+  try{
+    const data = await postAppsScript({ action: "cambiarEstadoAltas", clave: CONFIG.adminPassword, abiertas: van });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    ALTAS_ABIERTAS = van;
+    pintarCandadoAltas();
+    msg.className = "msg ok";
+    msg.textContent = van ? "Alta de jugadores abierta." : "Alta de jugadores cerrada: la página ya muestra el mensaje de WhatsApp.";
   }catch(err){
     msg.className = "msg err";
     msg.textContent = "No se pudo cambiar: " + err.message;
