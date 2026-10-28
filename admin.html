@@ -206,7 +206,7 @@
     font-weight:800;
   }
   label{display:block; font-size:11px; font-weight:700; color:var(--text-soft); margin-bottom:6px; letter-spacing:.05em;}
-  select, input[type=number], input[type=text], input[type=date], input[type=time]{
+  select, input[type=number], input[type=text], input[type=email], input[type=date], input[type=time]{
     width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:4px;
     font-size:14px; font-family:Arial,Helvetica,sans-serif; margin-bottom:14px;
     background:var(--surface-2); color:var(--text);
@@ -922,6 +922,20 @@
   .sc-caso{border-left:3px solid #E24B4A;border-radius:0 12px 12px 0;}
   .sc-caso.listo{border-left-color:#2E7D46;}
   .sc-caso.activa{border-left-color:#F37228;}
+  /* ---------- Alta de jugador ---------- */
+  .alta-foto{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .alta-foto-prev{width:96px; height:96px; border-radius:10px; border:1px dashed #444; display:flex;
+    align-items:center; justify-content:center; font-size:11px; color:var(--text-soft); overflow:hidden; flex:0 0 auto;}
+  .alta-foto-prev img{width:100%; height:100%; object-fit:cover;}
+  .alta-foto-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  .alta-foto-btn{display:inline-flex; align-items:center; margin:0; cursor:pointer;}
+  .alta-menor{margin-top:6px; padding:14px; border:1px solid #7a5a1a; border-radius:10px; background:#1f1a10;}
+  .alta-menor-titulo{font-size:13px; font-weight:800; color:#f3c56b; margin-bottom:12px;}
+  .alta-ine-prev{height:90px; border-radius:8px; border:1px dashed #444; display:flex; align-items:center;
+    justify-content:center; font-size:11px; color:var(--text-soft); overflow:hidden;}
+  .alta-ine-prev img{max-width:100%; max-height:100%;}
+  .alta-carta{display:flex; gap:8px; align-items:flex-start; margin-top:14px; font-size:13px; color:var(--text);
+    letter-spacing:0; text-transform:none; font-weight:600;}
   .hd-jug.sancionado{opacity:.55;}
   .hd-sancionado{margin-left:8px;font-size:10px;font-weight:900;color:#ffb3b3;background:#2a1313;
     border:1px solid #7a2a2a;border-radius:20px;padding:2px 8px;white-space:nowrap;}
@@ -1739,6 +1753,7 @@
     <button data-view="equipos">Equipos</button>
     <button data-view="asistencia">Asistencia</button>
     <button data-view="inscripciones">Inscripciones</button>
+    <button data-view="altas">Alta de jugador</button>
     <div class="nav-grupo">Dinero</div>
     <button data-view="pagos">Pagos<span class="nav-badge" id="badge-pagos"></span></button>
     <!-- Solo para el staff: el formulario corto de pagos de Juan Pablo. -->
@@ -2332,6 +2347,106 @@
   </section>
 
   <!-- ============ TAB: INSCRIPCIONES ============ -->
+  <!-- ============ ALTA DE JUGADOR ============
+       Las altas de la página están cerradas, pero todavía llegan jugadores
+       que Mauricio cobra en la cancha (28 oct 2026). Aquí él o Juan Pablo
+       los dan de alta: categoría y fuerza → equipo → nombre, foto y correo.
+       Entra al roster de ese equipo en cuanto se guarda. -->
+  <section class="view" id="view-altas">
+    <div class="card">
+      <h2>Alta de jugador</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Para dar de alta a un jugador aunque las altas de la página estén cerradas.
+        Queda en el roster de su equipo en cuanto se guarda.
+      </p>
+      <div class="grid-2">
+        <div>
+          <label for="altaCategoria">Categoría</label>
+          <select id="altaCategoria" onchange="altaActualizarEquipos()"></select>
+        </div>
+        <div>
+          <label for="altaEquipo">Equipo</label>
+          <select id="altaEquipo"></select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:12px;">
+        <div>
+          <label for="altaNombre">Nombre(s)</label>
+          <input id="altaNombre" type="text" autocomplete="off" placeholder="Ej. José Luis">
+        </div>
+        <div>
+          <label for="altaApellido">Apellido(s)</label>
+          <input id="altaApellido" type="text" autocomplete="off" placeholder="Ej. Lozano García">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label for="altaCorreo">Correo</label>
+          <input id="altaCorreo" type="email" inputmode="email" autocomplete="off" placeholder="jugador@correo.com">
+        </div>
+        <div>
+          <label for="altaFechaNac">Fecha de nacimiento</label>
+          <input id="altaFechaNac" type="date" onchange="altaRevisarMenor()">
+        </div>
+      </div>
+
+      <!-- Si es menor de edad, lo mismo que pide la página: tutor, INE de
+           frente y de reverso, y la carta responsiva aceptada. -->
+      <div class="alta-menor" id="altaMenor" style="display:none;">
+        <div class="alta-menor-titulo">⚠️ Menor de edad: hace falta la autorización del padre, madre o tutor</div>
+        <label for="altaTutor">Nombre del padre, madre o tutor que autoriza</label>
+        <input id="altaTutor" type="text" autocomplete="off" placeholder="Nombre completo">
+        <div class="grid-2">
+          <div>
+            <label>INE del tutor · frente</label>
+            <div class="alta-ine-prev" id="altaIneFrentePrev">Sin foto</div>
+            <div class="alta-foto-btns" style="margin-top:6px;">
+              <label class="btn-sec alta-foto-btn">📷 Tomar
+                <input type="file" accept="image/*" capture="environment" onchange="altaIneElegida(this,'frente')" hidden>
+              </label>
+              <label class="btn-sec alta-foto-btn">📎 Adjuntar
+                <input type="file" accept="image/*" onchange="altaIneElegida(this,'frente')" hidden>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label>INE del tutor · reverso</label>
+            <div class="alta-ine-prev" id="altaIneReversoPrev">Sin foto</div>
+            <div class="alta-foto-btns" style="margin-top:6px;">
+              <label class="btn-sec alta-foto-btn">📷 Tomar
+                <input type="file" accept="image/*" capture="environment" onchange="altaIneElegida(this,'reverso')" hidden>
+              </label>
+              <label class="btn-sec alta-foto-btn">📎 Adjuntar
+                <input type="file" accept="image/*" onchange="altaIneElegida(this,'reverso')" hidden>
+              </label>
+            </div>
+          </div>
+        </div>
+        <label class="alta-carta"><input type="checkbox" id="altaCarta">
+          El padre, madre o tutor leyó y aceptó la carta responsiva para menores de edad.</label>
+      </div>
+
+      <label style="margin-top:12px;">Foto</label>
+      <div class="alta-foto">
+        <div class="alta-foto-prev" id="altaFotoPrev">Sin foto</div>
+        <div class="alta-foto-btns">
+          <!-- "capture" abre la cámara directo en la tablet o el celular; en la
+               computadora se comporta como adjuntar. -->
+          <label class="btn-sec alta-foto-btn">📷 Tomar foto
+            <input id="altaFotoCamara" type="file" accept="image/*" capture="environment" onchange="altaFotoElegida(this)" hidden>
+          </label>
+          <label class="btn-sec alta-foto-btn">📎 Adjuntar foto
+            <input id="altaFotoArchivo" type="file" accept="image/*" onchange="altaFotoElegida(this)" hidden>
+          </label>
+          <button class="btn-sec" id="altaFotoQuitar" onclick="altaQuitarFoto()" style="display:none;">Quitar</button>
+        </div>
+      </div>
+
+      <button class="save-btn" id="altaBtn" onclick="altaDarDeAlta()" style="margin-top:16px;">Dar de alta</button>
+      <div class="msg" id="altaMsg"></div>
+    </div>
+  </section>
+
   <section class="view" id="view-inscripciones">
 
     <!-- El candado de la temporada: mientras esté cerrado, el formulario
@@ -2800,7 +2915,8 @@ function aplicarModoStaff(){
     cedulas: ["cedulas"],
     links:   ["links"],
     minuta:  ["minuta"],
-    sanciones: ["sanciones"]
+    sanciones: ["sanciones"],
+    altas:   ["altas"]
   };
   const suyas = [];
   STAFF.permisos.forEach(p=>{ (PESTANAS_POR_PERMISO[p] || []).forEach(t=>suyas.push(t)); });
@@ -3353,7 +3469,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones", altas: "view-altas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -3381,6 +3497,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "staffpagos") spIniciar();
     if(btn.dataset.view === "minuta") cargarMinutas();
     if(btn.dataset.view === "sanciones") cargarSanciones();
+    if(btn.dataset.view === "altas") renderAltas();
   });
 });
 
@@ -9409,6 +9526,186 @@ async function hdFinalizar(){
 
 function renderCedulas(){ hdLlenarSelector(); hdRender(); }
 
+
+/* ============================================================
+   ALTA DE JUGADOR (Mauricio, 28 oct 2026)
+
+   Las altas de la página están cerradas, pero todavía llegan jugadores que
+   él cobra en la cancha. Solo Admin y Juan Pablo (permiso "altas"); el
+   servidor lo vuelve a revisar (altaJugadorStaff).
+
+   ============================================================ */
+let ALTA_FOTO = "";
+let ALTA_INE = { frente: "", reverso: "" };
+
+/* Las cuatro categorías de la liga, siempre en este orden (Mauricio:
+   "nada más son cuatro categorías", no categoría y fuerza por separado). */
+const ALTA_CATEGORIAS = ["Varonil A", "Varonil B", "Femenil A", "Femenil B"];
+
+function renderAltas(){
+  const cat = document.getElementById("altaCategoria");
+  if(!cat) return;
+  const antes = cat.value;
+  cat.innerHTML = '<option value="">— Escoge —</option>' +
+    ALTA_CATEGORIAS.map(c => `<option${c === antes ? " selected" : ""}>${c}</option>`).join("");
+  altaActualizarEquipos();
+}
+
+/* Los equipos de esa categoría, por orden alfabético. */
+function altaEquiposDe(categoria){
+  if(!categoria) return [];
+  return Object.keys(CATEGORIA_POR_EQUIPO || {})
+    .filter(eq => String(CATEGORIA_POR_EQUIPO[eq] || "").trim().toUpperCase() === categoria.toUpperCase())
+    .sort();
+}
+
+function altaActualizarEquipos(){
+  const sel = document.getElementById("altaEquipo");
+  if(!sel) return;
+  const categoria = document.getElementById("altaCategoria").value;
+  const antes = sel.value;
+  sel.innerHTML = !categoria
+    ? '<option value="">Primero escoge la categoría</option>'
+    : '<option value="">— Escoge el equipo —</option>' + altaEquiposDe(categoria).map(eq => `<option${eq === antes ? " selected" : ""}>${eq}</option>`).join("");
+}
+
+/* Igual que calcularEdad de la página y calcularEdad_ del Apps Script (el
+   servidor lo vuelve a calcular: no confía en esto). */
+function altaEdad(fechaISO){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fechaISO || ""));
+  if(!m) return null;
+  const nac = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  if(hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+function altaEsMenor(){
+  const e = altaEdad(document.getElementById("altaFechaNac").value);
+  return e !== null && e >= 0 && e < 18;
+}
+function altaRevisarMenor(){
+  const caja = document.getElementById("altaMenor");
+  if(caja) caja.style.display = altaEsMenor() ? "" : "none";
+}
+
+/* La INE va completa (sin recorte cuadrado, se tiene que poder leer), igual
+   que procesarIne de la página. */
+function altaIneElegida(input, lado){
+  const archivo = input.files && input.files[0];
+  input.value = "";
+  if(!archivo) return;
+  if(!/^image\//.test(archivo.type)) return altaAviso("Ese archivo no es una imagen.", false);
+  const lector = new FileReader();
+  lector.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const escala = Math.min(1, 1000 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * escala); canvas.height = Math.round(img.height * escala);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      let calidad = 0.85, uri = canvas.toDataURL("image/jpeg", calidad);
+      while(uri.length > 45000 && calidad > 0.3){ calidad -= 0.1; uri = canvas.toDataURL("image/jpeg", calidad); }
+      ALTA_INE[lado] = uri;
+      document.getElementById(lado === "frente" ? "altaIneFrentePrev" : "altaIneReversoPrev").innerHTML =
+        '<img src="' + uri + '" alt="INE ' + lado + '">';
+    };
+    img.onerror = ()=> altaAviso("No se pudo leer la imagen. Intenta con otra.", false);
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+/* La foto, igual que en la página: recorte cuadrado al centro, 320 px, y
+   bajando la calidad hasta que quepa (≤45 KB). El servidor la manda a
+   Drive. */
+function altaFotoElegida(input){
+  const archivo = input.files && input.files[0];
+  input.value = "";   // para poder volver a escoger la misma
+  if(!archivo) return;
+  if(!/^image\//.test(archivo.type)) return altaAviso("Ese archivo no es una imagen.", false);
+  const lector = new FileReader();
+  lector.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const lado = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      const destino = Math.min(320, lado);
+      canvas.width = destino; canvas.height = destino;
+      canvas.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, destino, destino);
+      let calidad = 0.8, uri = canvas.toDataURL("image/jpeg", calidad);
+      while(uri.length > 45000 && calidad > 0.3){ calidad -= 0.1; uri = canvas.toDataURL("image/jpeg", calidad); }
+      ALTA_FOTO = uri;
+      document.getElementById("altaFotoPrev").innerHTML = '<img src="' + uri + '" alt="Foto del jugador">';
+      document.getElementById("altaFotoQuitar").style.display = "";
+    };
+    img.onerror = ()=> altaAviso("No se pudo leer la imagen. Intenta con otra.", false);
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+function altaQuitarFoto(){
+  ALTA_FOTO = "";
+  document.getElementById("altaFotoPrev").textContent = "Sin foto";
+  document.getElementById("altaFotoQuitar").style.display = "none";
+}
+
+function altaAviso(texto, bien){
+  const m = document.getElementById("altaMsg");
+  if(!m) return;
+  m.className = "msg" + (bien === true ? " ok" : bien === false ? " err" : "");
+  m.style.display = texto ? "block" : "none";
+  m.textContent = texto;
+}
+
+async function altaDarDeAlta(){
+  const v = id => String(document.getElementById(id).value || "").trim();
+  const equipo = v("altaEquipo"), nombre = v("altaNombre"), apellido = v("altaApellido"), correo = v("altaCorreo");
+  const fechaNacimiento = v("altaFechaNac");
+  if(!equipo) return altaAviso("Escoge la categoría y el equipo.", false);
+  if(!nombre) return altaAviso("Falta el nombre.", false);
+  if(!apellido) return altaAviso("Falta el apellido.", false);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return altaAviso("Revisa el correo.", false);
+  if(!fechaNacimiento) return altaAviso("Falta la fecha de nacimiento.", false);
+  const menor = altaEsMenor();
+  const tutorNombre = v("altaTutor");
+  if(menor){
+    if(!tutorNombre) return altaAviso("Es menor de edad: falta el nombre del padre, madre o tutor.", false);
+    if(!ALTA_INE.frente) return altaAviso("Es menor de edad: falta la INE del tutor (frente).", false);
+    if(!ALTA_INE.reverso) return altaAviso("Es menor de edad: falta la INE del tutor (reverso).", false);
+    if(!document.getElementById("altaCarta").checked) return altaAviso("Es menor de edad: falta marcar que el tutor aceptó la carta responsiva.", false);
+  }
+  if(!ALTA_FOTO && !confirm("Va sin foto. ¿Lo doy de alta así?")) return;
+
+  const btn = document.getElementById("altaBtn");
+  btn.disabled = true; btn.textContent = "Dando de alta…";
+  altaAviso("Guardando…");
+  try{
+    const r = await postAppsScript({
+      action: "altaJugadorStaff", clave: CONFIG.adminPassword,
+      equipo, nombre, apellido, correo, foto: ALTA_FOTO, fechaNacimiento,
+      tutorNombre: menor ? tutorNombre : "", ineFrente: menor ? ALTA_INE.frente : "",
+      ineReverso: menor ? ALTA_INE.reverso : "", cartaResponsivaAceptada: menor
+    });
+    altaAviso(r.yaExistia
+      ? `${nombre} ${apellido} ya estaba dado de alta en ${r.equipo}.`
+      : `Listo: ${nombre} ${apellido} quedó dado de alta en ${r.equipo}. Ya sale en su roster.`, true);
+    ["altaNombre", "altaApellido", "altaCorreo", "altaFechaNac", "altaTutor"].forEach(id => { document.getElementById(id).value = ""; });
+    document.getElementById("altaCarta").checked = false;
+    ALTA_INE = { frente: "", reverso: "" };
+    ["altaIneFrentePrev", "altaIneReversoPrev"].forEach(id => { document.getElementById(id).textContent = "Sin foto"; });
+    altaRevisarMenor();
+    altaQuitarFoto();
+    /* Que entre ya al roster del Admin y de la hoja digital, sin recargar
+       la página (la misma lectura que "Refrescar rosters"). */
+    if(typeof hdTraerIntegrantes === "function") hdTraerIntegrantes().catch(()=>{});
+  }catch(e){
+    altaAviso("No se pudo: " + e.message, false);
+  }finally{
+    btn.disabled = false; btn.textContent = "Dar de alta";
+  }
+}
 
 /* ============================================================
    SANCIONES — el reporte de lo que sucedió
