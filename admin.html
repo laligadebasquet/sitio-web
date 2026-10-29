@@ -4552,15 +4552,27 @@ async function borrarPartido(p){
   }
 
   try{
+    let res = null;
     try{
       await pedirBorrado(false);
     }catch(err){
       if(/jugado/i.test(err.message)){
-        if(!confirm(`Ese partido ya está marcado como JUGADO.\n\n${cual}\n\n¿De todos modos lo borro del rol?`)) return;
-        await pedirBorrado(true);
+        /* Desde el 29 oct 2026 la segunda confirmación también se lleva lo
+           capturado (resultado, cédula, minuta, estadísticas y asistencia).
+           Antes solo quitaba el renglón del rol: el JOE'S vs WOLVES del 1 oct
+           se quedó en la Tabla General y WOLVES contaba 9 partidos y no 8. */
+        if(!confirm(`Ese partido YA SE JUGÓ.\n\n${cual}\n\nSi lo borras, se borra completo: el resultado, la cédula, la minuta, las estadísticas y la asistencia. Deja de contar en la Tabla General.\n\n¿Seguro que lo borro?`)) return;
+        res = await pedirBorrado(true);
       } else {
         throw err;
       }
+    }
+    const capt = res && res.partido && res.partido.capturas;
+    if(capt){
+      const total = Object.values(capt).reduce((a, n) => a + Number(n || 0), 0);
+      alert(`Listo, se borró ${cual}.\n\n` +
+            Object.entries(capt).map(([h, n]) => `${h}: ${n} renglón${n == 1 ? "" : "es"}`).join("\n") +
+            (total ? `\n\nUna copia quedó en la hoja "Respaldo de borrados".` : ""));
     }
 
     const i = MATCHES.findIndex(x => String(x.jornada) === String(semana) &&
