@@ -3782,7 +3782,7 @@ function renderRolInicio(){
     ? delDia.map(p=>`
       <div class="partido-fila">
         <div class="pf-izq">
-          <span class="pf-cat">${p.categoria || ""}${p.ronda ? " · " + p.ronda : ""}</span>
+          <span class="pf-cat">${etiquetaDePartido(p)}</span>
           <span class="pf-hora">${horaBonita(p.hora)}</span>
         </div>
         <div class="pf-centro">
@@ -4576,7 +4576,7 @@ function renderResultadosRecientes(){
     return `
       <div class="partido-fila res-fila">
         <div class="pf-izq">
-          <span class="pf-cat">${p.categoria || ""}</span>
+          <span class="pf-cat">${etiquetaDePartido(p)}</span>
         </div>
         <div class="pf-centro">
           <span class="pf-eq-local${ganaLocal ? " res-gana" : ""}">${p.local}</span>
@@ -5016,7 +5016,7 @@ function renderResultados(){
       const visitWins = m.ptsVisitante > m.ptsLocal;
       html += `
         <div class="match-card">
-          <div class="match-meta"><span>${m.fecha}</span><span>${m.sede || ""}</span></div>
+          <div class="match-meta"><span>${m.fecha}</span><span>${metaDePartido(m)}</span></div>
           <div class="match-row ${localWins ? "winner" : ""}">
             <span class="team-name"><span class="team-dot"></span>${m.local}</span>
             <span class="score">${m.ptsLocal}</span>
@@ -5089,7 +5089,7 @@ function renderProximos(){
       html += `
         <div class="match-card">
           <div class="match-meta"><span>${enEspera ? "Sin fecha todavía"
-            : (m.fecha + " · " + (m.hora || ""))}</span><span>${m.sede || ""}</span></div>
+            : (m.fecha + " · " + (m.hora || ""))}</span><span>${metaDePartido(m)}</span></div>
           <div class="match-row"><span class="team-name"><span class="team-dot"></span>${m.local}</span></div>
           <div class="match-row"><span class="team-name"><span class="team-dot"></span>${m.visitante}</span></div>
           <span class="badge ${badgeClass}">${m.estatus || "Programado"}</span>
@@ -5213,7 +5213,7 @@ function renderRol(){
       html += `
         <div class="match-card">
           <div class="match-meta"><span>${enEspera ? "Sin fecha todavía"
-            : (fechaCorta(m.fecha) + " · " + horaBonita(m.hora))}</span><span>${m.sede || ""}</span></div>
+            : (fechaCorta(m.fecha) + " · " + horaBonita(m.hora))}</span><span>${metaDePartido(m)}</span></div>
           <div class="match-row${ganoL ? " gano" : ""}">
             <span class="team-name"><span class="team-dot"></span>${m.local}</span>
             ${conMarcador ? `<span class="match-pts">${ptsL}</span>` : ""}
@@ -6446,6 +6446,32 @@ function partidosDePlayoffs(){
                  a: "Ganador de semifinal", b: "Ganador de semifinal" });
   });
   return lista.sort(function(x, y){ return (x.f + x.h).localeCompare(y.f + y.h); });
+}
+
+/* La instancia de un partido de playoffs (Mauricio, 31 oct: "tiene que venir
+   en todos y cuando el partido haya pasado ahí también"). Los renglones del
+   Sheet y los de Resultados no traen ronda, y solo la enseñaban los que
+   todavía no tenían renglón. Se saca de PLAYOFFS_CUADRO por categoría y fecha,
+   porque Resultados no guarda la hora. Si lo reprogramaron a un día sin
+   partidos de esa categoría, conserva la última ronda de antes de esa fecha. */
+function rondaDePartido(m){
+  const fecha = String(m.fecha || "").slice(0, 10);
+  if(fecha < "2026-11-02") return "";
+  const cat = m.categoria || categoriaDeEquipo(m.local) || categoriaDeEquipo(m.visitante);
+  const suyos = partidosDePlayoffs().filter(p => p.cat === cat);
+  if(!suyos.length) return "";
+  const hasta = suyos.filter(p => p.f <= fecha);
+  return (hasta.length ? hasta[hasta.length - 1] : suyos[0]).ronda;
+}
+function etiquetaDePartido(m){
+  const cat = m.categoria || categoriaDeEquipo(m.local) || "";
+  const ronda = m.ronda || rondaDePartido(m);
+  return cat + (ronda ? " · " + ronda : "");
+}
+/* La esquina de las tarjetas: en playoffs categoría e instancia, y la sede. */
+function metaDePartido(m){
+  const ronda = m.ronda || rondaDePartido(m);
+  return [ronda ? etiquetaDePartido(m) : "", m.sede || ""].filter(Boolean).join(" · ");
 }
 
 /* Cómo se arman las semis de cada categoría, para el aviso de abajo. */
