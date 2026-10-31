@@ -917,13 +917,15 @@
 
   /* Cada partido en tres filas: izquierda, centro y derecha. */
   .partido-fila{
-    display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;
+    /* 185px: "VARONIL B · REPECHAJE" no cabía en 150 y bajaba a dos renglones,
+       distinto de los demás partidos (Mauricio, 31 oct). */
+    display:grid;grid-template-columns:185px 1fr 110px;align-items:center;gap:12px;
     border:1px solid var(--gray-line);border-radius:12px;
     padding:14px 16px;margin-bottom:8px;background:#fff;
   }
   .pf-izq .pf-cat{
     display:block;font-size:11px;font-weight:800;letter-spacing:.6px;
-    text-transform:uppercase;color:#F37228;margin-bottom:2px;
+    text-transform:uppercase;color:#F37228;margin-bottom:2px;white-space:nowrap;
   }
   .pf-izq .pf-hora{display:block;font-size:17px;font-weight:900;color:var(--navy);}
   /* El "vs" va clavado en el centro: los nombres crecen hacia afuera, no lo
