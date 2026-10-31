@@ -3629,7 +3629,7 @@ function semanaEnCurso(){
    tiene cuatro semanas cargadas, la gente quiere poder verlas. */
 function partidosDeLaSemana(){
   const hoy = hoyISO();
-  return ROL.filter(p => p.fecha && p.fecha >= hoy);
+  return ROL.concat(playoffsParaInicio()).filter(p => p.fecha && p.fecha >= hoy);
 }
 
 function partidosFiltrados(){
@@ -3782,7 +3782,7 @@ function renderRolInicio(){
     ? delDia.map(p=>`
       <div class="partido-fila">
         <div class="pf-izq">
-          <span class="pf-cat">${p.categoria || ""}</span>
+          <span class="pf-cat">${p.categoria || ""}${p.ronda ? " · " + p.ronda : ""}</span>
           <span class="pf-hora">${horaBonita(p.hora)}</span>
         </div>
         <div class="pf-centro">
@@ -5242,17 +5242,13 @@ function renderRol(){
    hoja de Google: los recordatorios a capitanes y la hoja digital necesitan
    equipos de verdad, y esos se sabrán hasta el 31 de octubre. */
 function playoffsEnRol(cat){
-  const tablas = {};
-  const tablaDe = function(c){
-    if(!tablas[c]) tablas[c] = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === c; });
-    return tablas[c];
-  };
   const quienHoy = function(lugar, c){
-    if(typeof lugar !== "number") return "";
-    const t = tablaDe(c)[lugar - 1];
-    return t ? t.equipo : "";
+    /* Solo lo que ya está cerrado: el femenil se queda con su lugar, sin
+       nombres, hasta que terminen los partidos del sábado 31. */
+    return poSembrado(lugar, c);
   };
   const visibles = partidosDePlayoffs().filter(function(p){
+    if(playoffYaEnRol(p)) return false;   // ya sale como partido normal del rol
     if(cat !== "general" && p.cat !== cat) return false;
     const a = quienHoy(p.a, p.cat), b = quienHoy(p.b, p.cat);
     /* Con un equipo elegido, solo los cruces donde hoy está ese equipo. */
@@ -5271,7 +5267,7 @@ function playoffsEnRol(cat){
     if(typeof lugar === "number"){
       const hoy = quienHoy(lugar, c);
       return '<span class="team-name"><span class="team-dot"></span>' + lugar + 'º lugar' +
-             (hoy ? '<small class="po-rol-hoy">hoy: ' + hoy + '</small>' : '') + '</span>';
+             (hoy ? '<small class="po-rol-hoy">' + hoy + '</small>' : '') + '</span>';
     }
     return '<span class="team-name po-rol-pend"><span class="team-dot"></span>' + lugar + '</span>';
   };
@@ -5300,7 +5296,10 @@ function playoffsEnRol(cat){
    hay; se le puede pasar una lista recortada para ver cómo estaba la tabla
    en otro momento — de ahí salen las flechas de subió/bajó. */
 function computeStandings(resultados){
-  const fuente = resultados || RESULTADOS;
+  /* Solo temporada regular. Los playoffs también caen en Resultados y sin este
+     corte moverían la Tabla General y el orden de los cruces femeniles. */
+  const fuente = (resultados || RESULTADOS)
+    .filter(m => String(m.fecha || "") < "2026-11-02");
   const teams = {};
   function ensure(name){
     if(!teams[name]) teams[name] = {equipo:name, pj:0, pg:0, pp:0, pf:0, pc:0};
@@ -6115,6 +6114,40 @@ const PLAYOFFS_CUADRO = {
     final: { f:"2026-11-21", h:"12:10" }
   }
 };
+
+/* Los lugares YA CERRADOS (30 oct 2026). Varonil A terminó y Varonil B solo
+   espera el default de KOOL AIDERS vs LENUTS, que no mueve a nadie del 1º al
+   10º. Van escritos y no calculados: en cuanto entre el primer resultado de
+   playoffs, la tabla ya no debe poder cambiar quién es quién. Femenil NO va
+   aquí hasta que termine el sábado 31: Mauricio pidió solo lugar y horario,
+   porque los cruces todavía se pueden mover. */
+const PO_SEMBRADOS = {
+  "Varonil A": ["COSMONAUTICOS","LECHERAS","WE THE SOUTH","2K ELITE",
+                "GLORIOUS KINGS","SEMENTEROS","ORLANDO MAGIC","SWISH KEBABS"],
+  "Varonil B": ["KOOL AIDERS","BIG DOGS","THE BONERS","HOT GOOFYS","LIMONES",
+                "CORDILLEROS","WILDCATS","LOS CANGREJOS DE SANTIAGO","CHINOLAS",
+                "P & THE DIDDIES"]
+};
+function poSembrado(lugar, cat){
+  const lista = PO_SEMBRADOS[cat];
+  return (lista && typeof lugar === "number" && lista[lugar - 1]) || "";
+}
+/* El rol real manda: un partido de playoffs que ya tiene renglón en el Sheet
+   (con equipos de verdad, recordatorio y hoja digital) no se repite. */
+function playoffYaEnRol(p){
+  return ROL.some(m => m.fecha === p.f && String(m.hora).slice(0, 5) === p.h);
+}
+/* Próximos partidos del Inicio (Mauricio, 30 oct 2026): "ya pon todas las
+   fechas de los playoffs". Salen solo en pantalla, no en el Sheet, porque
+   los recordatorios y la hoja digital necesitan equipos de verdad. */
+function playoffsParaInicio(){
+  const nombre = (x, cat) => poSembrado(x, cat) ||
+    (typeof x === "number" ? x + "º lugar" : x);
+  return partidosDePlayoffs().filter(p => !playoffYaEnRol(p)).map(p => ({
+    fecha: p.f, hora: p.h, categoria: p.cat, ronda: p.ronda,
+    local: nombre(p.a, p.cat), visitante: nombre(p.b, p.cat), estatus: "Programado"
+  }));
+}
 
 const PO_DIAS  = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const PO_MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
