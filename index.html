@@ -5355,7 +5355,12 @@ function movimientoDeEquipo(equipo, ahoraTodos, filtro){
      la semana 1 se capturaron antes de que se guardara— no hay contra qué
      comparar y se deja el igual. */
   const suyos = RESULTADOS.filter(m => m.local === equipo || m.visitante === equipo)
-                          .map(fechaDeResultado).filter(Boolean);
+                          .map(fechaDeResultado).filter(Boolean)
+                          /* Solo temporada regular: la tabla ya no suma
+                             playoffs, y con la fecha de un partido de playoffs
+                             se comparaba la tabla final contra sí misma y
+                             todos los equipos salían sin movimiento. */
+                          .filter(f => f < "2026-11-02");
   if(!suyos.length) return { signo: "=", clase: "igual", dice: "Sin partidos con fecha" };
 
   const ultima = suyos.sort()[suyos.length - 1];
@@ -5465,7 +5470,9 @@ function computeRachas(categoria){
   const cat = categoria || "general";
   const esDeLaCat = m => cat === "general" ||
     categoriaDeEquipo(m.local) === cat || categoriaDeEquipo(m.visitante) === cat;
-  const partidos = RESULTADOS.filter(esDeLaCat);
+  /* Solo temporada regular, igual que la tabla y el Ranking. */
+  const partidos = RESULTADOS.filter(esDeLaCat)
+    .filter(m => String(m.fecha || "") < "2026-11-02");
 
   const bitacora = {};
   partidos.forEach(m=>{
@@ -5617,6 +5624,8 @@ function computeRachasJugadores(categoria){
   const cat = categoria || "general";
 
   const filas = ESTADISTICAS.filter(e=>{
+    /* Solo temporada regular, igual que el Ranking. */
+    if(String(e.fecha || "") >= "2026-11-02") return false;
     if(cat === "general") return true;
     const c = String(e.categoria || "").trim() || categoriaDeEquipo(e.equipo);
     return c === cat;
@@ -5794,6 +5803,9 @@ function computeRachasJugadores(categoria){
 function anotadores(categoria){
   const acum = {};
   ESTADISTICAS.forEach(e=>{
+    /* Solo temporada regular (Mauricio, 30 oct): si sumaran los playoffs, quien
+       avanza juega más partidos y le gana al eliminado sin anotar más por partido. */
+    if(String(e.fecha || "") >= "2026-11-02") return;
     const cat = String(e.categoria || "").trim() || categoriaDeEquipo(e.equipo);
     if(categoria && categoria !== "general" && cat !== categoria) return;
     const clave = e.equipo + "|" + e.jugador;
