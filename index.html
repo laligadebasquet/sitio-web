@@ -5246,8 +5246,7 @@ function renderRol(){
    equipos de verdad, y esos se sabrán hasta el 31 de octubre. */
 function playoffsEnRol(cat){
   const quienHoy = function(lugar, c){
-    /* Solo lo que ya está cerrado: el femenil se queda con su lugar, sin
-       nombres, hasta que terminen los partidos del sábado 31. */
+    /* Los lugares ya cerrados (ver PO_SEMBRADOS). */
     return poSembrado(lugar, c);
   };
   const visibles = partidosDePlayoffs().filter(function(p){
@@ -6141,7 +6140,12 @@ const PO_SEMBRADOS = {
                 "GLORIOUS KINGS","SEMENTEROS","ORLANDO MAGIC","SWISH KEBABS"],
   "Varonil B": ["KOOL AIDERS","BIG DOGS","THE BONERS","HOT GOOFYS","LIMONES",
                 "CORDILLEROS","WILDCATS","LOS CANGREJOS DE SANTIAGO","CHINOLAS",
-                "P & THE DIDDIES"]
+                "P & THE DIDDIES"],
+  /* Cerrados el sáb 31 oct. MAMBAS 1º y UNOS 2º: empataron 6-2 y decide la
+     diferencia de puntos (+135 contra +66). */
+  "Femenil A": ["ALWAYS BLUE","FEVER","EX UDEM","BEETLES","EXBORREGUITAS","EX BEAVERS"],
+  "Femenil B": ["MAMBAS","UNOS","JOE’S","WOLVES","PANTHERS","MAVERICKS","COMEBACKS",
+                "PINK PANTHERS"]
 };
 function poSembrado(lugar, cat){
   const lista = PO_SEMBRADOS[cat];
@@ -6491,9 +6495,8 @@ function renderPlayoffs(){
   let html = '<div class="section-heading">Playoffs<span class="line"></span></div>' +
              botonesCategoria("playoffs");
 
-  html += '<div class="playoffs-note"><strong>Así van los cruces hoy.</strong> ' +
-          'La temporada regular termina el sábado 31 de octubre; hasta entonces los equipos ' +
-          'se mueven con cada partido. Las fechas y horas ya son las oficiales: los playoffs ' +
+  html += '<div class="playoffs-note"><strong>Cruces definidos.</strong> ' +
+          'La temporada regular terminó el sábado 31 de octubre. Los playoffs ' +
           'van del lunes 2 al sábado 21 de noviembre, día de las cuatro finales.</div>';
 
   const cats = (cat === "general") ? CATS_ROL : [cat];
