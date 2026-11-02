@@ -1716,6 +1716,19 @@
   body.hd-pc .hd-minuta-eq .hd-min-col{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
   body.hd-pc .hd-minuta-eq .hd-min-lista{max-height:none;flex:1 1 auto;overflow-y:auto;}
 
+
+  /* ---------- Pestaña PDF ---------- */
+  .pdf-semanas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;}
+  .pdf-semanas label{cursor:pointer;font-size:14px;}
+  .pdf-acciones{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;}
+  .pdf-principal{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:800;cursor:pointer;}
+  .pdf-principal:disabled{opacity:.4;cursor:default;}
+  #pdfRedes{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:12px;}
+  #pdfRedes button{text-align:left;padding:10px 12px;}
+  .pdf-previa{border-top:1px solid var(--line);padding:10px 0;font-size:14px;line-height:1.7;}
+  .pdf-previa h3{margin:0 0 4px;font-size:15px;}
+  .pdf-previa h4{margin:8px 0 2px;color:var(--text-soft);font-size:13px;}
+  .pdf-aviso{margin-top:8px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--surface);}
 </style>
 </head>
 <body>
@@ -1744,6 +1757,7 @@
     <button data-view="hoy" class="active">Hoy</button>
     <div class="nav-grupo">Partidos</div>
     <button data-view="rol">Rol de Partidos</button>
+    <button data-view="pdf">PDF</button>
     <button data-view="cruces">Cruces</button>
     <button data-view="cedulas">Cédulas<span class="nav-badge" id="badge-cedulas"></span></button>
     <button data-view="pasado">Editar</button>
@@ -2066,6 +2080,8 @@
   </section>
 
   <!-- ============ TAB: CRUCES ============ -->
+  <section class="view" id="view-pdf"><div id="pdfCuerpo"></div></section>
+
   <section class="view" id="view-cruces">
     <div class="card">
       <h2>Cruces del torneo</h2>
@@ -3469,7 +3485,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones", altas: "view-altas" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones", altas: "view-altas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -3489,6 +3505,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "cedulas") renderCedulas();
     if(btn.dataset.view === "links") cargarCedulas();
     if(btn.dataset.view === "cruces") renderCruces();
+    if(btn.dataset.view === "pdf") renderPdf();
     if(btn.dataset.view === "pagos") renderPagos();
     if(btn.dataset.view === "inscripciones") renderInscripciones();
     if(btn.dataset.view === "pasado") renderEditarPartido();
@@ -3513,6 +3530,7 @@ function repintarVistaActual(){
     else if(vista === "equipos") renderEquiposPorCategoria();
     else if(vista === "asistencia") renderAsistencia();
     else if(vista === "cruces") renderCruces();
+    else if(vista === "pdf") renderPdf();
     else if(vista === "pagos") renderPagos();
     else if(vista === "inscripciones") renderInscripciones();
     else if(vista === "pasado") renderEditarPartido();
@@ -13026,6 +13044,488 @@ async function quitarImagenCorreo(){
 /* La carga ya NO arranca aquí, al abrir la página: arranca al entrar
    (entrarComoAdmin / entrarComoStaff), cuando ya se sabe con qué clave
    pedir los datos privados. */
+
+/* ============================================================
+   PDF — el rol para descargar y compartir (Mauricio, 1 nov 2026)
+
+   "Agrega una pestaña PDF: el rol de una fuerza, de un equipo, de una semana
+   o de varias semanas en un mismo PDF", y un botón de compartir con el
+   formato de cada red. Instagram y TikTok no aceptan un PDF, por eso cada red
+   dice aquí en qué formato lo recibe.
+
+   Se agrupa por semana REAL (lunes de la fecha) y no por la columna Jornada:
+   los reprogramados conservan su número viejo y partían el sábado en tres
+   (ver prueba_admin_rol.js).
+
+   El cuadro de playoffs va copiado de index.html porque Cuartos de Varonil B,
+   semifinales y finales todavía no tienen renglón en el Sheet: sin él, el PDF
+   de playoffs saldría con 16 partidos de 28. prueba_admin_pdf.js revisa que la
+   copia siga igual a la de la página.
+   ============================================================ */
+const PO_AVANZO = {
+  mejor: "Mejor lugar que avanzó",
+  peor:  "Peor lugar que avanzó",
+  seg:   "2º mejor lugar que avanzó",
+  ter:   "3er mejor lugar que avanzó"
+};
+const PLAYOFFS_CUADRO = {
+  "Varonil A": {
+    lugares: 8,
+    dice: "Pasan los 8 primeros de la tabla.",
+    repechaje: [],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-04", h:"21:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-05", h:"22:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-09", h:"21:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-04", h:"22:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-02", h:"22:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-09", h:"22:10" } },
+    final: { f:"2026-11-21", h:"13:10" }
+  },
+  "Femenil A": {
+    lugares: 6,
+    dice: "El 1º y el 2º pasan directo a semifinal. El 3º vs 6º y el 4º vs 5º se juegan los otros dos lugares en el repechaje.",
+    repechaje: [ { ronda:"Repechaje", a:3, b:6, f:"2026-11-02", h:"20:10" },
+                 { ronda:"Repechaje", a:4, b:5, f:"2026-11-04", h:"20:10" } ],
+    izq: { r1: [], r2: { ronda:"Semifinal", a:1, b:"Ganador del repechaje con peor lugar", f:"2026-11-09", h:"20:10" } },
+    der: { r1: [], r2: { ronda:"Semifinal", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-11", h:"20:10" } },
+    final: { f:"2026-11-21", h:"14:10" }
+  },
+  "Varonil B": {
+    lugares: 10,
+    dice: "Los 6 primeros pasan directo a cuartos. El 7º vs 10º y el 8º vs 9º se juegan los otros dos lugares en el repechaje.",
+    /* Los ganadores del repechaje no tienen rival fijo: siempre el mejor
+       lugar contra el peor. Si gana el 10º, el 10º va contra el 1º. Antes
+       decía "1º vs ganador de 8º vs 9º", y eso le daba al 1º un rival más
+       fuerte que al 2º si avanzaba el 10º (Mauricio, 9 oct). */
+    repechaje: [ { ronda:"Repechaje", a:8, b:9,  f:"2026-11-03", h:"21:10" },
+                 { ronda:"Repechaje", a:7, b:10, f:"2026-11-03", h:"22:10" } ],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:"Ganador del repechaje con peor lugar", f:"2026-11-07", h:"12:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-07", h:"15:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-11", h:"21:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:"Ganador del repechaje con mejor lugar", f:"2026-11-07", h:"13:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-07", h:"14:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"22:10" } },
+    final: { f:"2026-11-21", h:"15:10" }
+  },
+  "Femenil B": {
+    lugares: 8,
+    dice: "Pasan las 8. Cuadro cerrado: 1º vs 8º, 2º vs 7º, 3º vs 6º y 4º vs 5º.",
+    repechaje: [],
+    izq: { r1: [ { ronda:"Cuartos", a:1, b:8, f:"2026-11-03", h:"20:10" },
+                 { ronda:"Cuartos", a:4, b:5, f:"2026-11-02", h:"21:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.mejor, b:PO_AVANZO.peor, f:"2026-11-10", h:"20:10" } },
+    der: { r1: [ { ronda:"Cuartos", a:2, b:7, f:"2026-11-05", h:"20:10" },
+                 { ronda:"Cuartos", a:3, b:6, f:"2026-11-05", h:"21:10" } ],
+           r2:   { ronda:"Semifinal", a:PO_AVANZO.seg, b:PO_AVANZO.ter, f:"2026-11-10", h:"21:10" } },
+    final: { f:"2026-11-21", h:"12:10" }
+  }
+};
+
+const PO_SEMBRADOS = {
+  "Varonil A": ["COSMONAUTICOS","LECHERAS","WE THE SOUTH","2K ELITE",
+                "GLORIOUS KINGS","SEMENTEROS","ORLANDO MAGIC","SWISH KEBABS"],
+  "Varonil B": ["KOOL AIDERS","BIG DOGS","THE BONERS","HOT GOOFYS","LIMONES",
+                "CORDILLEROS","WILDCATS","LOS CANGREJOS DE SANTIAGO","CHINOLAS",
+                "P & THE DIDDIES"],
+  /* Cerrados el sáb 31 oct. MAMBAS 1º y UNOS 2º: empataron 6-2 y decide la
+     diferencia de puntos (+135 contra +66). */
+  "Femenil A": ["ALWAYS BLUE","FEVER","EX UDEM","BEETLES","EXBORREGUITAS","EX BEAVERS"],
+  "Femenil B": ["MAMBAS","UNOS","JOE’S","WOLVES","PANTHERS","MAVERICKS","COMEBACKS",
+                "PINK PANTHERS"]
+};
+
+const PDF = { categoria: "todas", equipo: "", semanas: null };
+
+/* Lo que no es un partido pero sí tiene que salir en el rol de esa semana. */
+const PDF_AVISOS_SEMANA = {
+  "2026-11-16": "Lunes 16 al jueves 19: sin partidos oficiales. Podría haber amistosos u otras actividades a las horas de partido: 8:10, 9:10 y 10:10 pm."
+};
+const PDF_MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const PDF_DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
+function pdfFechaLarga(fecha){
+  const p = String(fecha).split("-").map(Number), d = new Date(p[0], p[1] - 1, p[2]);
+  return PDF_DIAS[d.getDay()] + " " + p[2] + " de " + PDF_MESES[p[1] - 1];
+}
+function pdfNombrePlayoff(x, cat){
+  const lista = PO_SEMBRADOS[cat];
+  if(lista && typeof x === "number" && lista[x - 1]) return lista[x - 1];
+  return typeof x === "number" ? x + "º lugar" : x;
+}
+/* Cuadro plano. El orden no importa: pdfPartidos ordena todo junto. */
+function pdfCuadroPlano(){
+  const lista = [];
+  Object.keys(PLAYOFFS_CUADRO).forEach(function(cat){
+    const c = PLAYOFFS_CUADRO[cat];
+    c.repechaje.concat(c.izq.r1, c.der.r1, [c.izq.r2, c.der.r2]).forEach(function(p){
+      lista.push({ categoria: cat, ronda: p.ronda, fecha: p.f, hora: p.h,
+                   local: pdfNombrePlayoff(p.a, cat), visit: pdfNombrePlayoff(p.b, cat) });
+    });
+    lista.push({ categoria: cat, ronda: "Final", fecha: c.final.f, hora: c.final.h,
+                 local: "Ganador de semifinal", visit: "Ganador de semifinal" });
+  });
+  return lista;
+}
+/* Un renglón del Sheet no trae ronda: se saca de categoría y fecha, y si lo
+   movieron a otro día conserva la última ronda de antes de esa fecha. */
+function pdfRonda(m, cuadro){
+  const fecha = String(m.fecha).slice(0, 10);
+  const suyos = cuadro.filter(p => p.categoria === m.categoria).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  if(!suyos.length || fecha < "2026-11-02") return "";
+  const hasta = suyos.filter(p => p.fecha <= fecha);
+  return (hasta.length ? hasta[hasta.length - 1] : suyos[0]).ronda;
+}
+/* Todos los partidos: los del Sheet y los del cuadro que aún no tienen
+   renglón. Si ya lo tienen manda el Sheet, que trae a los equipos reales. */
+function pdfPartidos(){
+  const cuadro = pdfCuadroPlano();
+  const delRol = MATCHES.filter(m => !sinFechaAdmin(m)).map(m => {
+    const fecha = String(m.fecha).slice(0, 10);
+    const r = RESULTADOS.find(x => String(x.fecha).slice(0, 10) === fecha && x.local === m.local && x.visit === m.visit);
+    return { fecha: fecha, hora: String(m.hora || "").slice(0, 5), categoria: m.categoria,
+             ronda: pdfRonda(m, cuadro), local: m.local, visit: m.visit,
+             marcador: r ? r.ptsLocal + " - " + r.ptsVisit : "" };
+  });
+  const tomadas = new Set(delRol.map(m => m.fecha + "|" + m.hora));
+  const faltan = cuadro.filter(p => !tomadas.has(p.fecha + "|" + p.hora)).map(p => Object.assign({ marcador: "" }, p));
+  return delRol.concat(faltan).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+}
+/* lunes → número de semana. Una semana sin renglones en el Sheet (la de las
+   finales) sigue la cuenta de la anterior. */
+function pdfNumeroDeSemana(lunes, num){
+  if(num[lunes]) return num[lunes];
+  const previos = Object.keys(num).filter(l => l < lunes).sort();
+  if(!previos.length) return 0;
+  const ultimo = previos[previos.length - 1];
+  return num[ultimo] + Math.round((new Date(lunes) - new Date(ultimo)) / 6048e5);
+}
+function pdfSemanas(partidos){
+  const num = numerosDeSemana(MATCHES), mapa = {};
+  partidos.forEach(function(p){
+    const l = lunesDe(p.fecha);
+    const s = mapa[l] = mapa[l] || { lunes: l, numero: pdfNumeroDeSemana(l, num), dias: {} };
+    (s.dias[p.fecha] = s.dias[p.fecha] || []).push(p);
+  });
+  return Object.keys(mapa).sort().map(function(l){
+    const s = mapa[l], fechas = Object.keys(s.dias).sort();
+    return { lunes: l, numero: s.numero, aviso: PDF_AVISOS_SEMANA[l] || "",
+             etiqueta: fechas.length > 1 ? pdfFechaLarga(fechas[0]) + " al " + pdfFechaLarga(fechas[fechas.length - 1]).toLowerCase()
+                                         : pdfFechaLarga(fechas[0]),
+             dias: fechas.map(f => ({ fecha: f, etiqueta: pdfFechaLarga(f), partidos: s.dias[f] })) };
+  });
+}
+function pdfFiltrar(partidos, filtro){
+  return partidos.filter(p =>
+    (filtro.categoria === "todas" || p.categoria === filtro.categoria) &&
+    (!filtro.equipo || p.local === filtro.equipo || p.visit === filtro.equipo) &&
+    (!filtro.semanas || filtro.semanas.indexOf(lunesDe(p.fecha)) !== -1));
+}
+function pdfSeleccion(){ return pdfSemanas(pdfFiltrar(pdfPartidos(), PDF)); }
+function pdfTitulo(semanas){
+  const quien = PDF.equipo || (PDF.categoria !== "todas" ? PDF.categoria.toUpperCase() : "");
+  const playoffs = semanas.length && semanas.every(s => s.lunes >= "2026-11-02");
+  return (playoffs ? "ROL DE PLAYOFFS" : "ROL DE PARTIDOS") + (quien ? " · " + quien : "");
+}
+function pdfArchivoBase(semanas){
+  return pdfTitulo(semanas).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+}
+function pdfEsc(t){ return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+/* ---------- La pestaña ---------- */
+function renderPdf(){
+  const cuerpo = document.getElementById("pdfCuerpo");
+  if(!cuerpo) return;
+  const todas = pdfSemanas(pdfPartidos());
+  /* Arranca en lo que falta por jugarse: es lo que casi siempre se manda. */
+  if(!PDF.semanas){
+    const hoy = lunesDe(hoyLocal());
+    PDF.semanas = todas.filter(s => s.lunes >= hoy).map(s => s.lunes);
+  }
+  const equipos = [...new Set(pdfPartidos()
+    .filter(p => PDF.categoria === "todas" || p.categoria === PDF.categoria)
+    .reduce((l, p) => l.concat(p.local, p.visit), [])
+    .filter(e => EQUIPOS.indexOf(e) !== -1))].sort();
+  if(equipos.indexOf(PDF.equipo) === -1) PDF.equipo = "";
+  const cats = ["todas", "Varonil A", "Varonil B", "Femenil A", "Femenil B"];
+  const sel = pdfSeleccion();
+  const total = sel.reduce((n, s) => n + s.dias.reduce((k, d) => k + d.partidos.length, 0), 0);
+  cuerpo.innerHTML =
+    '<div class="card"><h2>Fuerza y equipo</h2><div class="cat-botones">' +
+      cats.map(c => '<button class="cat-btn' + (PDF.categoria === c ? " active" : "") + '" onclick="pdfCategoria(\'' + c + '\')">' + (c === "todas" ? "Todas" : c) + '</button>').join("") +
+    '</div><select onchange="pdfEquipo(this.value)"><option value="">Todos los equipos</option>' +
+      equipos.map(e => '<option value="' + pdfEsc(e).replace(/"/g, "&quot;") + '"' + (PDF.equipo === e ? " selected" : "") + '>' + pdfEsc(e) + '</option>').join("") +
+    '</select></div>' +
+    '<div class="card"><h2>Semanas</h2><div class="cat-botones">' +
+      '<button class="btn-sec" onclick="pdfAtajo(\'proximas\')">Próximas</button>' +
+      '<button class="btn-sec" onclick="pdfAtajo(\'playoffs\')">Playoffs</button>' +
+      '<button class="btn-sec" onclick="pdfAtajo(\'todas\')">Todas</button>' +
+      '<button class="btn-sec" onclick="pdfAtajo(\'ninguna\')">Ninguna</button></div>' +
+      '<div class="pdf-semanas">' + todas.map(s =>
+        '<label><input type="checkbox"' + (PDF.semanas.indexOf(s.lunes) !== -1 ? " checked" : "") +
+        ' onchange="pdfSemana(\'' + s.lunes + '\', this.checked)"> <b>Semana ' + s.numero + '</b> ' + pdfEsc(s.etiqueta) + '</label>').join("") +
+    '</div></div>' +
+    '<div class="card"><h2>' + pdfEsc(pdfTitulo(sel)) + '</h2><p style="color:var(--text-soft);">' +
+      total + (total === 1 ? " partido" : " partidos") + ' en ' + sel.length + (sel.length === 1 ? " semana" : " semanas") + '</p>' +
+      '<div class="pdf-acciones"><button class="pdf-principal" id="pdfBajar" onclick="pdfDescargar()"' + (total ? "" : " disabled") + '>⬇ Descargar PDF</button>' +
+      '<button class="btn-sec" onclick="pdfVerRedes()"' + (total ? "" : " disabled") + '>↗ Compartir</button></div>' +
+      '<div id="pdfRedes" style="display:none;">' + PDF_REDES.map((r, i) =>
+        '<button class="btn-sec" onclick="pdfCompartir(' + i + ')"><b>' + r.nombre + '</b><br><small>' + r.dice + '</small></button>').join("") + '</div>' +
+      '<p id="pdfMsg" style="color:var(--text-soft);min-height:18px;"></p>' +
+      sel.map(s => '<div class="pdf-previa"><h3>Semana ' + s.numero + ' · ' + pdfEsc(s.etiqueta) + '</h3>' +
+        s.dias.map(d => '<h4>' + pdfEsc(d.etiqueta) + '</h4>' + d.partidos.map(p =>
+          '<div>' + horaCorta(p.hora) + ' · ' + pdfEsc(p.categoria) + (p.ronda ? " · " + p.ronda : "") + ' · <b>' + pdfEsc(p.local) + '</b> ' +
+          (p.marcador || "vs") + ' <b>' + pdfEsc(p.visit) + '</b></div>').join("")).join("") +
+        (s.aviso ? '<div class="pdf-aviso">' + pdfEsc(s.aviso) + '</div>' : "") + '</div>').join("") +
+    '</div>';
+}
+function pdfCategoria(c){ PDF.categoria = c; PDF.equipo = ""; renderPdf(); }
+function pdfEquipo(e){ PDF.equipo = e; renderPdf(); }
+function pdfSemana(lunes, si){
+  PDF.semanas = PDF.semanas.filter(l => l !== lunes).concat(si ? [lunes] : []);
+  renderPdf();
+}
+function pdfAtajo(cual){
+  const todas = pdfSemanas(pdfPartidos()).map(s => s.lunes), hoy = lunesDe(hoyLocal());
+  PDF.semanas = cual === "todas" ? todas : cual === "ninguna" ? [] :
+    todas.filter(l => l >= (cual === "playoffs" ? "2026-11-02" : hoy));
+  renderPdf();
+}
+function pdfMsg(t){ const e = document.getElementById("pdfMsg"); if(e) e.textContent = t; }
+function pdfVerRedes(){
+  const e = document.getElementById("pdfRedes");
+  e.style.display = e.style.display === "none" ? "grid" : "none";
+}
+
+/* ---------- El archivo ---------- */
+/* jsPDF se baja solo la primera vez, igual que Tesseract: nadie que nada más
+   captura un marcador tiene por qué cargarlo. */
+function pdfCargarLibreria(){
+  if(window.jspdf) return Promise.resolve();
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = ()=>resolve();
+    s.onerror = ()=>reject(new Error("No se pudo bajar el generador de PDF. ¿Hay internet?"));
+    document.head.appendChild(s);
+  });
+}
+function pdfLogo(){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);   // sin logo el rol sirve igual
+    img.src = "apple-touch-icon.png";
+  });
+}
+function pdfEsPlaceholder(n){ return /lugar|Ganador/.test(n); }
+
+async function pdfBlob(semanas){
+  await pdfCargarLibreria();
+  const logo = await pdfLogo();
+  const doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+  const AN = 612, AL = 792, MG = 36, NAR = [243, 114, 40], GRIS = [107, 107, 107];
+  const titulo = pdfTitulo(semanas);
+  let y = 0;
+  const encabezado = function(){
+    doc.setFillColor(0, 0, 0); doc.rect(0, 0, AN, 70, "F");
+    doc.setFillColor(NAR[0], NAR[1], NAR[2]); doc.rect(0, 70, AN, 3, "F");
+    if(logo) doc.addImage(logo, "PNG", MG, 8, 54, 54);
+    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
+    doc.setFontSize(titulo.length > 34 ? 15 : 19); doc.text(titulo, 100, 36);
+    doc.setTextColor(NAR[0], NAR[1], NAR[2]); doc.setFont("helvetica", "normal");
+    doc.setFontSize(10); doc.text("La Liga de Basquet · Gante San Pedro", 100, 52);
+    y = 88;
+  };
+  /* Un título de semana o de día no se queda solo al pie de la hoja. */
+  const cabe = function(alto){ if(y + alto > AL - 30){ doc.addPage(); encabezado(); } };
+  encabezado();
+  semanas.forEach(function(s){
+    cabe(60);
+    doc.setFillColor(0, 0, 0); doc.rect(MG, y, AN - 2 * MG, 20, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(255, 255, 255);
+    const sem = "SEMANA " + s.numero;
+    doc.text(sem, MG + 7, y + 14);
+    doc.setFont("helvetica", "normal"); doc.setTextColor(NAR[0], NAR[1], NAR[2]);
+    doc.text(s.etiqueta, MG + 14 + doc.getTextWidth(sem), y + 14);
+    y += 20;
+    s.dias.forEach(function(d){
+      cabe(34);
+      doc.setFillColor(243, 243, 243); doc.rect(MG, y, AN - 2 * MG, 15, "F");
+      doc.setDrawColor(NAR[0], NAR[1], NAR[2]); doc.setLineWidth(.8); doc.line(MG, y + 15, AN - MG, y + 15);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.8); doc.setTextColor(0, 0, 0);
+      doc.text(d.etiqueta, MG + 7, y + 11);
+      y += 15;
+      d.partidos.forEach(function(p){
+        cabe(13.5);
+        const base = y + 9.8;
+        doc.setFontSize(8.6); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0);
+        doc.text(horaCorta(p.hora), MG + 7, base);
+        doc.setFont("helvetica", "normal");
+        doc.text(p.categoria || "", MG + 60, base);
+        doc.text(p.ronda || "", MG + 114, base);
+        let x = MG + 170;
+        const nombre = function(n){
+          const gris = pdfEsPlaceholder(n);
+          doc.setFont("helvetica", gris ? "normal" : "bold");
+          doc.setTextColor(gris ? GRIS[0] : 0, gris ? GRIS[1] : 0, gris ? GRIS[2] : 0);
+          doc.text(n, x, base); x += doc.getTextWidth(n) + 6;
+        };
+        nombre(p.local);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(0, 0, 0);
+        const medio = p.marcador || "vs";
+        doc.text(medio, x, base); x += doc.getTextWidth(medio) + 6;
+        nombre(p.visit);
+        doc.setDrawColor(221, 221, 221); doc.setLineWidth(.3); doc.line(MG, y + 13.5, AN - MG, y + 13.5);
+        y += 13.5;
+      });
+    });
+    if(s.aviso){
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.8);
+      const lineas = doc.splitTextToSize(s.aviso, AN - 2 * MG - 18);
+      const alto = lineas.length * 11 + 9;
+      cabe(alto + 4); y += 4;
+      doc.setFillColor(253, 235, 221); doc.rect(MG, y, AN - 2 * MG, alto, "F");
+      doc.setFillColor(NAR[0], NAR[1], NAR[2]); doc.rect(MG, y, 3, alto, "F");
+      doc.setTextColor(0, 0, 0); doc.text(lineas, MG + 10, y + 12);
+      y += alto;
+    }
+    y += 8;
+  });
+  cabe(14);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.6); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+  doc.text("Todos los partidos en Club Central Gante. Quienes dicen “mejor lugar” o “ganador” se definen con los resultados de la ronda anterior.", MG + 7, y + 8);
+  return doc.output("blob");
+}
+
+function pdfBajarArchivo(blob, nombre){
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+async function pdfDescargar(){
+  const semanas = pdfSeleccion();
+  pdfMsg("Generando…");
+  try{
+    pdfBajarArchivo(await pdfBlob(semanas), pdfArchivoBase(semanas) + ".pdf");
+    pdfMsg("Listo: el PDF se descargó.");
+  }catch(e){ pdfMsg(e.message); }
+}
+
+/* ---------- Compartir ---------- */
+/* Cada red con su medida. WhatsApp recibe el PDF; las demás no lo aceptan y
+   reciben imágenes del tamaño que piden. TikTok y Reels son la misma vertical. */
+const PDF_REDES = [
+  { nombre: "WhatsApp",  dice: "PDF",                   tipo: "pdf", abrir: "https://wa.me/?text=", etiqueta: "" },
+  { nombre: "Instagram", dice: "Publicación 1080×1350", an: 1080, al: 1350, abrir: "https://www.instagram.com/", etiqueta: "#LaLigaDeBasquet #Basquetbol #SanPedro" },
+  { nombre: "Historia",  dice: "Instagram y Facebook 1080×1920", an: 1080, al: 1920, abrir: "https://www.instagram.com/", etiqueta: "" },
+  { nombre: "TikTok",    dice: "Vertical 1080×1920",    an: 1080, al: 1920, abrir: "https://www.tiktok.com/upload", etiqueta: "#basquetbol #sanpedro #playoffs" },
+  { nombre: "Facebook",  dice: "Publicación 1080×1350", an: 1080, al: 1350, abrir: "https://www.facebook.com/", etiqueta: "" },
+  { nombre: "X",         dice: "Publicación 1080×1350", an: 1080, al: 1350, abrir: "https://x.com/intent/post?text=", etiqueta: "#LaLigaDeBasquet" },
+  { nombre: "YouTube",   dice: "Comunidad 1080×1080",   an: 1080, al: 1080, abrir: "https://studio.youtube.com/", etiqueta: "" }
+];
+function pdfTextoPara(red, semanas){
+  const t = pdfTitulo(semanas).replace(/^ROL DE /, "").replace(" · ", " ");
+  const dias = semanas.length ? semanas[0].etiqueta + (semanas.length > 1 ? " en adelante" : "") : "";
+  return "Ya está el rol: " + t + ". " + dias + ". www.laligadebasquet.com" + (red.etiqueta ? "\n" + red.etiqueta : "");
+}
+/* Renglones planos para repartirlos en imágenes: lo que no cabe en una se va
+   a la siguiente, y un título de día no se queda solo al final. */
+function pdfRenglonesImagen(semanas){
+  const r = [];
+  semanas.forEach(function(s){
+    s.dias.forEach(function(d){
+      r.push({ dia: d.etiqueta });
+      d.partidos.forEach(p => r.push({ p: p }));
+    });
+    if(s.aviso) r.push({ aviso: s.aviso });
+  });
+  return r;
+}
+function pdfPartirEnImagenes(renglones, porImagen){
+  const hojas = [];
+  let hoja = [];
+  renglones.forEach(function(x, i){
+    const solo = x.dia && hoja.length === porImagen - 1;
+    if(hoja.length === porImagen || solo){ hojas.push(hoja); hoja = []; }
+    hoja.push(x);
+  });
+  if(hoja.length) hojas.push(hoja);
+  return hojas;
+}
+async function pdfImagenes(red, semanas){
+  const logo = await pdfLogo();
+  const horizontal = red.an > red.al;
+  const K = red.an / 1080, cab = 200 * K, pie = 70 * K, altoR = (horizontal ? 54 : 74) * K;
+  const hojas = pdfPartirEnImagenes(pdfRenglonesImagen(semanas), Math.floor((red.al - cab - pie) / altoR));
+  const blobs = [];
+  for(let i = 0; i < hojas.length; i++){
+    const c = document.createElement("canvas"); c.width = red.an; c.height = red.al;
+    const g = c.getContext("2d");
+    g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height);
+    if(logo) g.drawImage(logo, 50 * K, 40 * K, 110 * K, 110 * K);
+    g.fillStyle = "#fff"; g.font = "800 " + 46 * K + "px Arial, sans-serif";
+    g.fillText(pdfTitulo(semanas), 185 * K, 90 * K, red.an - 235 * K);
+    g.fillStyle = "#F37228"; g.font = 28 * K + "px Arial, sans-serif";
+    g.fillText("La Liga de Basquet · Gante San Pedro" + (hojas.length > 1 ? " · " + (i + 1) + "/" + hojas.length : ""), 185 * K, 135 * K);
+    g.fillRect(0, 176 * K, red.an, 5 * K);
+    let y = cab + 10 * K;
+    hojas[i].forEach(function(x){
+      if(x.dia){
+        g.fillStyle = "#F37228"; g.font = "800 " + 32 * K + "px Arial, sans-serif";
+        g.fillText(x.dia.toUpperCase(), 50 * K, y + altoR * .68);
+      }else if(x.aviso){
+        g.fillStyle = "#fff"; g.font = 25 * K + "px Arial, sans-serif";
+        g.fillText(x.aviso.split(":")[0] + ": sin partidos oficiales; podría haber amistosos.", 50 * K, y + altoR * .6, red.an - 100 * K);
+      }else{
+        const p = x.p;
+        g.fillStyle = "#F37228"; g.font = "700 " + 28 * K + "px Arial, sans-serif";
+        g.fillText(horaCorta(p.hora), 50 * K, y + altoR * .45);
+        g.fillStyle = "#9A9AA2"; g.font = 21 * K + "px Arial, sans-serif";
+        g.fillText([p.categoria, p.ronda].filter(Boolean).join(" · "), 50 * K, y + altoR * .82, 230 * K);
+        g.fillStyle = "#fff"; g.font = "700 " + 30 * K + "px Arial, sans-serif";
+        g.fillText(p.local + "  " + (p.marcador || "vs") + "  " + p.visit, 290 * K, y + altoR * .62, red.an - 340 * K);
+      }
+      y += altoR;
+    });
+    g.fillStyle = "#9A9AA2"; g.font = 24 * K + "px Arial, sans-serif";
+    g.fillText("www.laligadebasquet.com", 50 * K, red.al - 28 * K);
+    blobs.push(await new Promise(r => c.toBlob(r, "image/png")));
+  }
+  return blobs;
+}
+/* En el celular se abre el menú del sistema con las apps instaladas. En la
+   computadora eso casi nunca acepta archivos: se descargan, se copia el texto
+   y se abre la red para pegarlos. La ventana se abre antes de cualquier await
+   porque si no el navegador la bloquea. */
+async function pdfCompartir(i){
+  const red = PDF_REDES[i], semanas = pdfSeleccion(), base = pdfArchivoBase(semanas);
+  const texto = pdfTextoPara(red, semanas);
+  const prueba = [new File([""], "x.png", { type: "image/png" })];
+  const menu = !!(navigator.canShare && navigator.canShare({ files: prueba }));
+  const conTexto = /=$/.test(red.abrir) ? encodeURIComponent(texto) : "";
+  const ventana = menu ? null : window.open(red.abrir + conTexto, "_blank");
+  pdfMsg("Generando…");
+  try{
+    try{ await navigator.clipboard.writeText(texto); }catch(e){ /* sin permiso: el archivo es lo que importa */ }
+    const blobs = red.tipo === "pdf" ? [await pdfBlob(semanas)] : await pdfImagenes(red, semanas);
+    const archivos = blobs.map((b, k) => new File([b],
+      base + (red.tipo === "pdf" ? ".pdf" : "_" + red.nombre.toLowerCase() + (blobs.length > 1 ? "_" + (k + 1) : "") + ".png"),
+      { type: b.type }));
+    if(menu){
+      await navigator.share({ files: archivos, text: texto });
+      pdfMsg("Compartido.");
+    }else{
+      archivos.forEach(f => pdfBajarArchivo(f, f.name));
+      pdfMsg((archivos.length === 1 ? "Se descargó 1 archivo" : "Se descargaron " + archivos.length + " archivos") +
+             " y el texto quedó copiado: súbelo en " + red.nombre + ".");
+    }
+  }catch(e){
+    if(ventana && e.name !== "AbortError") ventana.close();
+    pdfMsg(e.name === "AbortError" ? "" : e.message);
+  }
+}
 </script>
 </body>
 </html>
