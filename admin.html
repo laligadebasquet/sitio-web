@@ -2587,7 +2587,8 @@
         que normalmente lo dispara.
       </div>
       <div style="margin:0 0 14px;">
-        <button class="btn-sec" id="pruebaPlayoffsBtn" onclick="probarCorreosPlayoffs()">Mandar prueba de playoffs a Oliver</button>
+        <input type="email" id="pruebaPlayoffsCorreo" value="oliverrmz15@gmail.com" aria-label="Correo para la prueba" style="max-width:260px;margin-bottom:6px;">
+        <button class="btn-sec" id="pruebaPlayoffsBtn" onclick="probarCorreosPlayoffs()">Mandar prueba de playoffs</button>
         <span id="pruebaPlayoffsAviso" style="margin-left:8px;font-size:13px;color:var(--text-soft);"></span>
       </div>
       <div class="correos-layout">
@@ -12719,18 +12720,16 @@ const CORREO_MARCAS = {
   sancionJugador: "{{jugador}} {{equipo}} {{rival}} {{fecha}} {{sancion}} {{motivo}} · los partidos que no puede jugar se agregan solos"
 };
 
-/* Las pruebas van solo a este correo y salen marcadas: capitanes, jugadores y
-   staff no reciben nada. */
-const CORREO_PRUEBAS_PLAYOFFS = "oliverrmz15@gmail.com";
+/* Las pruebas van solo al correo del campo y salen marcadas: capitanes,
+   jugadores y staff no reciben nada. */
 async function probarCorreosPlayoffs(){
   const boton = document.getElementById("pruebaPlayoffsBtn");
   const aviso = document.getElementById("pruebaPlayoffsAviso");
   boton.disabled = true;
   aviso.textContent = "Mandando…";
   try{
-    const r = await postAppsScript({ action: "probarCorreosPlayoffs", clave: CONFIG.adminPassword, destino: CORREO_PRUEBAS_PLAYOFFS });
-    const estados = (r.prueba.cedulas || []).map(c=>c.estado).join(", ");
-    aviso.textContent = r.prueba.correos + " correos enviados a " + r.prueba.para + ". Cédulas en Resend: " + (estados || "sin respuesta") + ".";
+    const r = await postAppsScript({ action: "probarCorreosPlayoffs", clave: CONFIG.adminPassword, destino: document.getElementById("pruebaPlayoffsCorreo").value.trim() });
+    aviso.textContent = r.prueba.correos + " correos enviados a " + r.prueba.para + ".";
   }catch(e){
     aviso.textContent = "No se mandó: " + e.message;
   }
