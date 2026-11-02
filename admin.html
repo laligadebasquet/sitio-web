@@ -2586,6 +2586,10 @@
         <strong style="color:#e0a63c;">Apagado no sale</strong>, aunque pase lo
         que normalmente lo dispara.
       </div>
+      <div style="margin:0 0 14px;">
+        <button class="btn-sec" id="pruebaPlayoffsBtn" onclick="probarCorreosPlayoffs()">Mandar prueba de playoffs a Oliver</button>
+        <span id="pruebaPlayoffsAviso" style="margin-left:8px;font-size:13px;color:var(--text-soft);"></span>
+      </div>
       <div class="correos-layout">
         <div class="correos-lista" id="correosLista"></div>
         <div class="correos-detalle" id="correosDetalle"></div>
@@ -12714,6 +12718,23 @@ const CORREO_MARCAS = {
   sancionCapitan: "{{capitan}} {{jugador}} {{equipo}} {{rival}} {{fecha}} {{sancion}} {{motivo}} · los partidos que no puede jugar se agregan solos",
   sancionJugador: "{{jugador}} {{equipo}} {{rival}} {{fecha}} {{sancion}} {{motivo}} · los partidos que no puede jugar se agregan solos"
 };
+
+/* Las pruebas van solo a este correo y salen marcadas: capitanes, jugadores y
+   staff no reciben nada. */
+const CORREO_PRUEBAS_PLAYOFFS = "oliverrmz15@gmail.com";
+async function probarCorreosPlayoffs(){
+  const boton = document.getElementById("pruebaPlayoffsBtn");
+  const aviso = document.getElementById("pruebaPlayoffsAviso");
+  boton.disabled = true;
+  aviso.textContent = "Mandando…";
+  try{
+    const r = await postAppsScript({ action: "probarCorreosPlayoffs", clave: CONFIG.adminPassword, destino: CORREO_PRUEBAS_PLAYOFFS });
+    aviso.textContent = r.prueba.correos + " correos enviados a " + r.prueba.para + ".";
+  }catch(e){
+    aviso.textContent = "No se mandó: " + e.message;
+  }
+  boton.disabled = false;
+}
 
 async function renderCorreos(){
   const lista = document.getElementById("correosLista");
