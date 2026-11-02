@@ -1763,6 +1763,9 @@
     <button data-view="pasado">Editar</button>
     <button data-view="links">Link y Pendientes<span class="nav-badge" id="badge-links"></span></button>
     <button data-view="minuta">Minuta</button>
+    <!-- La gente que fue al gimnasio. No se llama Asistencia porque esa
+         pestaña ya es la de los jugadores (1 nov 2026). -->
+    <button data-view="publico">Público</button>
     <div class="nav-grupo">Equipos</div>
     <button data-view="equipos">Equipos</button>
     <button data-view="asistencia">Asistencia</button>
@@ -2368,6 +2371,39 @@
        que Mauricio cobra en la cancha (28 oct 2026). Aquí él o Juan Pablo
        los dan de alta: categoría y fuerza → equipo → nombre, foto y correo.
        Entra al roster de ese equipo en cuanto se guarda. -->
+  <!-- ============ TAB: PÚBLICO ============ -->
+  <!-- Cuánta gente fue al gimnasio cada día: es el número medido que se le
+       enseña a los patrocinadores. Un renglón por día. Se captura solo la
+       porra y los jugadores salen de Asistencia, para no anotarlos dos veces
+       (Mauricio, 1 nov 2026). El reporte es solo para el Admin: el staff
+       captura y no lo ve. -->
+  <section class="view" id="view-publico">
+    <div class="card">
+      <h2>Público</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Cuánta porra hubo en el gimnasio a lo largo del día, sin contar jugadores ni staff.
+        Si ya hay un número de ese día, se corrige.
+      </p>
+      <div class="grid-2">
+        <div>
+          <label for="pbFecha">Día</label>
+          <input type="date" id="pbFecha">
+        </div>
+        <div>
+          <label for="pbPersonas">Porra</label>
+          <input type="number" id="pbPersonas" min="0" max="3000" step="1" inputmode="numeric">
+        </div>
+      </div>
+      <button class="save-btn" id="pbGuardar" onclick="pbGuardar()" style="margin-top:14px;">Guardar</button>
+      <div id="pbAviso" style="margin-top:10px;font-size:13px;"></div>
+    </div>
+    <div class="card" data-solo-admin>
+      <h3 style="margin:0 0 10px 0;">Días contados</h3>
+      <div id="pbResumen" style="font-size:13px;color:var(--text-soft);margin-bottom:10px;"></div>
+      <div id="pbLista"></div>
+    </div>
+  </section>
+
   <section class="view" id="view-altas">
     <div class="card">
       <h2>Alta de jugador</h2>
@@ -2931,6 +2967,7 @@ function aplicarModoStaff(){
     cedulas: ["cedulas"],
     links:   ["links"],
     minuta:  ["minuta"],
+    publico: ["publico"],
     sanciones: ["sanciones"],
     altas:   ["altas"]
   };
@@ -3485,7 +3522,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", sanciones: "view-sanciones", altas: "view-altas" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", publico: "view-publico", sanciones: "view-sanciones", altas: "view-altas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -3513,6 +3550,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "pruebas") renderPruebas();
     if(btn.dataset.view === "staffpagos") spIniciar();
     if(btn.dataset.view === "minuta") cargarMinutas();
+    if(btn.dataset.view === "publico") pbIniciar();
     if(btn.dataset.view === "sanciones") cargarSanciones();
     if(btn.dataset.view === "altas") renderAltas();
   });
@@ -10044,6 +10082,93 @@ async function dictaminarSancion(i){
        incluso en los partidos viejos.
    ============================================================ */
 let MINUTAS = [];
+
+/* ---------- Público: cuánta gente fue al gimnasio cada día ---------- */
+let PUBLICO = [];
+
+async function pbIniciar(){
+  const f = document.getElementById("pbFecha");
+  if(f && !f.value) f.value = hoyLocal();
+  if(STAFF) return;   // el reporte es solo del Admin; el staff nada más captura
+  const caja = document.getElementById("pbLista");
+  caja.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerPublico", clave: CONFIG.adminPassword });
+    PUBLICO = d.publico || [];
+    pbPintar();
+  }catch(e){
+    caja.textContent = "No se pudo cargar: " + e.message;
+  }
+}
+
+/* Jugadores distintos que asistieron ese día. Si alguien viene en dos
+   renglones no cuenta doble: el dato es gente en el gimnasio, no partidos. */
+function pbJugadoresDe(fecha, filas){
+  const vistos = new Set();
+  (filas || []).forEach(r=>{
+    if(String(r["Fecha"] || "").slice(0, 10) === fecha && /^s[ií]/i.test(String(r["Asistió"] || "")))
+      vistos.add(r["Equipo"] + "|" + r["Jugador"]);
+  });
+  return vistos.size;
+}
+
+/* El resumen es lo que se le enseña a una marca. La hoja guarda la porra en
+   la columna Personas; aquí se le suman los jugadores de cada día. */
+function pbResumen(dias, filas){
+  if(!dias.length) return null;
+  const conTotal = dias.map(d=>{
+    const jugadores = pbJugadoresDe(d.fecha, filas);
+    return Object.assign({}, d, { jugadores: jugadores, total: jugadores + d.personas });
+  });
+  const suma = campo => conTotal.reduce((s, d)=>s + d[campo], 0);
+  const mejor = conTotal.reduce((m, d)=>d.total > m.total ? d : m, conTotal[0]);
+  return { dias: conTotal.length, filas: conTotal, porra: suma("personas"), jugadores: suma("jugadores"),
+           total: suma("total"), promedio: Math.round(suma("total") / conTotal.length), mejor: mejor };
+}
+
+function pbPintar(){
+  if(STAFF) return;
+  const r = pbResumen(PUBLICO, ASISTENCIA_FILAS);
+  document.getElementById("pbResumen").textContent = r
+    ? `${r.dias} ${r.dias === 1 ? "día" : "días"} · ${r.jugadores} jugadores + ${r.porra} porra = ${r.total} personas · promedio ${r.promedio} por día · máximo ${r.mejor.total} (${fechaBonita(r.mejor.fecha)})`
+    : "";
+  const caja = document.getElementById("pbLista");
+  caja.textContent = "";
+  if(!r){ caja.innerHTML = '<div class="empty-state">Todavía no hay días contados.</div>'; return; }
+  const tabla = document.createElement("table");
+  tabla.className = "cruces-table";
+  const titulos = tabla.insertRow();
+  ["Día", "Jugadores", "Porra", "Total", "Capturó"].forEach(t=>{ titulos.insertCell().textContent = t; });
+  r.filas.forEach(d=>{
+    const fila = tabla.insertRow();
+    fila.insertCell().textContent = fechaBonita(d.fecha);
+    fila.insertCell().textContent = d.jugadores;
+    fila.insertCell().textContent = d.personas;
+    fila.insertCell().textContent = d.total;
+    fila.insertCell().textContent = d.capturo;
+  });
+  caja.appendChild(tabla);
+}
+
+async function pbGuardar(){
+  const aviso = document.getElementById("pbAviso"), boton = document.getElementById("pbGuardar");
+  const fecha = document.getElementById("pbFecha").value;
+  const personas = document.getElementById("pbPersonas").value.trim();
+  if(!fecha || personas === ""){ aviso.style.color = "#F37228"; aviso.textContent = "Falta el día o el número."; return; }
+  boton.disabled = true;
+  aviso.style.color = ""; aviso.textContent = "Guardando…";
+  try{
+    const d = await postAppsScript({ action: "guardarPublico", clave: CONFIG.adminPassword, fecha: fecha, personas: personas });
+    PUBLICO = d.publico || [];
+    pbPintar();
+    document.getElementById("pbPersonas").value = "";
+    aviso.textContent = "Guardado.";
+  }catch(e){
+    aviso.style.color = "#F37228";
+    aviso.textContent = "No se guardó: " + e.message;
+  }
+  boton.disabled = false;
+}
 
 async function cargarMinutas(){
   const caja = document.getElementById("mnLista");
