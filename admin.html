@@ -12729,7 +12729,8 @@ async function probarCorreosPlayoffs(){
   aviso.textContent = "Mandando…";
   try{
     const r = await postAppsScript({ action: "probarCorreosPlayoffs", clave: CONFIG.adminPassword, destino: CORREO_PRUEBAS_PLAYOFFS });
-    aviso.textContent = r.prueba.correos + " correos enviados a " + r.prueba.para + ".";
+    const estados = (r.prueba.cedulas || []).map(c=>c.estado).join(", ");
+    aviso.textContent = r.prueba.correos + " correos enviados a " + r.prueba.para + ". Cédulas en Resend: " + (estados || "sin respuesta") + ".";
   }catch(e){
     aviso.textContent = "No se mandó: " + e.message;
   }
