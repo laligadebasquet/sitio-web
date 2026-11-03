@@ -6285,10 +6285,20 @@ function poResolver(cat, tabla){
       return (l === normalizar(x) && v === normalizar(y)) || (l === normalizar(y) && v === normalizar(x));
     });
   };
-  const ganadores = {};
-  const jugar = function(p, A, B){
-    const k = p.f + "|" + p.h;
+  /* Cada lugar del cuadro se maneja como la LISTA de equipos que todavia
+     pueden llegar ahi. Con un solo equipo posible ya se pinta, aunque falte
+     algun partido: en Femenil A, con EX UDEM (3o) ya ganador, el otro
+     repechaje es 4o vs 5o y gane quien gane queda abajo de EX UDEM; asi que
+     FEVER (2o) ya sabe que juega contra EX UDEM (Mauricio, 3 nov 2026). */
+  const unico = function(l){ return l && l.length === 1 ? l[0] : null; };
+  const sinRepetir = function(l){
+    const vistos = {};
+    return l.filter(function(t){ const k = normalizar(t.nombre); if(vistos[k]) return false; vistos[k] = true; return true; });
+  };
+  const jugar = function(p, As, Bs){
+    const k = p.f + "|" + p.h, A = unico(As), B = unico(Bs);
     const sal = { a: A ? Object.assign({}, A, { pts: null }) : null, b: B ? Object.assign({}, B, { pts: null }) : null };
+    PO_RESUELTO[k] = sal;
     if(A && B){
       const r = resultado(A.nombre, B.nombre);
       if(r && Number(r.ptsLocal) !== Number(r.ptsVisitante)){
@@ -6298,36 +6308,52 @@ function poResolver(cat, tabla){
         sal.a.gana = Number(sal.a.pts) > Number(sal.b.pts);
         sal.b.gana = !sal.a.gana;
         sal.jugado = true;
-        ganadores[k] = sal.a.gana ? A : B;
+        return [sal.a.gana ? A : B];
       }
     }
-    PO_RESUELTO[k] = sal;
-    return ganadores[k] || null;
+    return sinRepetir((As || []).concat(Bs || []));
   };
-  const poNum = function(x){ return typeof x === "number" ? conLugar(sembrados[x - 1]) : null; };
-  const porLugar = function(lista){ return lista.slice().sort(function(x, y){ return (x.lugar || 99) - (y.lugar || 99); }); };
+  const poNum = function(x){ const t = typeof x === "number" ? conLugar(sembrados[x - 1]) : null; return t ? [t] : []; };
+  /* El equipo que queda en el puesto "cual" (0 = mejor lugar, -1 = peor) al
+     ordenar por lugar a los ganadores de un grupo de partidos. Se prueban
+     todas las combinaciones de ganadores posibles; si en todas sale el
+     mismo, ese es. */
+  const puesto = function(grupo, cual){
+    if(!grupo.length || grupo.some(function(l){ return !l.length; })) return [];
+    let combos = [[]];
+    grupo.forEach(function(l){
+      const nuevos = [];
+      combos.forEach(function(c){ l.forEach(function(t){
+        if(!c.some(function(x){ return normalizar(x.nombre) === normalizar(t.nombre); })) nuevos.push(c.concat([t]));
+      }); });
+      combos = nuevos;
+    });
+    const salen = combos.map(function(c){
+      const o = c.slice().sort(function(x, y){ return (x.lugar || 99) - (y.lugar || 99); });
+      return o[cual < 0 ? o.length + cual : cual];
+    }).filter(Boolean);
+    return sinRepetir(salen);
+  };
 
   // Repechaje
   const rep = c.repechaje.map(function(p){ return jugar(p, poNum(p.a), poNum(p.b)); });
-  const repListo = rep.length && rep.every(Boolean) ? porLugar(rep) : null;
-  const desdeTexto = function(x, avanzados){
+  const r1 = c.izq.r1.concat(c.der.r1);
+  let ganR1 = [];
+  const desdeTexto = function(x){
     if(typeof x === "number") return poNum(x);
-    if(/repechaje con mejor/i.test(x)) return repListo ? repListo[0] : null;
-    if(/repechaje con peor/i.test(x)) return repListo ? repListo[repListo.length - 1] : null;
-    if(!avanzados) return null;
-    if(x === PO_AVANZO.mejor) return avanzados[0];
-    if(x === PO_AVANZO.seg) return avanzados[1];
-    if(x === PO_AVANZO.ter) return avanzados[2];
-    if(x === PO_AVANZO.peor) return avanzados[avanzados.length - 1];
-    return null;
+    if(/repechaje con mejor/i.test(x)) return puesto(rep, 0);
+    if(/repechaje con peor/i.test(x)) return puesto(rep, -1);
+    if(x === PO_AVANZO.mejor) return puesto(ganR1, 0);
+    if(x === PO_AVANZO.seg) return puesto(ganR1, 1);
+    if(x === PO_AVANZO.ter) return puesto(ganR1, 2);
+    if(x === PO_AVANZO.peor) return puesto(ganR1, -1);
+    return [];
   };
   // Cuartos
-  const r1 = c.izq.r1.concat(c.der.r1);
-  const ganR1 = r1.map(function(p){ return jugar(p, desdeTexto(p.a), desdeTexto(p.b)); });
-  const avanzados = r1.length && ganR1.every(Boolean) ? porLugar(ganR1) : null;
+  ganR1 = r1.map(function(p){ return jugar(p, desdeTexto(p.a), desdeTexto(p.b)); });
   // Semifinales y final
-  const s1 = jugar(c.izq.r2, desdeTexto(c.izq.r2.a, avanzados), desdeTexto(c.izq.r2.b, avanzados));
-  const s2 = jugar(c.der.r2, desdeTexto(c.der.r2.a, avanzados), desdeTexto(c.der.r2.b, avanzados));
+  const s1 = jugar(c.izq.r2, desdeTexto(c.izq.r2.a), desdeTexto(c.izq.r2.b));
+  const s2 = jugar(c.der.r2, desdeTexto(c.der.r2.a), desdeTexto(c.der.r2.b));
   jugar({ f: c.final.f, h: c.final.h }, s1, s2);
 }
 
