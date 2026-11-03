@@ -1169,6 +1169,36 @@
     z-index:100;
   }
   .modal-overlay.open{display:flex;}
+  /* ---------- Beneficios de la liga ---------- */
+  .mi-cred-btn{display:block;width:100%;max-width:340px;margin:12px 0;padding:13px;border:0;border-radius:10px;
+    background:var(--orange);color:#111;font:inherit;font-weight:800;font-size:15px;cursor:pointer;}
+  .ben-pantalla{position:fixed;inset:0;z-index:120;display:none;background:#0B0B0B;color:#F5F5F5;overflow:auto;}
+  .ben-pantalla.open{display:block;}
+  .ben-caja{max-width:420px;margin:0 auto;min-height:100%;padding:22px 20px 28px;display:flex;flex-direction:column;
+    align-items:center;gap:10px;text-align:center;box-sizing:border-box;}
+  .ben-cerrar{align-self:flex-end;background:none;border:0;color:#B5B5B5;font-size:22px;cursor:pointer;padding:4px 8px;}
+  .ben-titulo{font-size:22px;font-weight:900;text-transform:uppercase;}
+  .ben-texto{font-size:14px;color:#C9C9C9;line-height:1.45;}
+  .ben-error{font-size:14px;color:#FFB08A;min-height:18px;}
+  .ben-item{width:100%;display:block;text-align:left;background:#fff;color:#111;border:0;border-left:5px solid var(--orange);
+    border-radius:10px;padding:11px 12px;font:inherit;cursor:pointer;}
+  .ben-item b{display:block;font-size:15px;font-weight:800;}
+  .ben-item span{font-size:13px;color:#555;font-weight:600;}
+  .ben-item[disabled]{opacity:.55;border-left-color:#bbb;cursor:default;}
+  .ben-desc{color:var(--orange);font-size:32px;font-weight:900;line-height:1.05;}
+  .ben-foto{width:190px;height:230px;object-fit:cover;border-radius:12px;background:#333;}
+  .ben-reloj{font-size:36px;font-weight:900;letter-spacing:1px;font-variant-numeric:tabular-nums;}
+  /* La franja SE MUEVE siempre: en una captura de pantalla queda quieta. */
+  .ben-franja{width:100%;height:12px;border-radius:6px;background:repeating-linear-gradient(90deg,#F37228 0 24px,#FFC72C 24px 48px);
+    background-size:48px 12px;animation:benFranja 1s linear infinite;}
+  @keyframes benFranja{to{background-position:48px 0;}}
+  .ben-accion{width:100%;margin-top:8px;padding:14px;border:0;border-radius:10px;background:var(--orange);color:#111;
+    font:inherit;font-weight:900;font-size:17px;cursor:pointer;}
+  .ben-accion[disabled]{opacity:.5;}
+  .ben-input{width:100%;box-sizing:border-box;padding:14px;border:0;border-radius:10px;background:#222;color:#fff;
+    font:inherit;font-size:30px;font-weight:900;text-align:center;letter-spacing:8px;}
+  .ben-ok{width:92px;height:92px;border-radius:50%;background:#1E8E3E;color:#fff;font-size:50px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;}
   .modal-box{
     background:#fff;
     border-radius:14px;
@@ -2855,6 +2885,9 @@
 
 <!-- Ficha del patrocinador. El contenido lo llena abrirPatro() desde
      PATROS, así agregar una marca nueva es tocar un solo lugar. -->
+<!-- Beneficios de la liga: activar, lista, pantalla del cajero y clave. -->
+<div class="ben-pantalla" id="benPantalla"><div class="ben-caja" id="benCaja"></div></div>
+
 <div class="modal-overlay" id="patroModal" onclick="if(event.target===this) cerrarPatro()">
   <div class="modal-box">
     <div class="modal-header">
@@ -3476,6 +3509,7 @@ function pintarTodoDelSheet(){
   renderConcentrado();
   renderSanciones();
   renderJugadores();
+  try{ miAbrirAlEntrar(); }catch(e){ console.warn(e); }
 }
 
 /* LAS HOJAS SE PIDEN EN DOS TANDAS, NO EN UNA.
@@ -4518,6 +4552,11 @@ function fechaCorta(iso){
    ============================================================ */
 
 let RES_INICIO_DIA = null;
+/* Solo un clic del visitante fija el dia. Antes se quedaba el primero que se
+   pinto: la pagina arranca con la copia guardada (el jueves 29) y, al llegar
+   los datos frescos con el lunes 2 de noviembre, seguia en el 29 porque ese
+   dia seguia existiendo (Mauricio, 3 nov 2026: "no salen los de hoy"). */
+let RES_INICIO_ELEGIDO = false;
 
 /* Un partido jugado = un renglón de Resultados, más el link y las
    estadísticas si ya están. */
@@ -4539,6 +4578,7 @@ function partidosJugados(){
 
 function elegirDiaResultados(fecha){
   RES_INICIO_DIA = fecha;
+  RES_INICIO_ELEGIDO = true;
   renderResultadosRecientes();
 }
 
@@ -4558,7 +4598,7 @@ function renderResultadosRecientes(){
 
   // Días con partidos jugados, del más reciente al más viejo.
   const fechas = [...new Set(jugados.map(p=>p.fecha))].sort().reverse();
-  if(!RES_INICIO_DIA || fechas.indexOf(RES_INICIO_DIA) === -1) RES_INICIO_DIA = fechas[0];
+  if(!RES_INICIO_ELEGIDO || fechas.indexOf(RES_INICIO_DIA) === -1) RES_INICIO_DIA = fechas[0];
 
   dias.innerHTML = fechas.map(f=>{
     const d = fechaLocal(f);
@@ -7041,6 +7081,202 @@ function abrirPatro(id){
   document.getElementById("patroModal").classList.add("open");
 }
 
+/* ============================================================
+   BENEFICIOS DE LA LIGA (1 nov 2026)
+   El jugador activa su credencial una vez con un código de su correo, y el
+   celular lo recuerda. En el negocio enseña la pantalla negra y el cajero
+   escribe la clave de su negocio: así queda contada la visita.
+   Los datos se ponen con textContent porque vienen de las hojas.
+   ============================================================ */
+/* Apagado hasta la temporada de enero 2027 (Mauricio, 1 nov 2026). Con false
+   no sale ningún botón, aunque este archivo se suba por otro cambio. */
+const BENEFICIOS_ACTIVOS = false;
+const MI_LLAVE = "liga_mi_credencial";
+let MI = null;                     // { token, nombre, equipo, usados }
+let BEN_RELOJ = null;
+
+function miLeer(){
+  try{ MI = JSON.parse(localStorage.getItem(MI_LLAVE)) || null; }catch(e){ MI = null; }
+  return MI;
+}
+function miGuardar(){
+  try{ localStorage.setItem(MI_LLAVE, JSON.stringify(MI)); }catch(e){ /* navegador privado: dura esta visita */ }
+}
+function miBorrar(){
+  MI = null;
+  try{ localStorage.removeItem(MI_LLAVE); }catch(e){}
+}
+
+/* El botón que va debajo de la credencial abierta. */
+function botonBeneficios(nombre, equipo){
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "mi-cred-btn";
+  const esMia = MI && MI.nombre === nombre && MI.equipo === equipo;
+  b.textContent = esMia ? "Mis beneficios" : "Soy yo: activar mis beneficios";
+  b.onclick = ()=> esMia ? benAbrirLista() : benAbrirActivar(nombre, equipo);
+  return b;
+}
+function pintarBotonBeneficios(){
+  if(!BENEFICIOS_ACTIVOS) return;
+  if(!MI) miLeer();
+  const caja = document.getElementById("credencialAbierta");
+  if(caja && JUGADOR_SEL && JUGADORES_EQUIPO) caja.appendChild(botonBeneficios(JUGADOR_SEL, JUGADORES_EQUIPO));
+}
+
+function benCaja(){
+  const p = document.getElementById("benPantalla");
+  p.classList.add("open");
+  const c = document.getElementById("benCaja");
+  c.textContent = "";
+  const x = document.createElement("button");
+  x.type = "button"; x.className = "ben-cerrar"; x.textContent = "✕";
+  x.setAttribute("aria-label", "Cerrar"); x.onclick = benCerrar;
+  c.appendChild(x);
+  return c;
+}
+function benEl(caja, etiqueta, clase, texto){
+  const e = document.createElement(etiqueta);
+  if(clase) e.className = clase;
+  if(texto !== undefined) e.textContent = texto;
+  caja.appendChild(e);
+  return e;
+}
+function benCerrar(){
+  if(BEN_RELOJ){ clearInterval(BEN_RELOJ); BEN_RELOJ = null; }
+  document.getElementById("benPantalla").classList.remove("open");
+  if(typeof renderJugadores === "function" && document.getElementById("view-credencial")) renderJugadores();
+}
+
+function benAbrirActivar(nombre, equipo){
+  const c = benCaja();
+  benEl(c, "div", "ben-titulo", "Activa tus beneficios");
+  benEl(c, "p", "ben-texto", "Te mandamos un código a tu correo de la liga. Solo se hace una vez en este celular.");
+  const err = benEl(c, "div", "ben-error");
+  const b = benEl(c, "button", "ben-accion", "Mandar mi código");
+  b.onclick = async ()=>{
+    b.disabled = true; err.textContent = ""; b.textContent = "Mandando…";
+    try{
+      const r = await enviarAlSheet({ action: "pedirCodigoCredencial", nombre: nombre, equipo: equipo });
+      benPedirCodigo(nombre, equipo, r.credencial.correo);
+    }catch(e){ err.textContent = e.message; b.disabled = false; b.textContent = "Mandar mi código"; }
+  };
+}
+
+function benPedirCodigo(nombre, equipo, correo){
+  const c = benCaja();
+  benEl(c, "div", "ben-titulo", "Escribe tu código");
+  benEl(c, "p", "ben-texto", "Lo mandamos a " + correo + ". Revisa también tu correo no deseado.");
+  const i = benEl(c, "input", "ben-input");
+  i.inputMode = "numeric"; i.maxLength = 6; i.autocomplete = "one-time-code";
+  const err = benEl(c, "div", "ben-error");
+  const b = benEl(c, "button", "ben-accion", "Activar");
+  b.onclick = async ()=>{
+    b.disabled = true; err.textContent = "";
+    try{
+      const r = await enviarAlSheet({ action: "activarCredencial", nombre: nombre, equipo: equipo, codigo: i.value.trim() });
+      MI = r.credencial; miGuardar(); benAbrirLista();
+    }catch(e){ err.textContent = e.message; b.disabled = false; }
+  };
+  i.focus();
+}
+
+function benAbrirLista(){
+  const c = benCaja();
+  benEl(c, "div", "ben-titulo", "Mis beneficios");
+  benEl(c, "p", "ben-texto", MI.nombre + " · " + MI.equipo);
+  const err = benEl(c, "div", "ben-error");
+  const lista = benEl(c, "div"); lista.style.cssText = "width:100%;display:flex;flex-direction:column;gap:10px;";
+  const pinta = ()=>{
+    lista.textContent = "";
+    PATRO_ORDEN.forEach(id=>{
+      const p = PATROS[id];
+      if(!p) return;
+      const usado = (MI.usados || []).indexOf(id) !== -1;
+      const b = benEl(lista, "button", "ben-item");
+      b.type = "button"; b.disabled = usado;
+      benEl(b, "b", "", p.nombre);
+      benEl(b, "span", "", (usado ? "Ya usado · " : "") + p.beneficio);
+      if(!usado) b.onclick = ()=>benPantallaCajero(id);
+    });
+  };
+  pinta();
+  benEl(c, "p", "ben-texto", PATRO_LETRA_CHICA).style.fontSize = "12px";
+  /* Lo usado se confirma con el backend: otro celular pudo canjear algo. */
+  enviarAlSheet({ action: "leerMisBeneficios", token: MI.token }).then(r=>{
+    MI.usados = r.credencial.usados; miGuardar(); pinta();
+  }).catch(e=>{
+    if(/ya no está activa/.test(e.message)){ miBorrar(); benCerrar(); }
+    else err.textContent = "No se pudo actualizar. Revisa tu conexión.";
+  });
+}
+
+function benPantallaCajero(id){
+  const p = PATROS[id];
+  const c = benCaja();
+  benEl(c, "div", "ben-titulo", p.nombre);
+  benEl(c, "div", "ben-desc", p.beneficio);
+  const j = (ROSTERS[MI.equipo] || []).find(x => x.nombre === MI.nombre);
+  if(j && j.foto){
+    const f = benEl(c, "img", "ben-foto"); f.src = j.foto; f.alt = MI.nombre;
+  } else if(!fotosYaCargadas(MI.equipo)){
+    cargarFotosDe(MI.equipo).then(()=>{ if(document.getElementById("benReloj")) benPantallaCajero(id); });
+  }
+  benEl(c, "div", "ben-titulo", MI.nombre).style.fontSize = "20px";
+  benEl(c, "div", "ben-texto", MI.equipo + " · Temporada vigente");
+  const reloj = benEl(c, "div", "ben-reloj"); reloj.id = "benReloj";
+  const fecha = benEl(c, "div", "ben-texto");
+  const pinta = ()=>{
+    const d = new Date();
+    reloj.textContent = d.toLocaleTimeString("es-MX", { hour12: false });
+    fecha.textContent = d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) + " · hora en vivo";
+  };
+  pinta();
+  if(BEN_RELOJ) clearInterval(BEN_RELOJ);
+  BEN_RELOJ = setInterval(pinta, 1000);
+  benEl(c, "div", "ben-franja");
+  benEl(c, "button", "ben-accion", "El negocio confirma").onclick = ()=>benPantallaClave(id);
+}
+
+function benPantallaClave(id){
+  if(BEN_RELOJ){ clearInterval(BEN_RELOJ); BEN_RELOJ = null; }
+  const p = PATROS[id];
+  const c = benCaja();
+  benEl(c, "div", "ben-titulo", p.nombre);
+  benEl(c, "p", "ben-texto", "Clave del negocio. La escribe el cajero.");
+  const i = benEl(c, "input", "ben-input");
+  i.type = "password"; i.inputMode = "numeric"; i.maxLength = 4; i.autocomplete = "off";
+  const err = benEl(c, "div", "ben-error");
+  const b = benEl(c, "button", "ben-accion", "Confirmar");
+  b.onclick = async ()=>{
+    b.disabled = true; err.textContent = "";
+    try{
+      const r = await enviarAlSheet({ action: "canjearBeneficio", token: MI.token, marca: id, pin: i.value.trim() });
+      MI.usados = r.credencial.usados; miGuardar();
+      const k = benCaja();
+      benEl(k, "div", "ben-ok", "✓");
+      benEl(k, "div", "ben-titulo", "Canje registrado");
+      benEl(k, "p", "ben-texto", p.nombre + " · " + p.beneficio);
+      benEl(k, "button", "ben-accion", "Listo").onclick = benAbrirLista;
+    }catch(e){ err.textContent = e.message; b.disabled = false; }
+  };
+  i.focus();
+}
+
+/* Al abrir la app desde el ícono, entra directo a tu credencial. */
+let MI_ENTRO = false;
+function miAbrirAlEntrar(){
+  if(!BENEFICIOS_ACTIVOS || MI_ENTRO || !miLeer()) return;
+  const instalada = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+  if(!instalada || !ROSTERS[MI.equipo]) return;
+  MI_ENTRO = true;                    // solo al entrar: si no, cada repintado te regresaba aquí
+  const b = document.querySelector('button[data-view="credencial"]');
+  if(b) b.click();
+  JUGADORES_EQUIPO = MI.equipo;
+  JUGADOR_SEL = MI.nombre;
+  renderJugadores();
+}
+
 function cerrarPatro(){
   document.getElementById("patroModal").classList.remove("open");
 }
@@ -7176,6 +7412,8 @@ function renderJugadores(){
   html += '</div>';
 
   el.innerHTML = html;
+  /* Un error aquí no debe tirar la lista de jugadores. */
+  try{ pintarBotonBeneficios(); }catch(e){ console.warn(e); }
 }
 
 /* Se mantiene el nombre viejo porque hay llamadas regadas por el archivo. */
