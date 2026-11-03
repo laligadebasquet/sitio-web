@@ -1630,6 +1630,10 @@
   .po-seed.po-seed-vacio{background:var(--gray-line);color:var(--text-soft);}
   .po-nom{font-size:13px;font-weight:800;color:var(--text);line-height:1.2;}
   .po-nom.po-pend{font-weight:600;color:var(--text-soft);font-style:italic;font-size:12px;}
+  .po-pts{margin-left:auto;font-size:14px;font-weight:900;color:var(--text);min-width:22px;text-align:right;}
+  .po-eq.po-gana .po-nom,.po-eq.po-gana .po-pts{color:var(--orange-dark);}
+  .po-eq.po-pierde{opacity:.45;}
+  .po-final .po-pts{color:#fff;}
   .po-final{background:var(--navy);border:2px solid var(--orange);border-radius:14px;overflow:hidden;color:#fff;}
   .po-final-tit{font-size:13px;font-weight:900;text-align:center;padding:10px 8px 4px;letter-spacing:.5px;text-transform:uppercase;}
   .po-final .po-cuando{background:transparent;border:none;text-align:center;padding:0 8px 8px;}
@@ -6225,7 +6229,15 @@ function poCuando(f, h){
 
 /* Una fila del partido. "lugar" es un número (ese lugar de la tabla de hoy)
    o un texto, cuando todavía no se sabe quién va a llegar ahí. */
-function poLugar(lugar, tabla){
+function poLugar(lugar, tabla, eq){
+  /* eq: el equipo que ya llego a este lugar, con su lugar en la tabla, sus
+     puntos y si gano. Sale de poResolver. */
+  if(eq && eq.nombre){
+    const estado = eq.gana === true ? " po-gana" : (eq.gana === false ? " po-pierde" : "");
+    return '<div class="po-eq' + estado + '"><span class="po-seed">' + (eq.lugar || "·") + '</span>' +
+           '<span class="po-nom">' + eq.nombre + '</span>' +
+           (eq.pts !== null && eq.pts !== undefined ? '<span class="po-pts">' + eq.pts + '</span>' : '') + '</div>';
+  }
   if(typeof lugar === "number"){
     const t = tabla[lugar - 1];
     return '<div class="po-eq"><span class="po-seed">' + lugar + '</span>' +
@@ -6236,12 +6248,87 @@ function poLugar(lugar, tabla){
 }
 
 function poPartido(p, tabla, extra){
-  return '<div class="po-partido' + (extra ? " " + extra : "") + '">' +
+  const r = (PO_RESUELTO[p.f + "|" + p.h]) || {};
+  return '<div class="po-partido' + (extra ? " " + extra : "") + (r.jugado ? " po-jugado" : "") + '">' +
            /* Solo fecha y hora: la ronda ya la dice el encabezado de la
               columna, y con las dos el renglón se partía en la tarjeta. */
            '<div class="po-cuando" title="' + p.ronda + '">' + poCuando(p.f, p.h) + '</div>' +
-           poLugar(p.a, tabla) + poLugar(p.b, tabla) +
+           poLugar(p.a, tabla, r.a) + poLugar(p.b, tabla, r.b) +
          '</div>';
+}
+
+/* ============================================================
+   EL CUADRO SE VA LLENANDO (Mauricio, 3 nov 2026)
+
+   "Conforme vayan avanzando, que salgan los resultados de los que ya
+   pasaron y que vaya saliendo el cruce." Para cada partido del cuadro se
+   averigua quienes juegan y, si ya hay resultado, el marcador:
+   - los lugares (1o, 8o...) son los de PO_SEMBRADOS, ya cerrados;
+   - "Ganador del repechaje con mejor/peor lugar" sale cuando ya se jugaron
+     los dos repechajes;
+   - "Mejor/peor lugar que avanzo" sale cuando termina toda la ronda
+     anterior, porque se reordena por lugar en la tabla;
+   - la final, con los dos ganadores de semifinal.
+   El marcador se busca en Resultados por los dos equipos y no por la fecha:
+   asi aparece aunque el partido se haya reprogramado.
+   ============================================================ */
+let PO_RESUELTO = {};
+function poResolver(cat, tabla){
+  const c = PLAYOFFS_CUADRO[cat];
+  const sembrados = PO_SEMBRADOS[cat] || tabla.map(function(t){ return t.equipo; });
+  const lugarDe = function(n){ const i = sembrados.findIndex(function(s){ return normalizar(s) === normalizar(n); }); return i === -1 ? null : i + 1; };
+  const conLugar = function(n){ return n ? { nombre: n, lugar: lugarDe(n) } : null; };
+  const resultado = function(x, y){
+    return RESULTADOS.find(function(r){
+      if(String(r.fecha || "") < "2026-11-02") return false;
+      const l = normalizar(r.local), v = normalizar(r.visitante);
+      return (l === normalizar(x) && v === normalizar(y)) || (l === normalizar(y) && v === normalizar(x));
+    });
+  };
+  const ganadores = {};
+  const jugar = function(p, A, B){
+    const k = p.f + "|" + p.h;
+    const sal = { a: A ? Object.assign({}, A, { pts: null }) : null, b: B ? Object.assign({}, B, { pts: null }) : null };
+    if(A && B){
+      const r = resultado(A.nombre, B.nombre);
+      if(r && Number(r.ptsLocal) !== Number(r.ptsVisitante)){
+        const aLocal = normalizar(r.local) === normalizar(A.nombre);
+        sal.a.pts = aLocal ? r.ptsLocal : r.ptsVisitante;
+        sal.b.pts = aLocal ? r.ptsVisitante : r.ptsLocal;
+        sal.a.gana = Number(sal.a.pts) > Number(sal.b.pts);
+        sal.b.gana = !sal.a.gana;
+        sal.jugado = true;
+        ganadores[k] = sal.a.gana ? A : B;
+      }
+    }
+    PO_RESUELTO[k] = sal;
+    return ganadores[k] || null;
+  };
+  const poNum = function(x){ return typeof x === "number" ? conLugar(sembrados[x - 1]) : null; };
+  const porLugar = function(lista){ return lista.slice().sort(function(x, y){ return (x.lugar || 99) - (y.lugar || 99); }); };
+
+  // Repechaje
+  const rep = c.repechaje.map(function(p){ return jugar(p, poNum(p.a), poNum(p.b)); });
+  const repListo = rep.length && rep.every(Boolean) ? porLugar(rep) : null;
+  const desdeTexto = function(x, avanzados){
+    if(typeof x === "number") return poNum(x);
+    if(/repechaje con mejor/i.test(x)) return repListo ? repListo[0] : null;
+    if(/repechaje con peor/i.test(x)) return repListo ? repListo[repListo.length - 1] : null;
+    if(!avanzados) return null;
+    if(x === PO_AVANZO.mejor) return avanzados[0];
+    if(x === PO_AVANZO.seg) return avanzados[1];
+    if(x === PO_AVANZO.ter) return avanzados[2];
+    if(x === PO_AVANZO.peor) return avanzados[avanzados.length - 1];
+    return null;
+  };
+  // Cuartos
+  const r1 = c.izq.r1.concat(c.der.r1);
+  const ganR1 = r1.map(function(p){ return jugar(p, desdeTexto(p.a), desdeTexto(p.b)); });
+  const avanzados = r1.length && ganR1.every(Boolean) ? porLugar(ganR1) : null;
+  // Semifinales y final
+  const s1 = jugar(c.izq.r2, desdeTexto(c.izq.r2.a, avanzados), desdeTexto(c.izq.r2.b, avanzados));
+  const s2 = jugar(c.der.r2, desdeTexto(c.der.r2.a, avanzados), desdeTexto(c.der.r2.b, avanzados));
+  jugar({ f: c.final.f, h: c.final.h }, s1, s2);
 }
 
 /* Una mitad del cuadro. En la derecha el orden de columnas se voltea con
@@ -6305,6 +6392,7 @@ function cuadroDeCategoria(cat){
     return html;
   }
 
+  poResolver(cat, tabla);
   if(c.repechaje.length){
     html += '<div class="po-repechaje"><div class="po-rep-tit">Repechaje' +
             '<span>' + poRango(c.repechaje) + '</span></div><div class="po-rep-partidos">' +
@@ -6328,7 +6416,8 @@ function cuadroDeCategoria(cat){
   html += '<div class="po-centro"><div class="po-final">' +
             '<div class="po-final-tit">🏆 Final · ' + cat + '</div>' +
             '<div class="po-cuando">' + poCuando(c.final.f, c.final.h) + '</div>' +
-            poLugar("Ganador de semifinal", tabla) + poLugar("Ganador de semifinal", tabla) +
+            poLugar("Ganador de semifinal", tabla, (PO_RESUELTO[c.final.f + "|" + c.final.h] || {}).a) +
+            poLugar("Ganador de semifinal", tabla, (PO_RESUELTO[c.final.f + "|" + c.final.h] || {}).b) +
           '</div></div>';
   html += poLado(c.der, tabla, "po-der");
   html += '</div></div></div>';
@@ -6337,7 +6426,7 @@ function cuadroDeCategoria(cat){
 
   const fuera = tabla.slice(c.lugares);
   if(fuera.length){
-    html += '<div class="playoffs-eliminado">Hoy quedarían fuera: ' +
+    html += '<div class="playoffs-eliminado">Quedaron fuera: ' +
             fuera.map(function(t){ return t.equipo; }).join(", ") + '.</div>';
   }
   return html;
