@@ -171,25 +171,31 @@
 
   /* ============================================================
      COMPUTADORA (12 oct 2026): menú fijo a la izquierda y todo el ancho.
-     Solo con ratón: la tablet de la mesa se queda como estaba.
+     TABLET (4 nov 2026): también, en horizontal (1000 px o más). Antes era
+     solo con ratón para que la tablet de la mesa no perdiera ancho en la
+     hoja digital, y Mauricio entraba al Admin desde una tablet y veía el
+     menú viejo de botones arriba. La hoja digital en tablet se sigue
+     llevando todo el ancho: "hoja-tactil" (la pone el cambio de pestaña)
+     apaga el menú lateral solo ahí.
      ============================================================ */
-  @media (min-width:1100px) and (hover:hover) and (pointer:fine){
-    body{padding-left:224px;}
+  @media (min-width:1100px) and (hover:hover) and (pointer:fine), (min-width:1000px) and (any-pointer:coarse){
+    body:not(.hoja-tactil){padding-left:224px;}
     body.hd-pc{padding-left:0;}
-    header.topbar{position:fixed;top:0;left:0;bottom:0;width:224px;overflow-y:auto;z-index:60;
+    body:not(.hoja-tactil) header.topbar{position:fixed;top:0;left:0;bottom:0;width:224px;overflow-y:auto;z-index:60;
       border-bottom:none;border-right:1px solid var(--line);padding:18px 12px 24px;background:var(--bg);}
-    .topbar-inner{max-width:none;}
-    .topbar-inner h1{font-size:19px;}
-    .topbar-inner span:not(.accent-dot){display:none;}
-    nav.tabs{flex-direction:column;flex-wrap:nowrap;max-width:none;margin:14px 0 0;gap:1px;padding:0;}
-    nav.tabs button{display:flex;align-items:center;justify-content:space-between;text-align:left;
+    body:not(.hoja-tactil) .topbar-inner{max-width:none;}
+    body:not(.hoja-tactil) .topbar-inner h1{font-size:19px;}
+    body:not(.hoja-tactil) .topbar-inner span:not(.accent-dot){display:none;}
+    body:not(.hoja-tactil) nav.tabs{flex-direction:column;flex-wrap:nowrap;max-width:none;margin:14px 0 0;gap:1px;padding:0;}
+    body:not(.hoja-tactil) nav.tabs button{display:flex;align-items:center;justify-content:space-between;text-align:left;
       background:transparent;border:1px solid transparent;border-radius:6px;padding:8px 11px;font-size:11px;}
     nav.tabs button:not(.active):hover{background:var(--surface);border-color:transparent;}
-    .nav-grupo{display:block;font-size:9.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+    body:not(.hoja-tactil) nav.tabs button.active{background:var(--accent);border-color:var(--accent);}
+    body:not(.hoja-tactil) .nav-grupo{display:block;font-size:9.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
       color:#5c5c63;margin:14px 11px 4px;}
     /* "body main" y no "main": las reglas viejas de 820 px van más abajo en
        este mismo <style> y con el mismo peso le ganaban a esta. */
-    body main{max-width:1440px;margin:22px auto 60px;padding:0 28px;}
+    body:not(.hoja-tactil) main{max-width:1440px;margin:22px auto 60px;padding:0 28px;}
     body .rol-split{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
   }
   nav.tabs button:not(.active):hover{border-color:var(--accent);}
@@ -3557,6 +3563,9 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     btn.classList.add("active");
     document.getElementById(VIEW_ID_BY_TAB[btn.dataset.view]).classList.add("active");
     document.body.classList.toggle("vista-hoja", btn.dataset.view === "cedulas");
+    // En tablet la hoja digital necesita todo el ancho: ahí no va el menú lateral.
+    document.body.classList.toggle("hoja-tactil", btn.dataset.view === "cedulas" &&
+      window.matchMedia("(any-pointer:coarse)").matches);
     if(btn.dataset.view === "hoy"){ renderHoy(); cargarHoy(); }
     if(btn.dataset.view === "casacas") caIniciar();
     if(btn.dataset.view === "efectivo") cargarEfectivo();
