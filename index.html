@@ -637,6 +637,8 @@
   .enc-anonima{font-size:13px;color:var(--text-soft);background:var(--gray-bg);border-radius:8px;
     padding:10px 12px;margin:0 0 18px;line-height:1.5;}
   .enc-notas{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
+  .enc-escala{display:flex;justify-content:space-between;font-size:11px;color:var(--text-soft);margin-top:5px;}
+  .enc-instruccion{font-size:14px;color:var(--text);margin:0 0 16px;}
   .enc-notas button{border:1px solid var(--gray-line);background:#fff;border-radius:8px;
     padding:10px 0;font:inherit;font-weight:800;font-size:15px;color:var(--navy);cursor:pointer;}
   .enc-notas button.sel{background:var(--orange);border-color:var(--orange);color:#000;}
@@ -8286,35 +8288,40 @@ function cerrar3x3(){ document.getElementById("t3Modal").classList.remove("open"
    link. No es candado: es para que no se dupliquen sin querer.
    ============================================================ */
 const ENC_YA_KEY = "encuesta_agosto2026";
-const ENC = { calificacion: "", recomendacion: "" };
+/* Una calificación por tema (Mauricio, 4 nov): así sabe dónde está el
+   problema sin leer entre líneas. El arbitraje va al final a propósito: es
+   lo que más enoja, y si va primero el coraje se le pega a las demás. Los
+   campos son los mismos que ENCUESTA_CALIFICACIONES_ del Apps Script. */
+const ENC_PREGUNTAS = [
+  { campo: "calificacion", texto: "¿Cómo fue tu experiencia en la temporada?", bajo: "Muy mala", alto: "Excelente" },
+  { campo: "organizacion", texto: "¿Cómo calificarías la organización?",  bajo: "Muy mala", alto: "Excelente" },
+  { campo: "horarios",     texto: "¿Cómo calificarías los horarios?",     bajo: "Muy malos", alto: "Excelentes" },
+  { campo: "cancha",       texto: "¿Cómo calificarías la cancha?",        bajo: "Muy mala", alto: "Excelente" },
+  { campo: "arbitraje",    texto: "¿Cómo calificarías el arbitraje?",     bajo: "Muy malo", alto: "Excelente" }
+];
+const ENC = {};
 
 function abrirEncuesta(){
   document.getElementById("encModal").classList.add("open");
   let ya = false;
   try{ ya = localStorage.getItem(ENC_YA_KEY) === "1"; }catch(e){}
   if(ya){ pintarGraciasEncuesta(true); return; }
-  // La de recomendar reemplazó a "¿piensan inscribirse?": siendo anónima,
-  // un "No" no dice qué equipo se va (Mauricio, 4 nov). Las dos van del 1
-  // al 10, como él las quiere; sin categoría, que no le sirve.
+  ENC_PREGUNTAS.forEach(p => { ENC[p.campo] = ""; });
   const del1al10 = campo => Array.from({length:10}, (_, i) =>
     `<button type="button" onclick="elegirEncuesta('${campo}','${i+1}',this)">${i+1}</button>`).join("");
+  const preguntas = ENC_PREGUNTAS.map((p, n) => `
+    <div class="insc-campo">
+      <label>${n + 1}. ${p.texto} <span class="req">*</span></label>
+      <div class="enc-notas">${del1al10(p.campo)}</div>
+      <div class="enc-escala"><span>1 = ${p.bajo}</span><span>10 = ${p.alto}</span></div>
+    </div>`).join("");
   document.getElementById("encCuerpo").innerHTML = `
     <p class="enc-anonima">🔒 Esta encuesta es <b>anónima</b>: no te pedimos nombre ni equipo. Contesta con toda confianza, nos sirve para mejorar.</p>
+    <p class="enc-instruccion">Califica del <b>1</b> al <b>10</b>, donde 1 es lo más bajo y 10 lo más alto.</p>
+    ${preguntas}
     <div class="insc-campo">
-      <label>Del 1 al 10, ¿qué tanto disfrutaron la temporada? <span class="req">*</span></label>
-      <div class="enc-notas" id="encNotas">${del1al10("calificacion")}</div>
-    </div>
-    <div class="insc-campo">
-      <label for="encGusto">¿Qué fue lo que más les gustó?</label>
-      <textarea id="encGusto" rows="3" maxlength="1500"></textarea>
-    </div>
-    <div class="insc-campo">
-      <label for="encMejorar">¿Qué mejorarían?</label>
-      <textarea id="encMejorar" rows="3" maxlength="1500" placeholder="Horarios, arbitraje, organización, página, transmisiones, lo que sea"></textarea>
-    </div>
-    <div class="insc-campo">
-      <label>Del 1 al 10, ¿qué tanto recomendarían la liga a un amigo o a otro equipo? <span class="req">*</span></label>
-      <div class="enc-notas" id="encRecomienda">${del1al10("recomendacion")}</div>
+      <label for="encComentarios">${ENC_PREGUNTAS.length + 1}. Comentarios</label>
+      <textarea id="encComentarios" rows="4" maxlength="1500" placeholder="Lo que quieras contarnos: lo que más te gustó, lo que mejorarías…"></textarea>
     </div>
     <button class="insc-btn" id="encEnviar" onclick="enviarEncuesta()">ENVIAR</button>
     <div class="insc-msg" id="encMsg"></div>`;
@@ -8326,18 +8333,18 @@ function elegirEncuesta(campo, valor, btn){
 async function enviarEncuesta(){
   const msg = document.getElementById("encMsg"), btn = document.getElementById("encEnviar");
   msg.className = "insc-msg";
-  if(!ENC.calificacion){ msg.className = "insc-msg err"; msg.textContent = "Elige una calificación del 1 al 10."; return; }
-  if(!ENC.recomendacion){ msg.className = "insc-msg err"; msg.textContent = "Dinos del 1 al 10 qué tanto recomendarían la liga."; return; }
+  const falta = ENC_PREGUNTAS.findIndex(p => !ENC[p.campo]);
+  if(falta !== -1){
+    msg.className = "insc-msg err";
+    msg.textContent = "Falta calificar la pregunta " + (falta + 1) + ".";
+    return;
+  }
   btn.disabled = true;
   msg.className = "insc-msg info"; msg.textContent = "Enviando…";
   try{
-    await enviarAlSheet({
-      action: "encuestaSalida",
-      calificacion: ENC.calificacion,
-      gusto: document.getElementById("encGusto").value,
-      mejorar: document.getElementById("encMejorar").value,
-      recomendacion: ENC.recomendacion
-    });
+    const payload = { action: "encuestaSalida", comentarios: document.getElementById("encComentarios").value };
+    ENC_PREGUNTAS.forEach(p => { payload[p.campo] = ENC[p.campo]; });
+    await enviarAlSheet(payload);
     try{ localStorage.setItem(ENC_YA_KEY, "1"); }catch(e){}
     pintarGraciasEncuesta(false);
   }catch(err){
