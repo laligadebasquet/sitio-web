@@ -1784,6 +1784,9 @@
     <button data-view="sanciones">Sanciones<span class="nav-badge" id="badge-sanciones"></span></button>
     <div class="nav-grupo">Comunicación</div>
     <button data-view="correos">Correos</button>
+    <!-- Las respuestas de la encuesta de fin de temporada (4 nov 2026). Solo
+         Mauricio: ningún permiso de staff la prende. -->
+    <button data-view="encuesta">Encuesta</button>
     <div class="nav-grupo">Sistema</div>
     <button data-view="pruebas">Pruebas</button>
   </nav>
@@ -2401,6 +2404,25 @@
       <h3 style="margin:0 0 10px 0;">Días contados</h3>
       <div id="pbResumen" style="font-size:13px;color:var(--text-soft);margin-bottom:10px;"></div>
       <div id="pbLista"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB: ENCUESTA ============ -->
+  <!-- Lo que contestan en laligadebasquet.com/?view=encuesta. Es anónima:
+       aquí no hay ni puede haber nombre ni equipo, solo el día. -->
+  <section class="view" id="view-encuesta">
+    <div class="card">
+      <h2>Encuesta de fin de temporada</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Anónima: no guarda nombre, equipo ni hora. El link para mandar es
+        <b style="color:var(--text);">laligadebasquet.com/?view=encuesta</b>
+      </p>
+      <div id="encResumen"></div>
+      <button class="mini-btn" onclick="encCargar()" style="margin-top:12px;">↻ Actualizar</button>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Respuestas</h3>
+      <div id="encLista"><div class="empty-state">Cargando…</div></div>
     </div>
   </section>
 
@@ -3527,7 +3549,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", publico: "view-publico", sanciones: "view-sanciones", altas: "view-altas" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", publico: "view-publico", encuesta: "view-encuesta", sanciones: "view-sanciones", altas: "view-altas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -3556,6 +3578,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "staffpagos") spIniciar();
     if(btn.dataset.view === "minuta") cargarMinutas();
     if(btn.dataset.view === "publico") pbIniciar();
+    if(btn.dataset.view === "encuesta") encCargar();
     if(btn.dataset.view === "sanciones") cargarSanciones();
     if(btn.dataset.view === "altas") renderAltas();
   });
@@ -10087,6 +10110,99 @@ async function dictaminarSancion(i){
        incluso en los partidos viejos.
    ============================================================ */
 let MINUTAS = [];
+
+/* ---------- Encuesta de fin de temporada ----------
+   El promedio de cada tema es lo que Mauricio quiere ver de un vistazo; los
+   colores son para encontrar rápido dónde está el problema: 8 o más va
+   bien, de 6 a 7.9 hay que cuidarlo, menos de 6 es urgente. */
+let ENCUESTA = { temas: [], respuestas: [] };
+
+async function encCargar(){
+  const lista = document.getElementById("encLista");
+  lista.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerEncuestaSalida", clave: CONFIG.adminPassword });
+    ENCUESTA = d.encuesta || { temas: [], respuestas: [] };
+    encPintar();
+  }catch(e){
+    lista.textContent = "No se pudo cargar: " + e.message;
+  }
+}
+
+/* Promedio por tema, sin contar las casillas vacías: una respuesta a la que
+   le falte un tema no debe jalar ese promedio hacia abajo. */
+function encPromedios(temas, respuestas){
+  return temas.map((t, i)=>{
+    const vals = respuestas.map(r=>r.notas[i]).filter(v=>typeof v === "number");
+    const prom = vals.length ? vals.reduce((a, b)=>a + b, 0) / vals.length : null;
+    return { tema: t, promedio: prom, n: vals.length };
+  });
+}
+function encColor(v){ return v == null ? "var(--text-soft)" : v >= 8 ? "var(--win)" : v >= 6 ? "#F5B83D" : "var(--loss)"; }
+
+function encPintar(){
+  const { temas, respuestas } = ENCUESTA;
+  const resumen = document.getElementById("encResumen"), lista = document.getElementById("encLista");
+  resumen.textContent = ""; lista.textContent = "";
+  if(!respuestas.length){
+    resumen.innerHTML = '<div class="empty-state">Todavía nadie ha contestado.</div>';
+    lista.innerHTML = '<div class="empty-state">Sin respuestas.</div>';
+    return;
+  }
+  const conComentario = respuestas.filter(r=>r.comentarios.trim()).length;
+  const cuenta = document.createElement("div");
+  cuenta.style.cssText = "font-size:13px;color:var(--text-soft);margin-bottom:12px;";
+  cuenta.textContent = respuestas.length + (respuestas.length === 1 ? " respuesta" : " respuestas") +
+    " · " + conComentario + " con comentario";
+  resumen.appendChild(cuenta);
+  encPromedios(temas, respuestas).forEach(p=>{
+    const fila = document.createElement("div");
+    fila.style.cssText = "display:grid;grid-template-columns:minmax(110px,1fr) 2fr 44px;gap:10px;align-items:center;margin:6px 0;font-size:13px;";
+    const nombre = document.createElement("div"); nombre.textContent = p.tema;
+    const barra = document.createElement("div");
+    barra.style.cssText = "height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden;";
+    const lleno = document.createElement("div");
+    lleno.style.cssText = "height:100%;border-radius:5px;background:" + encColor(p.promedio) + ";width:" + (p.promedio ? p.promedio * 10 : 0) + "%;";
+    barra.appendChild(lleno);
+    const num = document.createElement("div");
+    num.style.cssText = "text-align:right;font-weight:800;color:" + encColor(p.promedio) + ";";
+    num.textContent = p.promedio == null ? "—" : p.promedio.toFixed(1);
+    fila.append(nombre, barra, num);
+    resumen.appendChild(fila);
+  });
+
+  // Cada respuesta en su tarjeta: en el celular una tabla de 7 columnas con
+  // comentarios largos no se lee.
+  respuestas.forEach(r=>{
+    const caja = document.createElement("div");
+    caja.style.cssText = "border-top:1px solid var(--line);padding:12px 0;";
+    const arriba = document.createElement("div");
+    arriba.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;";
+    const dia = document.createElement("span");
+    dia.style.cssText = "color:var(--text-soft);margin-right:4px;";
+    dia.textContent = fechaBonita(r.fecha);
+    arriba.appendChild(dia);
+    temas.forEach((t, i)=>{
+      const v = r.notas[i];
+      const chip = document.createElement("span");
+      chip.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:2px 8px;";
+      chip.append(t + " ");
+      const b = document.createElement("b");
+      b.style.color = encColor(v);
+      b.textContent = v == null ? "—" : v;
+      chip.appendChild(b);
+      arriba.appendChild(chip);
+    });
+    caja.appendChild(arriba);
+    if(r.comentarios.trim()){
+      const c = document.createElement("div");
+      c.style.cssText = "margin-top:8px;font-size:14px;white-space:pre-wrap;line-height:1.45;";
+      c.textContent = r.comentarios;
+      caja.appendChild(c);
+    }
+    lista.appendChild(caja);
+  });
+}
 
 /* ---------- Público: cuánta gente fue al gimnasio cada día ---------- */
 let PUBLICO = [];
