@@ -629,6 +629,22 @@
   .t3-tarjeta:focus-visible{outline:3px solid #F37228;outline-offset:2px;}
 
   .modal-box.t3-caja{max-width:540px;max-height:92vh;}
+  /* Encuesta de salida. Los botones del 1 al 10 van en una sola fila de 10
+     en computadora y en dos de 5 en celular: en 360 px, diez juntos quedan
+     de 30 px y el dedo le atina al de al lado. */
+  .modal-box.enc-caja{max-width:520px;max-height:92vh;}
+  .enc-cuerpo{padding:18px 20px 22px;}
+  .enc-anonima{font-size:13px;color:var(--text-soft);background:var(--gray-bg);border-radius:8px;
+    padding:10px 12px;margin:0 0 18px;line-height:1.5;}
+  .enc-notas{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
+  .enc-opciones{display:flex;flex-wrap:wrap;gap:8px;}
+  .enc-notas button,.enc-opciones button{border:1px solid var(--gray-line);background:#fff;border-radius:8px;
+    padding:10px 0;font:inherit;font-weight:800;font-size:15px;color:var(--navy);cursor:pointer;}
+  .enc-opciones button{padding:10px 18px;font-size:14px;}
+  .enc-notas button.sel,.enc-opciones button.sel{background:var(--orange);border-color:var(--orange);color:#000;}
+  .enc-gracias{text-align:center;padding:10px 0 6px;}
+  .enc-gracias b{display:block;font-size:20px;color:var(--navy);margin-bottom:6px;}
+  @media (max-width:520px){ .enc-notas{grid-template-columns:repeat(5,1fr);} }
   /* En la pestaña Inscripción el formulario ya trae su propio relleno. */
   .insc-form.t3-pestana{padding:0;overflow:hidden;}
   .t3-pestana-titulo{background:#000;color:#fff;font-weight:800;font-size:14px;letter-spacing:.3px;padding:14px 20px;border-bottom:4px solid var(--orange);}
@@ -2839,6 +2855,19 @@
       <button class="modal-close" onclick="cerrar3x3()" aria-label="Cerrar">✕</button>
     </div>
     <div class="t3-cuerpo" id="t3Cuerpo"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="encModal" onclick="if(event.target===this) cerrarEncuesta()">
+  <div class="modal-box enc-caja" role="dialog" aria-modal="true" aria-labelledby="encTitulo">
+    <div class="modal-header">
+      <div>
+        <h3 id="encTitulo">Encuesta de fin de temporada</h3>
+        <span>Temporada agosto 2026</span>
+      </div>
+      <button class="modal-close" onclick="cerrarEncuesta()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="enc-cuerpo" id="encCuerpo"></div>
   </div>
 </div>
 
@@ -8245,10 +8274,102 @@ function montar3x3(destino){
   }
 }
 function cerrar3x3(){ document.getElementById("t3Modal").classList.remove("open"); }
+
+/* ============================================================
+   ENCUESTA DE SALIDA (Mauricio, 4 nov 2026)
+   Antes las preguntas iban dentro del WhatsApp, y contestarle al director
+   con tu nombre al lado no invita a decir lo que no te gustó. Ahora el
+   mensaje lleva el link y aquí se contesta sin nombre ni equipo.
+   Se recuerda en el navegador que ya contestaron, para que el mismo celular
+   no mande la encuesta dos veces por un doble toque o al volver a abrir el
+   link. No es candado: es para que no se dupliquen sin querer.
+   ============================================================ */
+const ENC_YA_KEY = "encuesta_agosto2026";
+const ENC = { calificacion: "", reinscriben: "", categoria: "" };
+
+function abrirEncuesta(){
+  document.getElementById("encModal").classList.add("open");
+  let ya = false;
+  try{ ya = localStorage.getItem(ENC_YA_KEY) === "1"; }catch(e){}
+  if(ya){ pintarGraciasEncuesta(true); return; }
+  const notas = Array.from({length:10}, (_, i) =>
+    `<button type="button" onclick="elegirEncuesta('calificacion','${i+1}',this)">${i+1}</button>`).join("");
+  const opciones = (campo, lista) => lista.map(v =>
+    `<button type="button" onclick="elegirEncuesta('${campo}','${v}',this)">${v}</button>`).join("");
+  document.getElementById("encCuerpo").innerHTML = `
+    <p class="enc-anonima">🔒 Esta encuesta es <b>anónima</b>: no te pedimos nombre ni equipo. Contesta con toda confianza, nos sirve para mejorar.</p>
+    <div class="insc-campo">
+      <label>Del 1 al 10, ¿qué tanto disfrutaron la temporada? <span class="req">*</span></label>
+      <div class="enc-notas" id="encNotas">${notas}</div>
+    </div>
+    <div class="insc-campo">
+      <label for="encGusto">¿Qué fue lo que más les gustó?</label>
+      <textarea id="encGusto" rows="3" maxlength="1500"></textarea>
+    </div>
+    <div class="insc-campo">
+      <label for="encMejorar">¿Qué mejorarían?</label>
+      <textarea id="encMejorar" rows="3" maxlength="1500" placeholder="Horarios, arbitraje, organización, página, transmisiones, lo que sea"></textarea>
+    </div>
+    <div class="insc-campo">
+      <label>¿Piensan inscribirse para la siguiente temporada? <span class="req">*</span></label>
+      <div class="enc-opciones">${opciones("reinscriben", ["Sí", "Tal vez", "No"])}</div>
+    </div>
+    <div class="insc-campo">
+      <label>Categoría (opcional)</label>
+      <div class="enc-opciones">${opciones("categoria", ["Varonil A", "Varonil B", "Femenil A", "Femenil B"])}</div>
+    </div>
+    <button class="insc-btn" id="encEnviar" onclick="enviarEncuesta()">ENVIAR</button>
+    <div class="insc-msg" id="encMsg"></div>`;
+}
+function elegirEncuesta(campo, valor, btn){
+  // La categoría se puede quitar tocándola otra vez: es opcional.
+  const quitar = campo === "categoria" && ENC.categoria === valor;
+  ENC[campo] = quitar ? "" : valor;
+  btn.parentNode.querySelectorAll("button").forEach(b => b.classList.toggle("sel", !quitar && b === btn));
+}
+async function enviarEncuesta(){
+  const msg = document.getElementById("encMsg"), btn = document.getElementById("encEnviar");
+  msg.className = "insc-msg";
+  if(!ENC.calificacion){ msg.className = "insc-msg err"; msg.textContent = "Elige una calificación del 1 al 10."; return; }
+  if(!ENC.reinscriben){ msg.className = "insc-msg err"; msg.textContent = "Dinos si piensan inscribirse."; return; }
+  btn.disabled = true;
+  msg.className = "insc-msg info"; msg.textContent = "Enviando…";
+  try{
+    await enviarAlSheet({
+      action: "encuestaSalida",
+      calificacion: ENC.calificacion,
+      gusto: document.getElementById("encGusto").value,
+      mejorar: document.getElementById("encMejorar").value,
+      reinscriben: ENC.reinscriben,
+      categoria: ENC.categoria
+    });
+    try{ localStorage.setItem(ENC_YA_KEY, "1"); }catch(e){}
+    pintarGraciasEncuesta(false);
+  }catch(err){
+    btn.disabled = false;
+    msg.className = "insc-msg err";
+    // El mensaje genérico de enviarAlSheet habla de "registro" y de "correo";
+    // aquí no hay correo que revisar.
+    msg.textContent = err.respuestaIlegible
+      ? "Se perdió la conexión. Es probable que tu respuesta sí haya llegado; si no estás seguro, vuelve a intentarlo."
+      : err.message;
+  }
+}
+function pintarGraciasEncuesta(yaEstaba){
+  document.getElementById("encCuerpo").innerHTML = `
+    <div class="enc-gracias">
+      <b>¡Gracias! 🏀</b>
+      <p class="insc-intro" style="margin:0 0 14px;">${yaEstaba ? "Desde este celular ya se contestó la encuesta." : "Recibimos tu respuesta."}
+      La siguiente temporada arranca el <b>lunes 18 de enero de 2027</b>. A finales de noviembre mandamos la información de inscripción.</p>
+      <button class="insc-btn" onclick="cerrarEncuesta()">CERRAR</button>
+    </div>`;
+}
+function cerrarEncuesta(){ document.getElementById("encModal").classList.remove("open"); }
 document.addEventListener("keydown", e => {
   if(e.key !== "Escape") return;
   const info = document.getElementById("t3InfoModal");
   if(info && info.classList.contains("open")) cerrarInfo3x3(); else cerrar3x3();
+  cerrarEncuesta();
 });
 
 /* Lo que se abre con los botones Horarios, Premios y Reglas (Mauricio,
@@ -8806,6 +8927,11 @@ function aplicarDeepLink(){
   // 3x3 encima del inicio (no es pestaña, Mauricio no la quiso).
   if(view === "3x3"){
     abrir3x3();
+    return;
+  }
+  // ?view=encuesta — el link del mensaje de fin de temporada.
+  if(view === "encuesta"){
+    abrirEncuesta();
     return;
   }
   if(view === "pagos"){
