@@ -3347,10 +3347,16 @@ function mapIntegrantesCsv(rows){
 /* Guarda las FECHAS en las que cada jugador viene marcado con "Sí", no un
    simple contador. Con las fechas se puede cruzar después con lo que dice
    "Estadísticas" y no contar dos veces el mismo partido. */
+/* Los partidos de playoffs no se suman a nada del jugador ni del equipo:
+   partidos jugados, puntos, asistencia y record son de temporada regular
+   (Mauricio, 3 nov 2026: en la ficha del equipo ya se sumaban). */
+function esDePlayoffs(fecha){ return String(fecha || "").slice(0, 10) >= "2026-11-02"; }
+
 function mapAsistenciaCsv(rows){
   const fechas = {}; // equipo -> jugador -> { fecha: true }
   rows.filter(r=>r["Jugador"]).forEach(r=>{
     if(r["Asistió"] !== "Sí") return;
+    if(esDePlayoffs(r["Fecha"])) return;
     const equipo = nombreEquipo(r["Equipo"]), jugador = nombreJugador(r["Jugador"], "");
     const fecha = String(r["Fecha"] || "").slice(0,10) || String(r["Jornada"] || "");
     if(!fechas[equipo]) fechas[equipo] = {};
@@ -3377,6 +3383,7 @@ function partidosJugadosDe(equipo, jugador){
   const dias = {};
   ESTADISTICAS.forEach(e=>{
     if(nombreEquipo(e.equipo) !== eq || normalizar(e.jugador) !== jg) return;
+    if(esDePlayoffs(e.fecha)) return;
     dias[String(e.fecha || "").slice(0,10) || String(e.semana || "")] = true;
   });
   const porNombre = ASISTENCIA_JUGADOS[eq] || ASISTENCIA_JUGADOS[equipo] || {};
@@ -4169,7 +4176,7 @@ function categoriaDelEquipo(equipo){
 function partidosDelJugador(equipo, jugador){
   const eq = nombreEquipo(equipo), jg = normalizar(jugador);
   return ESTADISTICAS
-    .filter(e => nombreEquipo(e.equipo) === eq && normalizar(e.jugador) === jg)
+    .filter(e => nombreEquipo(e.equipo) === eq && normalizar(e.jugador) === jg && !esDePlayoffs(e.fecha))
     .sort((a,b)=> String(b.fecha).localeCompare(String(a.fecha)));
 }
 
@@ -4378,13 +4385,16 @@ function fichaEquipoHTML(equipo){
     html += `<table class="ficha-tabla">
       <thead><tr><th>Jugador</th><th>PJ</th><th>Prom. pts</th></tr></thead><tbody>`;
     html += roster.map(j=>{
+      /* PJ cuenta tambien los partidos ganados por default (asistencia de
+         todo el equipo); el promedio, solo los que se jugaron de verdad,
+         porque un default no tiene puntos de nadie. */
       const suyos = partidosDelJugador(equipo, j.nombre);
-      const pj = suyos.length;
+      const pj = partidosJugadosDe(equipo, j.nombre);
       const pts = suyos.reduce((s,x)=>s + (Number(x.total)||0), 0);
       return `<tr>
         <td><button class="ficha-jug" onclick="abrirFoto('${escaparComilla(equipo)}','${escaparComilla(j.nombre)}')">${j.nombre}</button></td>
         <td>${pj}</td>
-        <td>${pj ? promedio(pts, pj) : "—"}</td>
+        <td>${suyos.length ? promedio(pts, suyos.length) : "—"}</td>
       </tr>`;
     }).join("");
     html += `</tbody></table>
@@ -4397,7 +4407,8 @@ function fichaEquipoHTML(equipo){
 /* ---------- ficha de JUGADOR ---------- */
 function fichaJugadorHTML(equipo, jugador){
   const suyos = partidosDelJugador(equipo, jugador);
-  const pj = suyos.length;
+  const pj = partidosJugadosDe(equipo, jugador);   // con los ganados por default
+  const conStats = suyos.length;                   // los que si se jugaron
   const pts = suyos.reduce((s,x)=>s + (Number(x.total)||0), 0);
   const tri = suyos.reduce((s,x)=>s + (Number(x.triples)||0), 0);
   const cat = categoriaDelEquipo(equipo);
@@ -4414,15 +4425,15 @@ function fichaJugadorHTML(equipo, jugador){
 
     <div class="ficha-nums">
       <div><span class="ficha-num">${pj}</span><span class="ficha-num-lbl">Partidos</span></div>
-      <div><span class="ficha-num">${pj ? promedio(pts, pj) : "—"}</span><span class="ficha-num-lbl">Pts por partido</span></div>
-      <div><span class="ficha-num">${pj ? promedio(tri, pj) : "—"}</span><span class="ficha-num-lbl">Triples por partido</span></div>
+      <div><span class="ficha-num">${conStats ? promedio(pts, conStats) : "—"}</span><span class="ficha-num-lbl">Pts por partido</span></div>
+      <div><span class="ficha-num">${conStats ? promedio(tri, conStats) : "—"}</span><span class="ficha-num-lbl">Triples por partido</span></div>
       <div><span class="ficha-num">${pts}</span><span class="ficha-num-lbl">Puntos en total</span></div>
     </div>
 
     <div class="ficha-bloque"><h3 class="ficha-h3">Partido por partido</h3>`;
 
-  if(!pj){
-    html += `<div class="ficha-vacia">Todavía no ha jugado ningún partido.</div>`;
+  if(!conStats){
+    html += `<div class="ficha-vacia">${pj ? "Sus partidos fueron ganados por default: no hay estadística." : "Todavía no ha jugado ningún partido."}</div>`;
   } else {
     // La columna TE solo aparece si alguno de sus partidos se fue a tiempo extra.
     const conTE = suyos.some(e => Number(e.te) > 0);
