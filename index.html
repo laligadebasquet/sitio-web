@@ -5332,14 +5332,18 @@ function renderRol(){
    hoja de Google: los recordatorios a capitanes y la hoja digital necesitan
    equipos de verdad, y esos se sabrán hasta el 31 de octubre. */
 function playoffsEnRol(cat){
+  poResolverTodas();
   const quienHoy = function(lugar, c){
     /* Los lugares ya cerrados (ver PO_SEMBRADOS). */
     return poSembrado(lugar, c);
   };
+  /* El que ya llegó a un lado del cruce ("Ganador del repechaje...",
+     "Mejor lugar que avanzó"), el mismo que pinta el cuadro. */
+  const llego = function(p, l){ const eq = (PO_RESUELTO[p.f + "|" + p.h] || {})[l]; return eq && eq.nombre ? eq.nombre : ""; };
   const visibles = partidosDePlayoffs().filter(function(p){
     if(playoffYaEnRol(p)) return false;   // ya sale como partido normal del rol
     if(cat !== "general" && p.cat !== cat) return false;
-    const a = quienHoy(p.a, p.cat), b = quienHoy(p.b, p.cat);
+    const a = quienHoy(p.a, p.cat) || llego(p, "a"), b = quienHoy(p.b, p.cat) || llego(p, "b");
     /* Con un equipo elegido, solo los cruces donde hoy está ese equipo. */
     if(ROL_EQUIPO && a !== ROL_EQUIPO && b !== ROL_EQUIPO) return false;
     return matchesSearch(a || String(p.a), b || String(p.b));
@@ -5352,7 +5356,11 @@ function playoffsEnRol(cat){
     { tit: "Playoffs · Semifinales",   desde: "2026-11-08", hasta: "2026-11-13" },
     { tit: "Playoffs · Primera ronda", desde: "0000", hasta: "2026-11-08" }
   ];
-  const lado = function(lugar, c){
+  const lado = function(lugar, c, ya){
+    if(ya && typeof lugar !== "number"){
+      return '<span class="team-name"><span class="team-dot"></span>' + ya +
+             '<small class="po-rol-hoy">' + lugar + '</small></span>';
+    }
     if(typeof lugar === "number"){
       const hoy = quienHoy(lugar, c);
       return '<span class="team-name"><span class="team-dot"></span>' + lugar + 'º lugar' +
@@ -5371,8 +5379,8 @@ function playoffsEnRol(cat){
       html += '<div class="match-card po-rol-card">' +
         '<div class="match-meta"><span>' + fechaCorta(p.f) + ' · ' + horaBonita(p.h) + '</span>' +
           '<span>' + p.cat + ' · ' + p.ronda + '</span></div>' +
-        '<div class="match-row">' + lado(p.a, p.cat) + '</div>' +
-        '<div class="match-row">' + lado(p.b, p.cat) + '</div>' +
+        '<div class="match-row">' + lado(p.a, p.cat, llego(p, "a")) + '</div>' +
+        '<div class="match-row">' + lado(p.b, p.cat, llego(p, "b")) + '</div>' +
         '<span class="badge po-rol-badge">Playoffs</span>' +
       '</div>';
     });
@@ -6247,12 +6255,28 @@ function playoffYaEnRol(p){
    fechas de los playoffs". Salen solo en pantalla, no en el Sheet, porque
    los recordatorios y la hoja digital necesitan equipos de verdad. */
 function playoffsParaInicio(){
+  poResolverTodas();
   const nombre = (x, cat) => poSembrado(x, cat) ||
     (typeof x === "number" ? x + "º lugar" : x);
+  /* Mauricio, 6 nov 2026: el cuadro ya enseñaba a los clasificados y aquí
+     seguía "Ganador del repechaje con mejor lugar". Ahora sale el mismo
+     equipo que el cuadro en cuanto ya se sabe quién llega. */
+  const quien = (p, lado) => {
+    const eq = (PO_RESUELTO[p.f + "|" + p.h] || {})[lado];
+    return eq && eq.nombre ? eq.nombre : nombre(p[lado], p.cat);
+  };
   return partidosDePlayoffs().filter(p => !playoffYaEnRol(p)).map(p => ({
     fecha: p.f, hora: p.h, categoria: p.cat, ronda: p.ronda,
-    local: nombre(p.a, p.cat), visitante: nombre(p.b, p.cat), estatus: "Programado"
+    local: quien(p, "a"), visitante: quien(p, "b"), estatus: "Programado"
   }));
+}
+/* PO_RESUELTO lo llenaba solo la pestaña Playoffs al pintarse, así que el
+   Inicio (que se pinta antes) no se enteraba de quién ya había avanzado. */
+function poResolverTodas(){
+  Object.keys(PLAYOFFS_CUADRO).forEach(function(cat){
+    const tabla = computeStandings().filter(function(t){ return categoriaDeEquipo(t.equipo) === cat; });
+    if(PO_SEMBRADOS[cat] || tabla.length >= PLAYOFFS_CUADRO[cat].lugares) poResolver(cat, tabla);
+  });
 }
 
 const PO_DIAS  = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
