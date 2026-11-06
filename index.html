@@ -2412,6 +2412,17 @@
   .resumen-btn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:800;
     font-size:12px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;font-family:inherit;}
   .resumen-btn:hover{background:var(--orange);}
+  .cruce{padding:6px 0;display:flex;align-items:center;gap:10px;}
+  .cruce-equipos{flex:1;min-width:0;}
+  .inicio-lateral.sin-pegar{position:static !important;}
+  .cruce + .cruce{border-top:1px dashed var(--gray-line);}
+  .cruce-cuando{font-size:10.5px;font-weight:700;color:var(--text-soft);text-align:right;line-height:1.35;white-space:nowrap;}
+  .cruce-fila{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:1px 0;}
+  .cruce-eq{flex:1;font-weight:800;color:var(--navy);}
+  .cruce-pend{font-weight:600;color:var(--text-soft);font-style:italic;font-size:11.5px;}
+  .cruce-pierde{color:var(--text-soft);font-weight:600;}
+  .cruce-gana::after{content:" ✓";color:var(--orange);}
+  .cruce-pts{font-weight:900;color:var(--text);}
   /* 5 · Ranking. */
   .rank-cats{display:grid;grid-template-columns:1fr;gap:18px;}
   .rank-cat-tit{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);margin:0 0 8px;}
@@ -3749,6 +3760,15 @@ function renderResumenInicio(){
   const cat = typeof ROL_INICIO_CAT === "string" ? ROL_INICIO_CAT : "general";
   const cats = cat === "general" ? CATS_ROL : [cat];
   const letras = letrasPlayoffs();
+  /* Mauricio, 6 nov 2026: ya en playoffs la tabla general no dice nada;
+     en su lugar van los cruces de la ronda que se está jugando. */
+  if(hoyISO() >= "2026-11-02"){
+    caja.innerHTML = crucesInicioHTML(cats);
+    /* Con las cuatro categorías son diez cruces: si la columna no cabe en la
+       pantalla, pegada arriba se le cortaba lo de abajo. */
+    caja.classList.toggle("sin-pegar", caja.offsetHeight > window.innerHeight - 140);
+    return;
+  }
   const todos = computeStandings();
   let html = '<div class="resumen-tit">Cómo van</div>';
   let alguno = false;
@@ -3763,6 +3783,53 @@ function renderResumenInicio(){
   });
   html += `<button type="button" class="resumen-btn" onclick="verTablaDesdeInicio()">Ver tabla completa →</button>`;
   caja.innerHTML = alguno ? html : "";
+}
+/* Los cruces de la ronda en curso de cada categoría: la primera ronda que
+   todavía tiene algún partido sin jugar. Los nombres y marcadores salen de
+   PO_RESUELTO, lo mismo que pinta el cuadro, para que nunca digan distinto. */
+function crucesInicioHTML(cats){
+  poResolverTodas();
+  const nombre = (p, l) => {
+    const eq = (PO_RESUELTO[p.f + "|" + p.h] || {})[l];
+    if(eq && eq.nombre) return { txt: eq.nombre, pts: eq.pts, gana: eq.gana };
+    const x = p[l], s = poSembrado(x, p.cat);
+    return { txt: s || (typeof x === "number" ? x + "º lugar" : x), pend: !s };
+  };
+  let html = '<div class="resumen-tit">Playoffs</div>';
+  cats.forEach(c => {
+    const suyos = partidosDePlayoffs().filter(p => p.cat === c);
+    if(!suyos.length) return;
+    const jugado = p => !!(PO_RESUELTO[p.f + "|" + p.h] || {}).jugado;
+    const final = suyos[suyos.length - 1];
+    if(jugado(final)){
+      const r = PO_RESUELTO[final.f + "|" + final.h];
+      const campeon = r.a.gana ? r.a.nombre : r.b.nombre;
+      html += `<div class="resumen-cat"><div class="resumen-cat-tit">${c} · Campeón</div>` +
+              `<div class="resumen-fila"><span class="resumen-eq">🏆 ${campeon}</span>` +
+              `<span class="resumen-rec">${r.a.pts}-${r.b.pts}</span></div></div>`;
+      return;
+    }
+    const enCurso = suyos.find(p => !jugado(p)).ronda;
+    const ronda = suyos.filter(p => p.ronda === enCurso);
+    const lado = e => `<span class="cruce-eq${e.gana === true ? " cruce-gana" : (e.gana === false ? " cruce-pierde" : "")}${e.pend ? " cruce-pend" : ""}">${e.txt}</span>` +
+                      (e.pts !== null && e.pts !== undefined ? `<span class="cruce-pts">${e.pts}</span>` : "");
+    html += `<div class="resumen-cat"><div class="resumen-cat-tit">${c} · ${enCurso === "Final" ? "Final" : enCurso}</div>` +
+      ronda.map(p => {
+        const a = nombre(p, "a"), b = nombre(p, "b");
+        return `<div class="cruce${jugado(p) ? " cruce-jugado" : ""}">` +
+          `<div class="cruce-equipos"><div class="cruce-fila">${lado(a)}</div><div class="cruce-fila">${lado(b)}</div></div>` +
+          `<div class="cruce-cuando">${jugado(p) ? "Final" : poDia(p.f) + "<br>" + poCuando(p.f, p.h).split(" · ")[1]}</div></div>`;
+      }).join("") + '</div>';
+  });
+  html += `<button type="button" class="resumen-btn" onclick="verPlayoffsDesdeInicio()">Ver cuadro completo →</button>`;
+  return html;
+}
+function verPlayoffsDesdeInicio(){
+  if(typeof ROL_INICIO_CAT === "string") CAT_VISTA["playoffs"] = ROL_INICIO_CAT;
+  /* Sin comillas a propósito: prueba_playoffs.js cuenta que el atributo del botón de Playoffs
+     salga una sola vez, la del botón del menú. */
+  document.querySelector("nav.tabs button[data-view=playoffs]").click();
+  window.scrollTo(0, 0);
 }
 function verTablaDesdeInicio(){
   if(typeof ROL_INICIO_CAT === "string") CAT_VISTA["tabla"] = ROL_INICIO_CAT;
