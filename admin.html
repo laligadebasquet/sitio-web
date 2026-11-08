@@ -983,6 +983,15 @@
     background:#4a1010;border:1px solid #e23b3b;color:#ffb3b3;border-radius:10px;
     padding:12px 14px;font-size:13px;font-weight:700;margin-top:12px;
   }
+  /* Pestaña Cuentas. */
+  .cta-cuenta{border:1px solid var(--gray-line, #ddd);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .cta-cuenta h4{margin:0 0 8px;font-size:15px;}
+  .cta-permisos{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px;}
+  .cta-permisos label{display:flex;align-items:center;gap:6px;font-size:13px;text-transform:none;font-weight:600;cursor:pointer;}
+  .cta-fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .cta-fila input[type=text], .cta-fila input[type=password]{flex:1;min-width:160px;}
+  .cta-clave{font-family:monospace;font-size:13px;letter-spacing:1px;}
+  .cta-fila .save-btn{width:auto;flex:0 0 auto;margin:0;padding:10px 18px;font-size:12px;}
   .mini-btn{
     padding:5px 11px;border-radius:6px;border:1px solid #444;background:#222;
     color:#ddd;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
@@ -1794,6 +1803,7 @@
          Mauricio: ningún permiso de staff la prende. -->
     <button data-view="encuesta">Encuesta</button>
     <div class="nav-grupo">Sistema</div>
+    <button data-view="cuentas">Cuentas</button>
     <button data-view="pruebas">Pruebas</button>
   </nav>
 </header>
@@ -2650,6 +2660,32 @@
   </section>
 
   <!-- ============ TAB: PRUEBAS ============ -->
+  <section class="view" id="view-cuentas">
+    <div class="card">
+      <h2>Cuentas del staff</h2>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 14px;">
+        Cada quien entra a su portal con su contraseña y ve solo las pestañas marcadas.
+        Un cambio aplica en cuanto la persona vuelve a entrar.
+      </p>
+      <div id="cuentasLista"><div class="empty-state">Cargando…</div></div>
+      <div id="cuentasMsg" class="msg"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Nueva cuenta</h3>
+      <div id="cuentaNueva"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px 0;">Tu contraseña de Admin</h3>
+      <p style="color:var(--text-soft);font-size:13px;margin:0 0 12px;">Se pide dos veces para que un dedo no te deje fuera.</p>
+      <div class="cta-fila">
+        <input type="password" id="adminClaveNueva" placeholder="Nueva" autocomplete="new-password">
+        <input type="password" id="adminClaveNueva2" placeholder="Otra vez" autocomplete="new-password">
+        <button class="save-btn" onclick="cuentasCambiarAdmin()">Cambiar</button>
+      </div>
+      <div id="adminClaveMsg" class="msg"></div>
+    </div>
+  </section>
+
   <section class="view" id="view-pruebas">
     <div class="card">
       <h2>🧪 Equipos de prueba</h2>
@@ -3555,7 +3591,7 @@ function prepararHerramientasRol(){
 prepararHerramientasRol();
 ocultarGruposVacios();
 
-const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", staffpagos: "view-staff-pagos", minuta: "view-minuta", publico: "view-publico", encuesta: "view-encuesta", sanciones: "view-sanciones", altas: "view-altas" };
+const VIEW_ID_BY_TAB = { casacas: "view-casacas", efectivo: "view-efectivo", hoy: "view-hoy", pdf: "view-pdf", rol: "view-rol-admin", equipos: "view-equipos", asistencia: "view-asistencia", pasado: "view-editar-partido", cruces: "view-cruces", pagos: "view-pagos", cedulas: "view-cedulas", links: "view-links", inscripciones: "view-inscripciones", correos: "view-correos", pruebas: "view-pruebas", cuentas: "view-cuentas", staffpagos: "view-staff-pagos", minuta: "view-minuta", publico: "view-publico", encuesta: "view-encuesta", sanciones: "view-sanciones", altas: "view-altas" };
 document.querySelectorAll("nav.tabs button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
@@ -3588,6 +3624,7 @@ document.querySelectorAll("nav.tabs button").forEach(btn=>{
     if(btn.dataset.view === "minuta") cargarMinutas();
     if(btn.dataset.view === "publico") pbIniciar();
     if(btn.dataset.view === "encuesta") encCargar();
+    if(btn.dataset.view === "cuentas") cuentasCargar();
     if(btn.dataset.view === "sanciones") cargarSanciones();
     if(btn.dataset.view === "altas") renderAltas();
   });
@@ -10125,6 +10162,137 @@ let MINUTAS = [];
    colores son para encontrar rápido dónde está el problema: 8 o más va
    bien, de 6 a 7.9 hay que cuidarlo, menos de 6 es urgente. */
 let ENCUESTA = { temas: [], respuestas: [] };
+
+/* ============================================================
+   PESTAÑA CUENTAS (8 nov 2026)
+   Mauricio: "todas las cuentas que hay de admin y de staff... las
+   contraseñas ahí las puedo cambiar. Y si quiero hacer una cuenta nueva...
+   seleccionar qué pestañas aparecen en cada portal". Todo se guarda en las
+   Propiedades del script (guardarCuenta en el .gs), nunca en el Sheet.
+   Los botones mandan el número de renglón, nunca el nombre, para que un
+   nombre raro no pueda romper el onclick.
+   ============================================================ */
+let CUENTAS = null;
+
+async function cuentasCargar(){
+  const lista = document.getElementById("cuentasLista");
+  lista.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try{
+    const d = await postAppsScript({ action: "leerCuentas", clave: CONFIG.adminPassword });
+    CUENTAS = d.cuentas;
+    cuentasPintar();
+  }catch(e){
+    lista.textContent = "No se pudo cargar: " + e.message;
+  }
+}
+
+function cuentasCasillas(prefijo, marcados){
+  return '<div class="cta-permisos">' + CUENTAS.permisos.map(p =>
+    `<label><input type="checkbox" class="${prefijo}" value="${escHtml(p.id)}"${marcados.indexOf(p.id) !== -1 ? " checked" : ""}> ${escHtml(p.texto)}</label>`
+  ).join("") + '</div>';
+}
+
+function cuentasPintar(){
+  const lista = document.getElementById("cuentasLista");
+  lista.innerHTML = CUENTAS.cuentas.length ? CUENTAS.cuentas.map((c, i) => `
+    <div class="cta-cuenta">
+      <h4>${escHtml(c.nombre)}</h4>
+      <div class="cta-fila">
+        <span class="hoy-gris">Contraseña:</span>
+        <span class="cta-clave" id="ctaVer${i}">${c.clave ? "••••••••" : "<i>sin contraseña: no puede entrar</i>"}</span>
+        ${c.clave ? `<button class="mini-btn" onclick="cuentasMostrar(${i})">Mostrar</button>` : ""}
+      </div>
+      ${cuentasCasillas("ctaPerm" + i, c.permisos)}
+      <div class="cta-fila">
+        <input type="text" id="ctaNombre${i}" value="${escHtml(c.nombre)}" aria-label="Nombre">
+        <input type="text" id="ctaClave${i}" placeholder="Contraseña nueva (opcional)" autocomplete="off">
+        <button class="mini-btn" onclick="cuentasGenerar('ctaClave${i}')">Generar</button>
+      </div>
+      <div class="cta-fila" style="margin-top:8px;">
+        <button class="save-btn" onclick="cuentasGuardar(${i})">Guardar</button>
+        <button class="save-btn" style="background:#8E1B1B;" onclick="cuentasEliminar(${i})">Eliminar cuenta</button>
+      </div>
+    </div>`).join("") : '<div class="empty-state">No hay cuentas de staff.</div>';
+
+  document.getElementById("cuentaNueva").innerHTML = `
+    <div class="cta-fila">
+      <input type="text" id="ctaNombreNuevo" placeholder="Nombre (así lo verá en su portal)">
+      <input type="text" id="ctaClaveNueva" placeholder="Contraseña (8 o más)" autocomplete="off">
+      <button class="mini-btn" onclick="cuentasGenerar('ctaClaveNueva')">Generar</button>
+    </div>
+    ${cuentasCasillas("ctaPermNueva", [])}
+    <div class="cta-fila"><button class="save-btn" onclick="cuentasGuardar(-1)">Crear cuenta</button></div>`;
+}
+
+function cuentasMostrar(i){
+  const el = document.getElementById("ctaVer" + i);
+  const visible = el.dataset.visible === "1";
+  el.textContent = visible ? "••••••••" : CUENTAS.cuentas[i].clave;
+  el.dataset.visible = visible ? "" : "1";
+}
+
+/* 12 caracteres al azar, sin los que se confunden al dictarlos (0/O, 1/l/I). */
+function cuentasGenerar(id){
+  const letras = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const azar = new Uint32Array(12);
+  crypto.getRandomValues(azar);
+  document.getElementById(id).value = Array.from(azar, n => letras[n % letras.length]).join("");
+}
+
+function cuentasAviso(texto, bien){
+  const m = document.getElementById("cuentasMsg");
+  m.className = "msg " + (bien ? "ok" : "err");
+  m.style.display = "block";
+  m.textContent = texto;
+}
+
+async function cuentasGuardar(i){
+  const nueva = i === -1;
+  const nombre = document.getElementById(nueva ? "ctaNombreNuevo" : "ctaNombre" + i).value.trim();
+  const claveNueva = document.getElementById(nueva ? "ctaClaveNueva" : "ctaClave" + i).value;
+  const permisos = [...document.querySelectorAll("input." + (nueva ? "ctaPermNueva" : "ctaPerm" + i) + ":checked")].map(x => x.value);
+  if(nueva && !claveNueva){ cuentasAviso("Ponle una contraseña a la cuenta nueva (o usa Generar).", false); return; }
+  try{
+    const d = await postAppsScript({ action: "guardarCuenta", clave: CONFIG.adminPassword,
+      original: nueva ? "" : CUENTAS.cuentas[i].nombre, nombre, permisos, claveNueva });
+    CUENTAS = d.cuentas;
+    cuentasPintar();
+    cuentasAviso((nueva ? "Cuenta creada: " : "Guardado: ") + nombre +
+      (claveNueva ? ". Pásale su contraseña; la anterior ya no sirve." : "."), true);
+  }catch(e){
+    cuentasAviso("No se guardó: " + e.message, false);
+  }
+}
+
+async function cuentasEliminar(i){
+  const nombre = CUENTAS.cuentas[i].nombre;
+  if(!confirm("¿Eliminar la cuenta de " + nombre + "?\n\nYa no podrá entrar a su portal. Lo que registró se queda.")) return;
+  try{
+    const d = await postAppsScript({ action: "eliminarCuenta", clave: CONFIG.adminPassword, nombre });
+    CUENTAS = d.cuentas;
+    cuentasPintar();
+    cuentasAviso("Se eliminó la cuenta de " + nombre + ".", true);
+  }catch(e){
+    cuentasAviso("No se pudo: " + e.message, false);
+  }
+}
+
+async function cuentasCambiarAdmin(){
+  const a = document.getElementById("adminClaveNueva"), b = document.getElementById("adminClaveNueva2");
+  const m = document.getElementById("adminClaveMsg");
+  m.style.display = "block";
+  if(a.value !== b.value){ m.className = "msg err"; m.textContent = "Las dos no son iguales."; return; }
+  try{
+    await postAppsScript({ action: "cambiarClaveAdmin", clave: CONFIG.adminPassword, claveNueva: a.value, claveNueva2: b.value });
+    /* Desde ya, todo lo que mande esta pestaña va con la nueva; con la vieja
+       cada llamada contaría como clave equivocada. */
+    CONFIG.adminPassword = a.value;
+    a.value = b.value = "";
+    m.className = "msg ok"; m.textContent = "Listo. Desde ahora entras con la nueva.";
+  }catch(e){
+    m.className = "msg err"; m.textContent = "No se cambió: " + e.message;
+  }
+}
 
 async function encCargar(){
   const lista = document.getElementById("encLista");
