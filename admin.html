@@ -10983,6 +10983,22 @@ function renderCruces(){
    el formulario público de la Consola, y altas de jugadores.
    ============================================================ */
 
+/* Seguridad (8 nov 2026): lo que escribió el público (nombre del equipo,
+   capitán, jugador, correo) se pinta como texto, nunca como HTML. Antes un
+   equipo inscrito con nombre <img onerror=...> corría código aquí, con la
+   clave de Admin en memoria. El backend ya limpia esa entrada al recibirla
+   (limpiarEntradaPublica_); esto es la segunda barrera, por si algo entró
+   antes o por otra puerta. */
+function escHtml(t){
+  return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+/* Un texto metido como '...' dentro de un onclick="...": primero se escapa
+   para JavaScript y luego para el atributo. */
+function jsAttr(t){
+  return escHtml(String(t == null ? "" : t).replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
+}
+
 function renderInscripciones(){
   if(!T3A_PEDIDO) cargar3x3Admin(false);
   const tabla = document.getElementById("inscripcionesTable");
@@ -11008,7 +11024,7 @@ function renderInscripciones(){
       const esPend = i.estatus === "Pendiente";
       const color = i.estatus === "Aprobado" ? "#2E7D32"
                   : i.estatus === "Rechazado" ? "#C62828" : "#B26A00";
-      const eq = i.equipo.replace(/'/g,"\\'");
+      const eq = jsAttr(i.equipo);
       const estatusBtns = esPend
         ? `<button class="save-btn" style="padding:6px 12px;font-size:12px;" onclick="cambiarEstatusInscripcion('${eq}','Aprobado')">Aprobar</button>
            <button class="save-btn" style="padding:6px 12px;font-size:12px;background:#5A5A5A;margin-left:6px;" onclick="cambiarEstatusInscripcion('${eq}','Rechazado')">Rechazar</button>`
@@ -11018,11 +11034,11 @@ function renderInscripciones(){
         `<button class="save-btn" style="padding:6px 12px;font-size:12px;background:#8E1B1B;margin-left:6px;" onclick="eliminarEquipoInscrito('${eq}')">Eliminar</button>`;
       const colorMenores = i.menores === "Sí" ? "#B26A00" : "#5A5A5A";
       html += `<tr>
-        <td>${i.timestamp || ""}</td>
-        <td><strong>${i.equipo}</strong></td>
-        <td>${i.categoria || ""}</td>
-        <td>${i.capSub || ""}</td>
-        <td style="font-weight:700;letter-spacing:1px;">${i.codigo || "—"}</td>
+        <td>${escHtml(i.timestamp || "")}</td>
+        <td><strong>${escHtml(i.equipo)}</strong></td>
+        <td>${escHtml(i.categoria || "")}</td>
+        <td>${escHtml(i.capSub || "")}</td>
+        <td style="font-weight:700;letter-spacing:1px;">${escHtml(i.codigo || "—")}</td>
         <td style="color:${colorMenores};font-weight:700;">${i.menores === "Sí" ? "⚠️ Sí" : "No"}</td>
         <td style="color:${color};font-weight:700;">${i.estatus}</td>
         <td>${acciones}</td>
@@ -12224,7 +12240,7 @@ function renderAltasJugadores(){
   // se le pasa el ÍNDICE, nunca la foto: meterla en el onclick generaría un
   // HTML gigantesco y tumbaría la página.
   top.forEach((f, i)=>{
-    const seguro = (t)=>String(t||"").replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const seguro = jsAttr;
     /* Mientras las fotos de ese equipo no se hayan pedido no se sabe si el
        jugador subió una, así que se ofrece el botón y la ventana lo dice.
        Antes esto se sabía de gratis porque venían las 448 en el arranque —
@@ -12233,10 +12249,10 @@ function renderAltasJugadores(){
       ? `<button class="mini-btn" onclick="verFotoJugador(${i})">Ver foto</button>`
       : `<span style="color:#777;font-size:11px;">Sin foto</span>`;
     html += `<tr>
-      <td>${f.nombre}</td>
-      <td>${f.equipo}</td>
-      <td>${f.correo || "—"}</td>
-      <td>${f.ts || "—"}</td>
+      <td>${escHtml(f.nombre)}</td>
+      <td>${escHtml(f.equipo)}</td>
+      <td>${escHtml(f.correo || "—")}</td>
+      <td>${escHtml(f.ts || "—")}</td>
       <td>${btnFoto}</td>
       <td><button class="mini-btn" onclick="corregirCorreoDe('${seguro(f.nombre)}','${seguro(f.equipo)}','${seguro(f.correo)}')">Corregir correo</button></td>
     </tr>`;
@@ -12292,10 +12308,10 @@ async function renderPruebas(forzarRecarga){
     let html = `<tr><th>Fecha</th><th>Equipo</th><th>Categoría</th><th>Capitán / Sub-capitán</th><th>Código</th><th>Estatus</th></tr>`;
     insc.forEach(i=>{
       html += `<tr>
-        <td>${i["Timestamp"] || ""}</td>
-        <td><strong>${i["Nombre del Equipo"] || ""}</strong></td>
-        <td>${i["Categoría"] || ""}</td>
-        <td>${i["Capitán / Sub-capitán"] || ""}</td>
+        <td>${escHtml(i["Timestamp"] || "")}</td>
+        <td><strong>${escHtml(i["Nombre del Equipo"] || "")}</strong></td>
+        <td>${escHtml(i["Categoría"] || "")}</td>
+        <td>${escHtml(i["Capitán / Sub-capitán"] || "")}</td>
         <td style="font-weight:700;letter-spacing:1px;">${i["Código"] || "—"}</td>
         <td>${i["Estatus"] || "Pendiente"}</td>
       </tr>`;
