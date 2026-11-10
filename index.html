@@ -8072,7 +8072,9 @@ const T3 = {
   /* De la hoja de Mauricio, vía leer3x3: la fuerza de cada jugador y quién
      es la misma persona aunque esté en dos equipos. */
   fuerzas: {}, personas: {},
-  nuevoFoto: "", armado: false
+  nuevoFoto: "", armado: false,
+  /* Las altas de gente de fuera, por prefijo (t3N invitado, t3C capitán). */
+  altas: {}, altaCapAbierta: false
 };
 
 function hoyClave3x3(){
@@ -8724,7 +8726,7 @@ function pintarContacto3x3(){
         ? `<div class="insc-campo"><label for="t3Correo">Correo del capitán <span class="req">*</span></label>
              <input id="t3Correo" type="email" autocomplete="email" placeholder="tu@correo.com"></div>`
         : filaGuardada("Correo", c.correo, "correo")}
-      ${!necesitaTel3x3() || !necesitaCorreo3x3() ? `<span class="t3-vacio">Ya los tenemos registrados: no hace falta escribirlos.</span>` : ""}
+      ${!cap.nuevo && (!necesitaTel3x3() || !necesitaCorreo3x3()) ? `<span class="t3-vacio">Ya los tenemos registrados: no hace falta escribirlos.</span>` : ""}
     </div>`;
   const t2 = document.getElementById("t3Tel"), c2 = document.getElementById("t3Correo");
   if(t2) t2.value = guardado.tel;
@@ -8767,7 +8769,8 @@ function escogerCategoria3x3(cat, aceptaEspera){
      dos de A, se quedan pero marcados, para que él escoja a quién sacar. */
   const antes = T3.jugadores.length;
   T3.cat = cat;
-  T3.jugadores = T3.jugadores.filter(j => j.nuevo || j.rama === ramaDe3x3(cat));
+  // Los de fuera no tienen rama: se quedan aunque cambie la categoría.
+  T3.jugadores = T3.jugadores.filter(j => j.nuevo || j.invitado || j.rama === ramaDe3x3(cat));
   if(T3.capitan >= T3.jugadores.length) T3.capitan = 0;
   mostrarMsgInsc("t3Msg", antes !== T3.jugadores.length ? "info" : "", antes !== T3.jugadores.length
     ? "Quitamos a los jugadores de la otra rama: este equipo es " + ramaDe3x3(cat).toLowerCase() + "." : "");
@@ -8781,7 +8784,10 @@ function pintarJugadores3x3(){
   if(!el) return;
   // Si el capitán quedó en un invitado (lo agregaron primero), pasa al
   // primero que sí está en la liga.
-  if((T3.jugadores[T3.capitan] || {}).invitado){
+  // El capitán de fuera es capitán sí o sí: se registró para eso.
+  const capFuera = T3.jugadores.findIndex(j => j.nuevo);
+  if(capFuera !== -1) T3.capitan = capFuera;
+  else if((T3.jugadores[T3.capitan] || {}).invitado){
     const otro = T3.jugadores.findIndex(j => !j.invitado);
     if(otro !== -1) T3.capitan = otro;
   }
@@ -8795,11 +8801,11 @@ function pintarJugadores3x3(){
         <div class="t3-ini">${j.foto ? `<img src="${j.foto}" alt="">` : esc3x3(inicial3x3(j.nombre))}</div>
         <div class="t3-jug-info">
           <div class="t3-jug-nom">${esc3x3(j.nombre)}</div>
-          <div class="t3-jug-sub">${j.invitado ? "No está en la liga · al inscribir te damos su link" : j.nuevo ? "Nuevo · el Consejo lo clasifica A o B" : esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
+          <div class="t3-jug-sub">${j.invitado ? "No está en la liga · al inscribir te damos su link" : j.nuevo ? "No está en la liga · capitán" + (j.menor ? " · menor de edad" : "") : esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
           ${excedidos && j.fuerza === "A" ? `<div class="t3-jug-no">Solo cabe 1 jugador de categoría A</div>` : ""}
         </div>
         ${j.fuerza ? `<span class="t3-fuerza${j.fuerza === "A" ? " a" : ""}">${j.fuerza}</span>` : ""}
-        ${j.invitado ? "" : `<button type="button" class="t3-chico${T3.capitan === i ? " cap" : ""}" onclick="capitan3x3(${i})"
+        ${j.invitado || (capFuera !== -1 && !j.nuevo) ? "" : j.nuevo ? `<span class="t3-chico cap">★ Capitán</span>` : `<button type="button" class="t3-chico${T3.capitan === i ? " cap" : ""}" onclick="capitan3x3(${i})"
           aria-pressed="${T3.capitan === i}" title="${T3.capitan === i ? "Es el capitán" : "Hacer capitán"}">${T3.capitan === i ? "★ Capitán" : "Capitán"}</button>`}
         <button type="button" class="t3-chico" onclick="quitar3x3(${i})" aria-label="Quitar a ${esc3x3(j.nombre)}">✕</button>
       </div>`).join("");
@@ -8863,15 +8869,22 @@ function agregar3x3(clave){
    Mauricio pidió que el capitán solo genere un link y se lo mande, y que el
    jugador llene lo suyo. Aquí el capitán solo aparta el lugar; el link sale
    al inscribir (lo crea el Apps Script) y también le llega por correo. El
-   lugar cuenta para el mínimo de 3 aunque el invitado no haya llegado. */
+   lugar cuenta para el mínimo de 3 aunque el invitado no haya llegado.
+
+   Y si el CAPITÁN no está en la liga (Mauricio, 9 nov: un equipo de cuatro
+   de fuera tiene que poder entrar), llena aquí su propia alta, con el mismo
+   bloque que el invitado; si es menor, el mismo proceso que la liga. */
 function pintarNuevo3x3(){
   const el = document.getElementById("t3NuevoCaja");
   if(!el) return;
   // En la etapa de la liga no se anuncia nada aquí (Mauricio, 23 oct): el
   // botón de jugador nuevo simplemente aparece el sábado 7.
-  if(T3.etapa !== "abierta" || !T3.cat || T3.jugadores.length >= T3_MAX_JUGADORES){ el.innerHTML = ""; return; }
+  if(T3.etapa !== "abierta" || !T3.cat || T3.jugadores.length >= T3_MAX_JUGADORES){ el.innerHTML = ""; T3.altaCapAbierta = false; return; }
+  if(T3.altaCapAbierta) return;   // está llenando su alta: no se le borra
+  const hayCapFuera = T3.jugadores.some(j => j.nuevo);
   el.innerHTML = `<button type="button" class="t3-chico" style="margin-top:10px;" onclick="invitar3x3()">+ Jugador que no está en la liga</button>
-    <div class="t3-jug-sub" style="margin-top:4px;">Al inscribir te damos un link para que se lo mandes y él mismo llene sus datos.</div>`;
+    <div class="t3-jug-sub" style="margin-top:4px;">Al inscribir te damos un link para que se lo mandes y él mismo llene sus datos.</div>
+    ${hayCapFuera ? "" : `<button type="button" class="t3-link" style="margin-top:10px;" onclick="abrirCapFuera3x3()">¿Eres el capitán y no estás en la liga? Regístrate aquí</button>`}`;
 }
 function invitar3x3(){
   if(T3.jugadores.length >= T3_MAX_JUGADORES) return;
@@ -8880,11 +8893,108 @@ function invitar3x3(){
                       clave: "invitado|" + Date.now() + "|" + n, nombre: "INVITADO " + n });
   pintarJugadores3x3();
 }
+function abrirCapFuera3x3(){
+  T3.altaCapAbierta = true;
+  T3.altas.t3C = null;
+  document.getElementById("t3NuevoCaja").innerHTML = `<div class="t3-nuevo" style="margin-top:12px;">
+    <div class="t3-jug-nom" style="margin-bottom:8px;">Tu alta como capitán</div>
+    ${altaFueraHTML("t3C", "t3Msg")}
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button type="button" class="t3-chico cap" onclick="agregarCapFuera3x3()">Agregarme como capitán</button>
+      <button type="button" class="t3-chico" onclick="cerrarCapFuera3x3()">Cancelar</button>
+    </div></div>`;
+}
+function cerrarCapFuera3x3(){ T3.altaCapAbierta = false; mostrarMsgInsc("t3Msg","",""); pintarNuevo3x3(); }
+function agregarCapFuera3x3(){
+  const a = leerAlta3x3("t3C");
+  if(a.error) return mostrarMsgInsc("t3Msg","err", a.error);
+  const clave = "nuevo|" + normalizar(a.correo);
+  if(T3.jugadores.some(j => j.clave === clave)) return mostrarMsgInsc("t3Msg","err","Ese correo ya está en tu equipo.");
+  // El alta va primero: su "nombre" es el de pila y aquí se muestra completo.
+  T3.jugadores.push(Object.assign({}, a, { nuevo: true, liga: false, clave, fuerza: "",
+    nombre: aMayusSinAcentos(a.nombre + " " + a.apellido.split(" ")[0]) }));
+  T3.capitan = T3.jugadores.length - 1;
+  T3.altaCapAbierta = false;
+  mostrarMsgInsc("t3Msg","","");
+  pintarJugadores3x3();
+}
 
+/* ---- El alta de alguien que no está en la liga ----
+   Una sola, para el invitado que abre su link (prefijo t3N) y para el
+   capitán de fuera (t3C): pide lo mismo y revisa lo mismo. Cada prefijo
+   guarda su foto y su INE aparte, porque las dos pueden estar en la página
+   a la vez (la ventana del capitán queda escondida debajo de la del link). */
+function estadoAlta3x3(px){
+  if(!T3.altas[px]) T3.altas[px] = { foto: "", ine: { frente: "", reverso: "" } };
+  return T3.altas[px];
+}
+function altaFueraHTML(px, msg){
+  return `
+      <div class="insc-fila">
+        <div class="insc-campo"><label for="${px}Nombre">Nombre <span class="req">*</span></label><input id="${px}Nombre" autocomplete="given-name"></div>
+        <div class="insc-campo"><label for="${px}Apellido">Apellido <span class="req">*</span></label><input id="${px}Apellido" autocomplete="family-name"></div>
+      </div>
+      <div class="insc-fila">
+        <div class="insc-campo"><label for="${px}Fecha">Fecha de nacimiento <span class="req">*</span></label><input id="${px}Fecha" type="date" onchange="menorAlta3x3('${px}')"></div>
+        <div class="insc-campo"><label for="${px}Correo">Correo <span class="req">*</span></label><input id="${px}Correo" type="email" autocomplete="email"></div>
+      </div>
+      <!-- Menor de edad: lo mismo que en el alta de la liga (Mauricio, 9 nov). -->
+      <div class="insc-menor-block" id="${px}Menor" style="display:none;">
+        <p class="insc-menor-titulo">⚠️ Jugador menor de edad — Carta responsiva</p>
+        <p style="margin:0 0 10px;font-size:13px;">Esta parte la llena tu papá, mamá o tutor.</p>
+        <div class="insc-menor-carta">${CARTA_MENORES_HTML}</div>
+        <div class="insc-campo" style="margin-bottom:12px;">
+          <label for="${px}Tutor">Nombre del padre, madre o tutor que autoriza <span class="req">*</span></label>
+          <input type="text" id="${px}Tutor" maxlength="80" placeholder="Nombre completo" autocomplete="off">
+        </div>
+        ${["frente", "reverso"].map(l => `
+        <div class="insc-campo" style="margin-bottom:12px;">
+          <label>Identificación oficial (INE) del padre, madre o tutor — ${l} <span class="req">*</span></label>
+          <div class="insc-ine-zona">
+            <div class="insc-ine-preview" id="${px}Ine_${l}">🪪</div>
+            <div class="insc-foto-botones">
+              <button type="button" class="insc-foto-btn" onclick="document.getElementById('${px}IneArchivo_${l}').click()">🖼️ Subir foto</button>
+            </div>
+          </div>
+          <input type="file" id="${px}IneArchivo_${l}" accept="image/*" style="display:none" onchange="ineAlta3x3(this, '${px}', '${l}', '${msg}')">
+        </div>`).join("")}
+        <label class="insc-aviso-check">
+          <input type="checkbox" id="${px}MenorOK">
+          <span>OK, estoy de acuerdo con la carta responsiva para menores de edad. <span class="req">*</span></span>
+        </label>
+      </div>
+      <!-- Misma zona de foto que el alta de jugadores de la liga (Mauricio,
+           9 nov: "selfie o sube foto, pero no así de seco"). -->
+      <div class="insc-campo">
+        <label>Tu foto <span class="req">*</span></label>
+        <div class="insc-foto-zona">
+          <div class="insc-foto-preview" id="${px}FotoVer">📷</div>
+          <div class="insc-foto-botones">
+            <button type="button" class="insc-foto-btn" onclick="document.getElementById('${px}FotoCamara').click()">🤳 Tomar selfie</button>
+            <button type="button" class="insc-foto-btn" onclick="document.getElementById('${px}FotoArchivo').click()">🖼️ Subir foto</button>
+          </div>
+        </div>
+        <input type="file" id="${px}FotoCamara" accept="image/*" capture="user" style="display:none" onchange="fotoAlta3x3(this, '${px}', '${msg}')">
+        <input type="file" id="${px}FotoArchivo" accept="image/*" style="display:none" onchange="fotoAlta3x3(this, '${px}', '${msg}')">
+        <div class="ayuda">Es la foto con la que te van a reconocer en la mesa: sin gorra, sin lentes, que se vea bien tu cara.</div>
+      </div>`;
+}
+/* El bloque de menor sale solo si la fecha dice menos de 18. */
+function menorAlta3x3(px){
+  const edad = calcularEdad(document.getElementById(px + "Fecha").value);
+  document.getElementById(px + "Menor").style.display = edad !== null && edad >= 0 && edad < 18 ? "block" : "none";
+}
+function ineAlta3x3(input, px, lado, msg){
+  comprimirIne(input, msg, dataUri => {
+    estadoAlta3x3(px).ine[lado] = dataUri;
+    const prev = document.getElementById(px + "Ine_" + lado);
+    prev.innerHTML = '<img src="' + dataUri + '" alt="INE ' + lado + '">';
+    prev.classList.add("lista");
+  });
+}
 /* Mismo recorte y compresión que la foto del alta de jugador (cuadrada,
    320 px, JPEG que quepa en ~45 mil caracteres). */
-function fotoNuevo3x3(input, msg){
-  msg = msg || "t3IMsg";
+function fotoAlta3x3(input, px, msg){
   const archivo = input.files && input.files[0];
   input.value = "";
   if(!archivo || !/^image\//.test(archivo.type)) return mostrarMsgInsc(msg,"err","Ese archivo no es una imagen.");
@@ -8898,13 +9008,36 @@ function fotoNuevo3x3(input, msg){
       canvas.getContext("2d").drawImage(img, (img.width - lado)/2, (img.height - lado)/2, lado, lado, 0, 0, destino, destino);
       let calidad = 0.8, uri = canvas.toDataURL("image/jpeg", calidad);
       while(uri.length > 45000 && calidad > 0.3){ calidad -= 0.1; uri = canvas.toDataURL("image/jpeg", calidad); }
-      T3.nuevoFoto = uri;
-      document.getElementById("t3NFotoVer").innerHTML = `<img src="${uri}" alt="">`;
+      estadoAlta3x3(px).foto = uri;
+      document.getElementById(px + "FotoVer").innerHTML = `<img src="${uri}" alt="">`;
     };
     img.onerror = () => mostrarMsgInsc(msg,"err","No se pudo leer la imagen. Intenta con otra.");
     img.src = lector.result;
   };
   lector.readAsDataURL(archivo);
+}
+/* Lee y revisa el alta. Devuelve { error } o los datos tal como los pide el
+   Apps Script (jugadorNuevo3x3_ y datosMenor3x3_). */
+function leerAlta3x3(px){
+  const v = id => (document.getElementById(px + id) || { value: "" }).value.trim();
+  const e = estadoAlta3x3(px);
+  const nombre = v("Nombre"), apellido = v("Apellido"), fecha = v("Fecha"), correo = v("Correo");
+  if(!nombre || !apellido) return { error: "Escribe nombre y apellido." };
+  if(!fecha) return { error: "Falta la fecha de nacimiento." };
+  const edad = calcularEdad(fecha);
+  if(edad === null || edad < 0) return { error: "Revisa la fecha de nacimiento." };
+  const menor = edad < 18;
+  const tutorNombre = menor ? v("Tutor") : "";
+  if(menor){
+    if(!tutorNombre) return { error: "Falta el nombre del padre, madre o tutor." };
+    if(!e.ine.frente) return { error: "Falta la foto del frente de la INE del padre, madre o tutor." };
+    if(!e.ine.reverso) return { error: "Falta la foto del reverso de la INE del padre, madre o tutor." };
+    if(!document.getElementById(px + "MenorOK").checked) return { error: "Falta marcar que estás de acuerdo con la carta responsiva para menores de edad." };
+  }
+  if(!correoTieneFormatoValido(correo)) return { error: "El correo no parece válido." };
+  if(!e.foto) return { error: "Falta la foto: toma una selfie o sube una." };
+  return { nombrePila: nombre, nombre, apellido, fechaNacimiento: fecha, correo, foto: e.foto, menor,
+           tutorNombre, cartaResponsivaAceptada: menor, ineFrente: menor ? e.ine.frente : "", ineReverso: menor ? e.ine.reverso : "" };
 }
 /* Lo mismo que revisa el Apps Script, para no hacer esperar 2 s a alguien
    por un error que ya se veía. Devuelve el texto del error o "". */
@@ -8941,7 +9074,11 @@ async function enviar3x3(){
       telCapitan: necesitaTel3x3() ? document.getElementById("t3Tel").value.trim() : "",
       correoCapitan: necesitaCorreo3x3() ? document.getElementById("t3Correo").value.trim() : "",
       responsable: true, reglamentoAceptado: true,
-      jugadores: T3.jugadores.map(j => j.invitado ? { invitado: true } : { nombreCompleto: j.completo, equipo: j.equipo })
+      jugadores: T3.jugadores.map(j => j.invitado ? { invitado: true }
+        : j.nuevo ? { nuevo: true, nombre: j.nombrePila, apellido: j.apellido, fechaNacimiento: j.fechaNacimiento, correo: j.correo,
+                      foto: j.foto, tutorNombre: j.tutorNombre, cartaResponsivaAceptada: j.cartaResponsivaAceptada,
+                      ineFrente: j.ineFrente, ineReverso: j.ineReverso }
+        : { nombreCompleto: j.completo, equipo: j.equipo })
     });
     T3.jugadores.forEach(j => { if(!j.invitado) T3.ocupados[j.clave] = aMayusSinAcentos(nombre); });
     /* El servidor decide si quedó en espera: si alguien tomó el último lugar
@@ -9024,8 +9161,7 @@ function abrirInvitacion3x3(llave){
   let el = document.getElementById("t3Invitacion");
   if(!el){ el = document.createElement("div"); el.id = "t3Invitacion"; el.className = "t3-cuerpo"; caja.appendChild(el); }
   T3.invitacion = llave;
-  T3.nuevoFoto = "";
-  T3.ine = { frente: "", reverso: "" };
+  T3.altas.t3N = null;
   el.innerHTML = `<div class="t3-vacio">Buscando tu invitación…</div>`;
   enviarAlSheet({ action: "invitacion3x3", invitacion: llave }).then(r => {
     const inv = r.invitacion || {};
@@ -9045,54 +9181,7 @@ function abrirInvitacion3x3(llave){
         <h4>${esc3x3(inv.equipo)}</h4>
         <p class="t3-listo-cat">${esc3x3(inv.categoria)}</p>
       </div>
-      <div class="insc-fila">
-        <div class="insc-campo"><label for="t3NNombre">Nombre <span class="req">*</span></label><input id="t3NNombre" autocomplete="given-name"></div>
-        <div class="insc-campo"><label for="t3NApellido">Apellido <span class="req">*</span></label><input id="t3NApellido" autocomplete="family-name"></div>
-      </div>
-      <div class="insc-fila">
-        <div class="insc-campo"><label for="t3NFecha">Fecha de nacimiento <span class="req">*</span></label><input id="t3NFecha" type="date" onchange="menorInvitado3x3()"></div>
-        <div class="insc-campo"><label for="t3NCorreo">Correo <span class="req">*</span></label><input id="t3NCorreo" type="email" autocomplete="email"></div>
-      </div>
-      <!-- Menor de edad: lo mismo que en el alta de la liga (Mauricio, 9 nov). -->
-      <div class="insc-menor-block" id="t3NMenor" style="display:none;">
-        <p class="insc-menor-titulo">⚠️ Jugador menor de edad — Carta responsiva</p>
-        <p style="margin:0 0 10px;font-size:13px;">Esta parte la llena tu papá, mamá o tutor.</p>
-        <div class="insc-menor-carta">${CARTA_MENORES_HTML}</div>
-        <div class="insc-campo" style="margin-bottom:12px;">
-          <label for="t3NTutor">Nombre del padre, madre o tutor que autoriza <span class="req">*</span></label>
-          <input type="text" id="t3NTutor" maxlength="80" placeholder="Nombre completo" autocomplete="off">
-        </div>
-        ${["frente", "reverso"].map(l => `
-        <div class="insc-campo" style="margin-bottom:12px;">
-          <label>Identificación oficial (INE) del padre, madre o tutor — ${l} <span class="req">*</span></label>
-          <div class="insc-ine-zona">
-            <div class="insc-ine-preview" id="t3NIne_${l}">🪪</div>
-            <div class="insc-foto-botones">
-              <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NIneArchivo_${l}').click()">🖼️ Subir foto</button>
-            </div>
-          </div>
-          <input type="file" id="t3NIneArchivo_${l}" accept="image/*" style="display:none" onchange="ineInvitado3x3(this, '${l}')">
-        </div>`).join("")}
-        <label class="insc-aviso-check">
-          <input type="checkbox" id="t3NMenorOK">
-          <span>OK, estoy de acuerdo con la carta responsiva para menores de edad. <span class="req">*</span></span>
-        </label>
-      </div>
-      <!-- Misma zona de foto que el alta de jugadores de la liga (Mauricio,
-           9 nov: "selfie o sube foto, pero no así de seco"). -->
-      <div class="insc-campo">
-        <label>Tu foto <span class="req">*</span></label>
-        <div class="insc-foto-zona">
-          <div class="insc-foto-preview" id="t3NFotoVer">📷</div>
-          <div class="insc-foto-botones">
-            <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NFotoCamara').click()">🤳 Tomar selfie</button>
-            <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NFotoArchivo').click()">🖼️ Subir foto</button>
-          </div>
-        </div>
-        <input type="file" id="t3NFotoCamara" accept="image/*" capture="user" style="display:none" onchange="fotoNuevo3x3(this, 't3IMsg')">
-        <input type="file" id="t3NFotoArchivo" accept="image/*" style="display:none" onchange="fotoNuevo3x3(this, 't3IMsg')">
-        <div class="ayuda">Es la foto con la que te van a reconocer en la mesa: sin gorra, sin lentes, que se vea bien tu cara.</div>
-      </div>
+      ${altaFueraHTML("t3N", "t3IMsg")}
       <label class="t3-check"><input type="checkbox" id="t3IRegl"> Acepto las reglas del torneo.
         <button type="button" class="t3-link" onclick="abrirInfo3x3('reglas')">Ver reglas</button></label>
       <div class="insc-msg" id="t3IMsg"></div>
@@ -9101,52 +9190,22 @@ function abrirInvitacion3x3(llave){
     el.innerHTML = `<div class="t3-listo"><p style="margin:20px 0;">${esc3x3(err.message || "No pudimos abrir tu invitación. Intenta más tarde.")}</p></div>`;
   });
 }
-/* El bloque de menor sale solo si la fecha dice menos de 18. */
-function menorInvitado3x3(){
-  const edad = calcularEdad(document.getElementById("t3NFecha").value);
-  document.getElementById("t3NMenor").style.display = edad !== null && edad >= 0 && edad < 18 ? "block" : "none";
-}
-function ineInvitado3x3(input, lado){
-  comprimirIne(input, "t3IMsg", dataUri => {
-    T3.ine[lado] = dataUri;
-    const prev = document.getElementById("t3NIne_" + lado);
-    prev.innerHTML = '<img src="' + dataUri + '" alt="INE ' + lado + '">';
-    prev.classList.add("lista");
-  });
-}
 async function aceptarInvitacion3x3(){
-  const v = id => document.getElementById(id).value.trim();
-  const nombre = v("t3NNombre"), apellido = v("t3NApellido"), fecha = v("t3NFecha"), correo = v("t3NCorreo");
   const msg = t => mostrarMsgInsc("t3IMsg", "err", t);
-  if(!nombre || !apellido) return msg("Escribe tu nombre y tu apellido.");
-  if(!fecha) return msg("Falta tu fecha de nacimiento.");
-  const edad = calcularEdad(fecha);
-  if(edad === null || edad < 0) return msg("Revisa tu fecha de nacimiento.");
-  const menor = edad < 18;
-  const tutorNombre = menor ? v("t3NTutor") : "";
-  if(menor){
-    if(!tutorNombre) return msg("Falta el nombre del padre, madre o tutor.");
-    if(!T3.ine.frente) return msg("Falta la foto del frente de la INE del padre, madre o tutor.");
-    if(!T3.ine.reverso) return msg("Falta la foto del reverso de la INE del padre, madre o tutor.");
-    if(!document.getElementById("t3NMenorOK").checked) return msg("Falta marcar que estás de acuerdo con la carta responsiva para menores de edad.");
-  }
-  if(!correoTieneFormatoValido(correo)) return msg("Tu correo no parece válido.");
-  if(!T3.nuevoFoto) return msg("Falta tu foto: toma una selfie o sube una.");
+  const a = leerAlta3x3("t3N");
+  if(a.error) return msg(a.error);
   if(!document.getElementById("t3IRegl").checked) return msg("Falta aceptar las reglas del torneo.");
   const btn = document.getElementById("t3IBtn");
   btn.disabled = true; btn.textContent = "Registrando…";
   mostrarMsgInsc("t3IMsg", "info", "Registrando tus datos…");
   try{
-    const r = await enviarAlSheet({ action: "aceptarInvitacion3x3", invitacion: T3.invitacion,
-      nombre, apellido, fechaNacimiento: fecha, correo, foto: T3.nuevoFoto,
-      tutorNombre, cartaResponsivaAceptada: menor,
-      ineFrente: menor ? T3.ine.frente : "", ineReverso: menor ? T3.ine.reverso : "" });
+    const r = await enviarAlSheet(Object.assign({ action: "aceptarInvitacion3x3", invitacion: T3.invitacion }, a));
     const inv = r.invitacion || {};
     document.getElementById("t3Invitacion").innerHTML = `
       <div class="t3-listo">
         <div class="t3-listo-big">¡Listo!</div>
         <div class="t3-listo-liga">La Liga de Basquet<span>Invierno 2026</span></div>
-        <h4>${esc3x3(inv.jugador || aMayusSinAcentos(nombre + " " + apellido))}</h4>
+        <h4>${esc3x3(inv.jugador || aMayusSinAcentos(a.nombre + " " + a.apellido))}</h4>
         <p class="t3-listo-cat">Ya estás en ${esc3x3(inv.equipo || "")} · ${esc3x3(inv.categoria || "")}</p>
         <p class="t3-listo-nota">Le avisamos a tu capitán. Los horarios y los pagos los ve él.</p>
         <button type="button" class="t3-chico" onclick="abrirInfo3x3('horarios')">Ver horarios</button>
@@ -9158,7 +9217,7 @@ async function aceptarInvitacion3x3(){
 }
 
 function otroEquipo3x3(){
-  Object.assign(T3, { cat: "", jugadores: [], capitan: 0, nuevoFoto: "", contacto: null });
+  Object.assign(T3, { cat: "", jugadores: [], capitan: 0, nuevoFoto: "", contacto: null, altas: {}, altaCapAbierta: false });
   armarFormulario3x3(); pintarEtapa3x3(); pintarJugadores3x3();
 }
 
