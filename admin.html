@@ -1016,7 +1016,9 @@
   .t3a-cat span{display:block;font-size:12px;color:var(--text-soft);}
   .t3a-titulo{margin:18px 0 8px;font-size:14px;letter-spacing:.06em;text-transform:uppercase;}
   .t3a-equipo{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;}
-  .t3a-equipo.t3a-apagado{opacity:.5;}
+  /* Se apaga el texto, no el botón: "Reactivar" sí sirve (9 nov) y con
+     la tarjeta entera al 50 % parecía deshabilitado. */
+  .t3a-equipo.t3a-apagado > div:first-child, .t3a-equipo.t3a-apagado .t3a-lado > span{opacity:.5;}
   .t3a-nombre{font-weight:900;font-size:15px;}
   .t3a-jug{font-size:12px;color:var(--text-soft);line-height:1.6;}
   .t3a-jug strong{color:var(--text);}
@@ -6244,10 +6246,14 @@ function pintar3x3Admin(){
         (j.invitado ? ` · <span class="t3a-sinllegar">no se ha registrado</span> · <a href="${t3aEsc(j.link)}" target="_blank" rel="noopener">su link</a>`
          : j.nuevo ? " · nuevo" : ` · ${t3aEsc(j.equipo5x5)}${j.fuerza ? " · " + t3aEsc(j.fuerza) : ""}`)).join("<br>");
       const cap = e.cap ? `Capitán: <strong>${t3aEsc(e.cap.nombre)}</strong> · ${t3aEsc(e.cap.tel)} · ${t3aEsc(e.cap.correo)}` : "";
-      const boton = tipo === "pendiente"
+      /* Prórroga (9 nov): 72 h más desde ahora a quien no ha pagado, y a un
+         liberado lo reactiva si su lugar sigue libre (caso KOYU). */
+      const prorroga = tipo === "pendiente" || tipo === "liberado"
+        ? `<button class="save-btn gris" onclick="prorroga3x3Admin('${t3aEsc(e.id)}')">${tipo === "liberado" ? "Reactivar (72 h)" : "Dar prórroga (72 h)"}</button>` : "";
+      const boton = (tipo === "pendiente"
         ? `<button class="save-btn" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', true)">Marcar pagado</button>`
         : tipo === "pagado"
-        ? `<button class="save-btn gris" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', false)">Quitar pagado</button>` : "";
+        ? `<button class="save-btn gris" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', false)">Quitar pagado</button>` : "") + prorroga;
       const nota = tipo === "pendiente" && e.limite ? `Paga antes del ${t3aEsc(e.limite)}`
                  : tipo === "liberado" ? "No pagó a tiempo" : tipo === "espera" ? "Sin lugar todavía" : "";
       return `<div class="t3a-equipo${tipo === "liberado" ? " t3a-apagado" : ""}">
@@ -6261,6 +6267,31 @@ function pintar3x3Admin(){
     }).join("");
   }).join("");
   cuerpo.innerHTML = `<div class="t3a-resumen">${resumen}</div>${bloques}`;
+}
+
+async function prorroga3x3Admin(id){
+  const msg = document.getElementById("t3AdminMsg");
+  const e = equipos3x3Admin(T3A_DATOS.filas || []).find(x => x.id === id);
+  const nombre = e ? e.equipo : id;
+  const liberado = e && tipo3x3Admin(e.estatus) === "liberado";
+  if(!confirm((liberado ? "¿Reactivar a " : "¿Darle prórroga a ") + nombre + "?\n\nTendrá 72 horas más para pagar, contadas desde ahora.")) return;
+  msg.style.display = "block"; msg.className = "msg";
+  msg.textContent = (liberado ? "Reactivando a " : "Dando prórroga a ") + nombre + "…";
+  document.querySelectorAll("#t3AdminCuerpo .save-btn").forEach(b => b.disabled = true);
+  try{
+    const data = await postAppsScript({ action: "prorroga3x3", clave: CONFIG.adminPassword, idEquipo: id });
+    if(!data.ok) throw new Error(data.error || "Error desconocido");
+    const r = data.pago3x3;
+    (T3A_DATOS.filas || []).forEach(f => { if(String(f["Id Equipo"]).trim() === id){
+      f["Estatus"] = r.estatus; f["Fecha de lugar"] = r.fechaLugar; f["Limite de pago"] = r.limite; } });
+    pintar3x3Admin();
+    msg.className = "msg ok";
+    msg.textContent = nombre + ": tiene hasta el " + r.limite + " para pagar.";
+  }catch(err){
+    msg.className = "msg err";
+    msg.textContent = "No se pudo: " + err.message;
+    pintar3x3Admin();
+  }
 }
 
 async function marcarPago3x3Admin(id, pagado){
