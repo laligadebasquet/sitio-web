@@ -1021,6 +1021,7 @@
   .t3a-jug{font-size:12px;color:var(--text-soft);line-height:1.6;}
   .t3a-jug strong{color:var(--text);}
   .t3a-cap{font-size:12px;line-height:1.6;}
+  .t3a-sinllegar{color:var(--orange,#F37228);font-weight:800;}
   .t3a-estado{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:3px 8px;border:1px solid;}
   .t3a-estado.pagado{color:var(--win);border-color:var(--win);background:rgba(51,224,138,.12);}
   .t3a-estado.pendiente{color:#F5B342;border-color:#F5B342;background:rgba(245,179,66,.12);}
@@ -6192,9 +6193,14 @@ function equipos3x3Admin(filas){
     const e = porId[id] = porId[id] || { id, equipo: f["Equipo"], categoria: f["Categoría"], fecha: f["Timestamp"],
                                          estatus: f["Estatus"], limite: f["Limite de pago"], jugadores: [], cap: null };
     const j = { nombre: [f["Jugador"], f["Apellido"]].filter(Boolean).join(" "), equipo5x5: f["Equipo 5x5"],
-                fuerza: f["Fuerza 5x5"], nuevo: f["Nuevo"] === "Sí", correo: f["Correo Jugador"] };
+                fuerza: f["Fuerza 5x5"], nuevo: f["Nuevo"] === "Sí", correo: f["Correo Jugador"],
+                /* Lugar apartado para alguien de fuera que todavía no abre su
+                   link (9 nov). Mauricio decide qué pasa si nunca llega. */
+                invitado: f["Nuevo"] === "Invitado",
+                link: f["Invitación"] ? "https://www.laligadebasquet.com/?view=3x3&invitacion=" + f["Invitación"] : "" };
     // El nombre de los de la liga ya viene completo en "Jugador"; el apellido es para los nuevos.
     if(!j.nuevo) j.nombre = f["Jugador"];
+    if(j.invitado) e.invitados = (e.invitados || 0) + 1;
     e.jugadores.push(j);
     if(f["Capitán"] === "Sí") e.cap = { nombre: j.nombre, tel: f["Teléfono Capitán"], correo: f["Correo Capitán"] };
   });
@@ -6222,9 +6228,11 @@ function pintar3x3Admin(){
     const suyos = equipos.filter(e => e.categoria === cat);
     const n = t => suyos.filter(e => tipo3x3Admin(e.estatus) === t).length;
     const conLugar = n("pagado") + n("pendiente");
+    const sinLlegar = suyos.filter(e => tipo3x3Admin(e.estatus) !== "liberado").reduce((t, e) => t + (e.invitados || 0), 0);
     return `<div class="t3a-cat"><b>${cat}</b><div class="t3a-cupo">${conLugar} de ${cupo}</div>
       <span>${n("pagado")} pagado${n("pagado") === 1 ? "" : "s"} · ${n("pendiente")} por pagar</span>
-      ${n("espera") ? `<span>${n("espera")} en lista de espera</span>` : ""}</div>`;
+      ${n("espera") ? `<span>${n("espera")} en lista de espera</span>` : ""}
+      ${sinLlegar ? `<span class="t3a-sinllegar">${sinLlegar} invitado${sinLlegar === 1 ? "" : "s"} sin registrarse</span>` : ""}</div>`;
   }).join("");
   const bloques = T3A_CATEGORIAS.map(cat => {
     const suyos = equipos.filter(e => e.categoria === cat)
@@ -6233,7 +6241,8 @@ function pintar3x3Admin(){
     return `<h3 class="t3a-titulo">${cat}</h3>` + suyos.map(e => {
       const tipo = tipo3x3Admin(e.estatus);
       const jug = e.jugadores.map(j => `<strong>${t3aEsc(j.nombre)}</strong>${e.cap && j.nombre === e.cap.nombre ? " ★" : ""}` +
-        (j.nuevo ? " · nuevo" : ` · ${t3aEsc(j.equipo5x5)}${j.fuerza ? " · " + t3aEsc(j.fuerza) : ""}`)).join("<br>");
+        (j.invitado ? ` · <span class="t3a-sinllegar">no se ha registrado</span> · <a href="${t3aEsc(j.link)}" target="_blank" rel="noopener">su link</a>`
+         : j.nuevo ? " · nuevo" : ` · ${t3aEsc(j.equipo5x5)}${j.fuerza ? " · " + t3aEsc(j.fuerza) : ""}`)).join("<br>");
       const cap = e.cap ? `Capitán: <strong>${t3aEsc(e.cap.nombre)}</strong> · ${t3aEsc(e.cap.tel)} · ${t3aEsc(e.cap.correo)}` : "";
       const boton = tipo === "pendiente"
         ? `<button class="save-btn" onclick="marcarPago3x3Admin('${t3aEsc(e.id)}', true)">Marcar pagado</button>`

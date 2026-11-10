@@ -748,6 +748,13 @@
   .t3-listo-bloque{background:var(--gray-bg);border-radius:10px;padding:10px 12px;margin:0 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;}
   .t3-listo-bloque b{font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;}
   .t3-listo-bloque .t3-chico{margin-top:6px;}
+  /* Links de invitado (9 nov): el link entero se ve, partido si no cabe. */
+  .t3-invita-fila{width:100%;margin-top:8px;display:flex;flex-direction:column;gap:4px;align-items:center;}
+  .t3-invita-nom{font-weight:800;}
+  .t3-invita code{font-size:12px;word-break:break-all;background:var(--white,#fff);border-radius:6px;padding:4px 6px;}
+  .t3-invita a.t3-chico{text-decoration:none;display:inline-block;}
+  .t3-invitado-cab{text-align:center;margin:4px 0 16px;}
+  .t3-invitado-cab h4{margin:4px 0 0;font-size:22px;}
   .t3-listo-limite{margin-top:6px;font-size:13px;line-height:1.45;color:var(--orange-dark);font-weight:700;}
   .t3-listo-limite b{font-weight:900;}
   .t3-listo-nota{font-size:13px;color:var(--text-soft);margin:4px 0 12px;}
@@ -8333,6 +8340,11 @@ function prepararTarjeta3x3(){
    el capitán ya llenó no se pierde al cambiar de lugar. */
 function abrir3x3(){
   document.getElementById("t3Modal").classList.add("open");
+  // Si antes se abrió un link de invitado, vuelve el formulario del capitán.
+  const inv = document.getElementById("t3Invitacion");
+  if(inv) inv.remove();
+  const cuerpo = document.getElementById("t3Cuerpo");
+  if(cuerpo) cuerpo.style.display = "";
   montar3x3(document.querySelector("#t3Modal .t3-caja"));
 }
 /* Antes de rearmar la pestaña Inscripción, el formulario regresa a la
@@ -8658,7 +8670,9 @@ function pintarEtapa3x3(){
    tenemos, y el correo lo tiene cualquier jugador de la liga (Mauricio,
    22 oct). Aquí solo llega tapado (81 •••• ••51): la página es pública. Si
    no lo tenemos, o el capitán prefiere otro, se escribe. */
-function capitanActual3x3(){ return T3.jugadores[T3.capitan] || null; }
+/* Un invitado no puede ser capitán: todavía no sabemos ni su nombre, y el
+   capitán es a quien le escribimos desde el primer día. */
+function capitanActual3x3(){ const c = T3.jugadores[T3.capitan]; return c && !c.invitado ? c : null; }
 
 function sincronizarCapitan3x3(){
   const cap = capitanActual3x3();
@@ -8765,6 +8779,12 @@ function inicial3x3(nombre){ return String(nombre || "").split(" ").map(w => w[0
 function pintarJugadores3x3(){
   const el = document.getElementById("t3Sel");
   if(!el) return;
+  // Si el capitán quedó en un invitado (lo agregaron primero), pasa al
+  // primero que sí está en la liga.
+  if((T3.jugadores[T3.capitan] || {}).invitado){
+    const otro = T3.jugadores.findIndex(j => !j.invitado);
+    if(otro !== -1) T3.capitan = otro;
+  }
   const enA = T3.jugadores.filter(j => j.fuerza === "A").length;
   const excedidos = fuerzaDe3x3(T3.cat) === "B" && enA > T3_MAX_A_EN_B;
   document.getElementById("t3Cuenta").textContent = "· " + T3.jugadores.length + " de " + T3_MAX_JUGADORES;
@@ -8775,12 +8795,12 @@ function pintarJugadores3x3(){
         <div class="t3-ini">${j.foto ? `<img src="${j.foto}" alt="">` : esc3x3(inicial3x3(j.nombre))}</div>
         <div class="t3-jug-info">
           <div class="t3-jug-nom">${esc3x3(j.nombre)}</div>
-          <div class="t3-jug-sub">${j.nuevo ? "Nuevo · el Consejo lo clasifica A o B" : esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
+          <div class="t3-jug-sub">${j.invitado ? "No está en la liga · al inscribir te damos su link" : j.nuevo ? "Nuevo · el Consejo lo clasifica A o B" : esc3x3((j.equipos || [j.equipoVer]).join(" / "))}</div>
           ${excedidos && j.fuerza === "A" ? `<div class="t3-jug-no">Solo cabe 1 jugador de categoría A</div>` : ""}
         </div>
         ${j.fuerza ? `<span class="t3-fuerza${j.fuerza === "A" ? " a" : ""}">${j.fuerza}</span>` : ""}
-        <button type="button" class="t3-chico${T3.capitan === i ? " cap" : ""}" onclick="capitan3x3(${i})"
-          aria-pressed="${T3.capitan === i}" title="${T3.capitan === i ? "Es el capitán" : "Hacer capitán"}">${T3.capitan === i ? "★ Capitán" : "Capitán"}</button>
+        ${j.invitado ? "" : `<button type="button" class="t3-chico${T3.capitan === i ? " cap" : ""}" onclick="capitan3x3(${i})"
+          aria-pressed="${T3.capitan === i}" title="${T3.capitan === i ? "Es el capitán" : "Hacer capitán"}">${T3.capitan === i ? "★ Capitán" : "Capitán"}</button>`}
         <button type="button" class="t3-chico" onclick="quitar3x3(${i})" aria-label="Quitar a ${esc3x3(j.nombre)}">✕</button>
       </div>`).join("");
   const buscar = document.getElementById("t3Buscar");
@@ -8837,54 +8857,37 @@ function agregar3x3(clave){
   pintarJugadores3x3(); buscar3x3();
 }
 
-/* Jugador de fuera: solo en la convocatoria abierta. Un alta corta con
-   foto; esos datos quedan para su perfil cuando juegue 5x5. Los menores
-   no: necesitan carta responsiva e INE del tutor, y eso va con la liga. */
+/* Jugador de fuera: solo en la convocatoria abierta.
+   Hasta el 9 nov el capitán llenaba aquí el alta del jugador de fuera
+   (nombre, fecha, correo y foto): tenía que pedirle todo y subirle la foto.
+   Mauricio pidió que el capitán solo genere un link y se lo mande, y que el
+   jugador llene lo suyo. Aquí el capitán solo aparta el lugar; el link sale
+   al inscribir (lo crea el Apps Script) y también le llega por correo. El
+   lugar cuenta para el mínimo de 3 aunque el invitado no haya llegado. */
 function pintarNuevo3x3(){
   const el = document.getElementById("t3NuevoCaja");
   if(!el) return;
   // En la etapa de la liga no se anuncia nada aquí (Mauricio, 23 oct): el
   // botón de jugador nuevo simplemente aparece el sábado 7.
   if(T3.etapa !== "abierta" || !T3.cat || T3.jugadores.length >= T3_MAX_JUGADORES){ el.innerHTML = ""; return; }
-  if(!el.dataset.abierto){
-    el.innerHTML = `<button type="button" class="t3-chico" style="margin-top:10px;" onclick="abrirNuevo3x3()">+ Jugador que no está en la liga</button>`;
-    return;
-  }
+  el.innerHTML = `<button type="button" class="t3-chico" style="margin-top:10px;" onclick="invitar3x3()">+ Jugador que no está en la liga</button>
+    <div class="t3-jug-sub" style="margin-top:4px;">Al inscribir te damos un link para que se lo mandes y él mismo llene sus datos.</div>`;
 }
-function abrirNuevo3x3(){
-  const el = document.getElementById("t3NuevoCaja");
-  el.dataset.abierto = "1";
-  T3.nuevoFoto = "";
-  el.innerHTML = `<div class="t3-nuevo">
-    <div class="insc-fila">
-      <div class="insc-campo"><label for="t3NNombre">Nombre</label><input id="t3NNombre" autocomplete="off"></div>
-      <div class="insc-campo"><label for="t3NApellido">Apellido</label><input id="t3NApellido" autocomplete="off"></div>
-    </div>
-    <div class="insc-fila">
-      <div class="insc-campo"><label for="t3NFecha">Fecha de nacimiento</label><input id="t3NFecha" type="date"></div>
-      <div class="insc-campo"><label for="t3NCorreo">Correo</label><input id="t3NCorreo" type="email" autocomplete="off"></div>
-    </div>
-    <div class="insc-campo t3-foto">
-      <div class="t3-ini" id="t3NFotoVer" style="width:52px;height:52px;">📷</div>
-      <label class="t3-chico" style="margin:0;">Foto de su cara<input type="file" accept="image/*" style="display:none" onchange="fotoNuevo3x3(this)"></label>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button type="button" class="t3-chico cap" onclick="agregarNuevo3x3()">Agregar al equipo</button>
-      <button type="button" class="t3-chico" onclick="cerrarNuevo3x3()">Cancelar</button>
-    </div>
-  </div>`;
+function invitar3x3(){
+  if(T3.jugadores.length >= T3_MAX_JUGADORES) return;
+  const n = T3.jugadores.filter(j => j.invitado).length + 1;
+  T3.jugadores.push({ invitado: true, liga: false, nuevo: false, fuerza: "",
+                      clave: "invitado|" + Date.now() + "|" + n, nombre: "INVITADO " + n });
+  pintarJugadores3x3();
 }
-function cerrarNuevo3x3(){
-  const el = document.getElementById("t3NuevoCaja");
-  delete el.dataset.abierto;
-  pintarNuevo3x3();
-}
+
 /* Mismo recorte y compresión que la foto del alta de jugador (cuadrada,
    320 px, JPEG que quepa en ~45 mil caracteres). */
-function fotoNuevo3x3(input){
+function fotoNuevo3x3(input, msg){
+  msg = msg || "t3IMsg";
   const archivo = input.files && input.files[0];
   input.value = "";
-  if(!archivo || !/^image\//.test(archivo.type)) return mostrarMsgInsc("t3Msg","err","Ese archivo no es una imagen.");
+  if(!archivo || !/^image\//.test(archivo.type)) return mostrarMsgInsc(msg,"err","Ese archivo no es una imagen.");
   const lector = new FileReader();
   lector.onload = () => {
     const img = new Image();
@@ -8898,29 +8901,11 @@ function fotoNuevo3x3(input){
       T3.nuevoFoto = uri;
       document.getElementById("t3NFotoVer").innerHTML = `<img src="${uri}" alt="">`;
     };
-    img.onerror = () => mostrarMsgInsc("t3Msg","err","No se pudo leer la imagen. Intenta con otra.");
+    img.onerror = () => mostrarMsgInsc(msg,"err","No se pudo leer la imagen. Intenta con otra.");
     img.src = lector.result;
   };
   lector.readAsDataURL(archivo);
 }
-function agregarNuevo3x3(){
-  const v = id => document.getElementById(id).value.trim();
-  const nombre = v("t3NNombre"), apellido = v("t3NApellido"), fecha = v("t3NFecha"), correo = v("t3NCorreo");
-  if(!nombre || !apellido) return mostrarMsgInsc("t3Msg","err","Escribe nombre y apellido del jugador nuevo.");
-  if(!fecha) return mostrarMsgInsc("t3Msg","err","Falta su fecha de nacimiento.");
-  const edad = calcularEdad(fecha);
-  if(edad === null || edad < 18) return mostrarMsgInsc("t3Msg","err","Los menores de edad se inscriben con su tutor: escríbenos a control@laligadebasquet.com.");
-  if(!correoTieneFormatoValido(correo)) return mostrarMsgInsc("t3Msg","err","El correo del jugador nuevo no parece válido.");
-  if(!T3.nuevoFoto) return mostrarMsgInsc("t3Msg","err","Falta la foto del jugador nuevo.");
-  const clave = "nuevo|" + normalizar(correo);
-  if(T3.jugadores.some(j => j.clave === clave)) return mostrarMsgInsc("t3Msg","err","Ese correo ya está en tu equipo.");
-  T3.jugadores.push({ nuevo: true, liga: false, clave, nombre: aMayusSinAcentos(nombre + " " + apellido.split(" ")[0]),
-                      nombrePila: nombre, apellido, fechaNacimiento: fecha, correo, foto: T3.nuevoFoto, fuerza: "" });
-  mostrarMsgInsc("t3Msg","","");
-  cerrarNuevo3x3();
-  pintarJugadores3x3();
-}
-
 /* Lo mismo que revisa el Apps Script, para no hacer esperar 2 s a alguien
    por un error que ya se veía. Devuelve el texto del error o "". */
 function revisarEquipo3x3(){
@@ -8928,6 +8913,7 @@ function revisarEquipo3x3(){
   if(!nombre) return "Escribe el nombre del equipo.";
   if(!T3.cat) return "Escoge la categoría.";
   if(T3.jugadores.length < T3_MIN_JUGADORES) return "Faltan " + (T3_MIN_JUGADORES - T3.jugadores.length) + " jugador(es): el equipo necesita al menos " + T3_MIN_JUGADORES + ".";
+  if(!capitanActual3x3()) return "El capitán tiene que ser alguien que ya está en el equipo, no un invitado.";
   if(fuerzaDe3x3(T3.cat) === "B" && T3.jugadores.filter(j => j.fuerza === "A").length > T3_MAX_A_EN_B)
     return "En categoría B solo puede jugar " + T3_MAX_A_EN_B + " jugador de categoría A. Quita a uno.";
   if((T3.contacto || {}).cargando) return "Espera un segundo: estamos buscando los datos del capitán.";
@@ -8955,15 +8941,13 @@ async function enviar3x3(){
       telCapitan: necesitaTel3x3() ? document.getElementById("t3Tel").value.trim() : "",
       correoCapitan: necesitaCorreo3x3() ? document.getElementById("t3Correo").value.trim() : "",
       responsable: true, reglamentoAceptado: true,
-      jugadores: T3.jugadores.map(j => j.nuevo
-        ? { nuevo: true, nombre: j.nombrePila, apellido: j.apellido, fechaNacimiento: j.fechaNacimiento, correo: j.correo, foto: j.foto }
-        : { nombreCompleto: j.completo, equipo: j.equipo })
+      jugadores: T3.jugadores.map(j => j.invitado ? { invitado: true } : { nombreCompleto: j.completo, equipo: j.equipo })
     });
-    T3.jugadores.forEach(j => { T3.ocupados[j.clave] = aMayusSinAcentos(nombre); });
+    T3.jugadores.forEach(j => { if(!j.invitado) T3.ocupados[j.clave] = aMayusSinAcentos(nombre); });
     /* El servidor decide si quedó en espera: si alguien tomó el último lugar
        mientras éste llenaba el formulario, entra a la lista sin error. */
     const r = (resp && resp.inscripcion) || {};
-    pintarListo3x3(nombre, r.listaEspera ? (r.lugarEspera || 1) : 0);
+    pintarListo3x3(nombre, r.listaEspera ? (r.lugarEspera || 1) : 0, r.invitaciones || []);
   }catch(err){
     mostrarMsgInsc("t3Msg","err","No se pudo inscribir: " + err.message);
     btn.disabled = false; pintarCategorias3x3();
@@ -8974,7 +8958,8 @@ async function enviar3x3(){
    liga y la temporada; los jugadores sin su equipo de 5x5 (ya no importa
    de dónde vienen); los horarios de SU categoría para que todos sepan desde
    ya cuándo juegan; y los pagos, con botón a los datos de pago. */
-function pintarListo3x3(nombre, lugarEspera){
+function pintarListo3x3(nombre, lugarEspera, invitaciones){
+  invitaciones = invitaciones || [];
   const h = T3_HORARIOS[T3.cat] || {};
   const espera = lugarEspera > 0;
   const bloqueEspera = espera ? `
@@ -8990,6 +8975,7 @@ function pintarListo3x3(nombre, lugarEspera){
       <h4>${esc3x3(aMayusSinAcentos(nombre))}</h4>
       <p class="t3-listo-cat">${esc3x3(T3.cat)}</p>
       <ul class="t3-listo-jug">${T3.jugadores.map((j, i) => `<li>${esc3x3(j.nombre)}${i === T3.capitan ? " <b>★ Capitán</b>" : ""}</li>`).join("")}</ul>
+      ${bloqueInvitaciones3x3(nombre, invitaciones)}
       ${bloqueEspera}
       <div class="t3-listo-bloque"><b>Horarios</b>
         <span>${esc3x3(h.dias || "")}</span><span>${esc3x3(h.hora || "")}</span>
@@ -9003,6 +8989,174 @@ function pintarListo3x3(nombre, lugarEspera){
       <button type="button" class="t3-enviar" onclick="otroEquipo3x3()">Inscribir otro equipo</button>
     </div>`;
 }
+/* Un link por invitado, con Copiar y WhatsApp: el capitán los manda desde
+   aquí mismo. También le llegan en el correo de confirmación. */
+function bloqueInvitaciones3x3(nombre, links){
+  if(!links.length) return "";
+  T3.links = links;
+  return `<div class="t3-listo-bloque t3-invita"><b>Manda su link a ${links.length === 1 ? "tu invitado" : "tus invitados"}</b>
+    <span>Cada uno llena sus datos y su foto. Te avisamos por correo cuando se registre.</span>
+    ${links.map((l, k) => `<div class="t3-invita-fila">
+      <span class="t3-invita-nom">Invitado ${k + 1}</span>
+      <code>${esc3x3(l)}</code>
+      <div style="display:flex;gap:6px;justify-content:center;">
+        <button type="button" class="t3-chico" onclick="copiarLink3x3(${k}, this)">Copiar</button>
+        <a class="t3-chico" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(
+          "Te inscribí en " + aMayusSinAcentos(nombre) + " para el 3x3 de La Liga de Basquet. Registra tus datos aquí: " + l)}">WhatsApp</a>
+      </div></div>`).join("")}</div>`;
+}
+function copiarLink3x3(k, btn){
+  const l = (T3.links || [])[k];
+  if(!l) return;
+  const listo = () => { btn.textContent = "¡Copiado!"; setTimeout(() => { btn.textContent = "Copiar"; }, 1500); };
+  if(navigator.clipboard) navigator.clipboard.writeText(l).then(listo).catch(() => prompt("Copia el link:", l));
+  else prompt("Copia el link:", l);
+}
+
+/* ---- El invitado abre su link (?view=3x3&invitacion=LLAVE) ----
+   Le sale su alta en la misma ventana del 3x3, en lugar del formulario del
+   capitán. Si vuelve a abrir el 3x3 desde la tarjeta, regresa el normal. */
+function abrirInvitacion3x3(llave){
+  document.getElementById("t3Modal").classList.add("open");
+  const caja = document.querySelector("#t3Modal .t3-caja");
+  const cuerpo = document.getElementById("t3Cuerpo");
+  if(cuerpo) cuerpo.style.display = "none";
+  let el = document.getElementById("t3Invitacion");
+  if(!el){ el = document.createElement("div"); el.id = "t3Invitacion"; el.className = "t3-cuerpo"; caja.appendChild(el); }
+  T3.invitacion = llave;
+  T3.nuevoFoto = "";
+  T3.ine = { frente: "", reverso: "" };
+  el.innerHTML = `<div class="t3-vacio">Buscando tu invitación…</div>`;
+  enviarAlSheet({ action: "invitacion3x3", invitacion: llave }).then(r => {
+    const inv = r.invitacion || {};
+    if(inv.estado !== "pendiente"){
+      const texto = {
+        registrado: `<b>${esc3x3(inv.jugador || "Este lugar")}</b> ya quedó registrado en <b>${esc3x3(inv.equipo || "")}</b>. ¡Nos vemos en la cancha!`,
+        liberado: "Este equipo se dio de baja del torneo. Habla con tu capitán.",
+        vencido: "Este link ya venció. Escríbenos a control@laligadebasquet.com.",
+        noexiste: "Este link no es válido. Pídele a tu capitán que te lo mande otra vez."
+      }[inv.estado] || "No pudimos abrir tu invitación. Intenta más tarde.";
+      el.innerHTML = `<div class="t3-listo"><p style="margin:20px 0;">${texto}</p></div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="t3-invitado-cab">
+        <span>${inv.capitan ? esc3x3(inv.capitan) + " te invita a jugar en" : "Te invitan a jugar en"}</span>
+        <h4>${esc3x3(inv.equipo)}</h4>
+        <p class="t3-listo-cat">${esc3x3(inv.categoria)}</p>
+      </div>
+      <div class="insc-fila">
+        <div class="insc-campo"><label for="t3NNombre">Nombre <span class="req">*</span></label><input id="t3NNombre" autocomplete="given-name"></div>
+        <div class="insc-campo"><label for="t3NApellido">Apellido <span class="req">*</span></label><input id="t3NApellido" autocomplete="family-name"></div>
+      </div>
+      <div class="insc-fila">
+        <div class="insc-campo"><label for="t3NFecha">Fecha de nacimiento <span class="req">*</span></label><input id="t3NFecha" type="date" onchange="menorInvitado3x3()"></div>
+        <div class="insc-campo"><label for="t3NCorreo">Correo <span class="req">*</span></label><input id="t3NCorreo" type="email" autocomplete="email"></div>
+      </div>
+      <!-- Menor de edad: lo mismo que en el alta de la liga (Mauricio, 9 nov). -->
+      <div class="insc-menor-block" id="t3NMenor" style="display:none;">
+        <p class="insc-menor-titulo">⚠️ Jugador menor de edad — Carta responsiva</p>
+        <p style="margin:0 0 10px;font-size:13px;">Esta parte la llena tu papá, mamá o tutor.</p>
+        <div class="insc-menor-carta">${CARTA_MENORES_HTML}</div>
+        <div class="insc-campo" style="margin-bottom:12px;">
+          <label for="t3NTutor">Nombre del padre, madre o tutor que autoriza <span class="req">*</span></label>
+          <input type="text" id="t3NTutor" maxlength="80" placeholder="Nombre completo" autocomplete="off">
+        </div>
+        ${["frente", "reverso"].map(l => `
+        <div class="insc-campo" style="margin-bottom:12px;">
+          <label>Identificación oficial (INE) del padre, madre o tutor — ${l} <span class="req">*</span></label>
+          <div class="insc-ine-zona">
+            <div class="insc-ine-preview" id="t3NIne_${l}">🪪</div>
+            <div class="insc-foto-botones">
+              <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NIneArchivo_${l}').click()">🖼️ Subir foto</button>
+            </div>
+          </div>
+          <input type="file" id="t3NIneArchivo_${l}" accept="image/*" style="display:none" onchange="ineInvitado3x3(this, '${l}')">
+        </div>`).join("")}
+        <label class="insc-aviso-check">
+          <input type="checkbox" id="t3NMenorOK">
+          <span>OK, estoy de acuerdo con la carta responsiva para menores de edad. <span class="req">*</span></span>
+        </label>
+      </div>
+      <!-- Misma zona de foto que el alta de jugadores de la liga (Mauricio,
+           9 nov: "selfie o sube foto, pero no así de seco"). -->
+      <div class="insc-campo">
+        <label>Tu foto <span class="req">*</span></label>
+        <div class="insc-foto-zona">
+          <div class="insc-foto-preview" id="t3NFotoVer">📷</div>
+          <div class="insc-foto-botones">
+            <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NFotoCamara').click()">🤳 Tomar selfie</button>
+            <button type="button" class="insc-foto-btn" onclick="document.getElementById('t3NFotoArchivo').click()">🖼️ Subir foto</button>
+          </div>
+        </div>
+        <input type="file" id="t3NFotoCamara" accept="image/*" capture="user" style="display:none" onchange="fotoNuevo3x3(this, 't3IMsg')">
+        <input type="file" id="t3NFotoArchivo" accept="image/*" style="display:none" onchange="fotoNuevo3x3(this, 't3IMsg')">
+        <div class="ayuda">Es la foto con la que te van a reconocer en la mesa: sin gorra, sin lentes, que se vea bien tu cara.</div>
+      </div>
+      <label class="t3-check"><input type="checkbox" id="t3IRegl"> Acepto las reglas del torneo.
+        <button type="button" class="t3-link" onclick="abrirInfo3x3('reglas')">Ver reglas</button></label>
+      <div class="insc-msg" id="t3IMsg"></div>
+      <button type="button" class="t3-enviar" id="t3IBtn" onclick="aceptarInvitacion3x3()">Registrarme</button>`;
+  }).catch(err => {
+    el.innerHTML = `<div class="t3-listo"><p style="margin:20px 0;">${esc3x3(err.message || "No pudimos abrir tu invitación. Intenta más tarde.")}</p></div>`;
+  });
+}
+/* El bloque de menor sale solo si la fecha dice menos de 18. */
+function menorInvitado3x3(){
+  const edad = calcularEdad(document.getElementById("t3NFecha").value);
+  document.getElementById("t3NMenor").style.display = edad !== null && edad >= 0 && edad < 18 ? "block" : "none";
+}
+function ineInvitado3x3(input, lado){
+  comprimirIne(input, "t3IMsg", dataUri => {
+    T3.ine[lado] = dataUri;
+    const prev = document.getElementById("t3NIne_" + lado);
+    prev.innerHTML = '<img src="' + dataUri + '" alt="INE ' + lado + '">';
+    prev.classList.add("lista");
+  });
+}
+async function aceptarInvitacion3x3(){
+  const v = id => document.getElementById(id).value.trim();
+  const nombre = v("t3NNombre"), apellido = v("t3NApellido"), fecha = v("t3NFecha"), correo = v("t3NCorreo");
+  const msg = t => mostrarMsgInsc("t3IMsg", "err", t);
+  if(!nombre || !apellido) return msg("Escribe tu nombre y tu apellido.");
+  if(!fecha) return msg("Falta tu fecha de nacimiento.");
+  const edad = calcularEdad(fecha);
+  if(edad === null || edad < 0) return msg("Revisa tu fecha de nacimiento.");
+  const menor = edad < 18;
+  const tutorNombre = menor ? v("t3NTutor") : "";
+  if(menor){
+    if(!tutorNombre) return msg("Falta el nombre del padre, madre o tutor.");
+    if(!T3.ine.frente) return msg("Falta la foto del frente de la INE del padre, madre o tutor.");
+    if(!T3.ine.reverso) return msg("Falta la foto del reverso de la INE del padre, madre o tutor.");
+    if(!document.getElementById("t3NMenorOK").checked) return msg("Falta marcar que estás de acuerdo con la carta responsiva para menores de edad.");
+  }
+  if(!correoTieneFormatoValido(correo)) return msg("Tu correo no parece válido.");
+  if(!T3.nuevoFoto) return msg("Falta tu foto: toma una selfie o sube una.");
+  if(!document.getElementById("t3IRegl").checked) return msg("Falta aceptar las reglas del torneo.");
+  const btn = document.getElementById("t3IBtn");
+  btn.disabled = true; btn.textContent = "Registrando…";
+  mostrarMsgInsc("t3IMsg", "info", "Registrando tus datos…");
+  try{
+    const r = await enviarAlSheet({ action: "aceptarInvitacion3x3", invitacion: T3.invitacion,
+      nombre, apellido, fechaNacimiento: fecha, correo, foto: T3.nuevoFoto,
+      tutorNombre, cartaResponsivaAceptada: menor,
+      ineFrente: menor ? T3.ine.frente : "", ineReverso: menor ? T3.ine.reverso : "" });
+    const inv = r.invitacion || {};
+    document.getElementById("t3Invitacion").innerHTML = `
+      <div class="t3-listo">
+        <div class="t3-listo-big">¡Listo!</div>
+        <div class="t3-listo-liga">La Liga de Basquet<span>Invierno 2026</span></div>
+        <h4>${esc3x3(inv.jugador || aMayusSinAcentos(nombre + " " + apellido))}</h4>
+        <p class="t3-listo-cat">Ya estás en ${esc3x3(inv.equipo || "")} · ${esc3x3(inv.categoria || "")}</p>
+        <p class="t3-listo-nota">Le avisamos a tu capitán. Los horarios y los pagos los ve él.</p>
+        <button type="button" class="t3-chico" onclick="abrirInfo3x3('horarios')">Ver horarios</button>
+      </div>`;
+  }catch(err){
+    mostrarMsgInsc("t3IMsg", "err", "No se pudo registrar: " + err.message);
+    btn.disabled = false; btn.textContent = "Registrarme";
+  }
+}
+
 function otroEquipo3x3(){
   Object.assign(T3, { cat: "", jugadores: [], capitan: 0, nuevoFoto: "", contacto: null });
   armarFormulario3x3(); pintarEtapa3x3(); pintarJugadores3x3();
@@ -9019,7 +9173,9 @@ function aplicarDeepLink(){
   // ?view=3x3 — el link del mensaje del torneo: abre la inscripción del
   // 3x3 encima del inicio (no es pestaña, Mauricio no la quiso).
   if(view === "3x3"){
-    abrir3x3();
+    // &invitacion=LLAVE: el link que el capitán le manda a su invitado.
+    const llave = params.get("invitacion");
+    if(llave) abrirInvitacion3x3(llave); else abrir3x3();
     return;
   }
   // ?view=encuesta — el link del mensaje de fin de temporada.
@@ -9230,15 +9386,7 @@ function formJugadorHTML(){
 
       <div class="insc-menor-block" id="iJgMenorBlock" style="display:none;">
         <p class="insc-menor-titulo">⚠️ Jugador menor de edad — Carta responsiva</p>
-        <div class="insc-menor-carta">
-          <p><strong>A QUIEN CORRESPONDA.</strong><br>Presente:</p>
-          <p>Por medio de la presente y para todos los efectos legales conducentes, libero de cualquier responsabilidad, civil, penal, económica, médica y de cualquier otra índole a los socios, personal, trabajadores y comité organizador de La Liga de Basquet, lo anterior derivado de la participación voluntaria de mi hij@ en los torneos organizados por La Liga de Basquet.</p>
-          <p>Por lo cual, personalmente asumo la total responsabilidad económica, médica, legal, material y de cualquier otra índole por su participación en el torneo de basquetbol. A partir del consentimiento en el presente instrumento, soy totalmente responsable de cualquier accidente, lesión, muerte o riña que pudiera suscitarse antes, durante y después de su participación en el torneo.</p>
-          <p>Asimismo, acepto las condiciones y sanciones que el comité organizador disponga para el correcto desarrollo del torneo, teniendo claro desde este momento que las decisiones que tome el comité organizador serán inapelables.</p>
-          <p>Estoy consciente que La Liga de Basquet ofrece servicios de esparcimiento deportivo en el área de basquetbol y que el comportamiento de mi hij@ será ejemplar tanto dentro como fuera de la cancha, en caso contrario, se procederá a aplicar los lineamientos internos del torneo y si en su caso fuera, estoy notificado por este medio, que se utilizará los medios municipales o estatales para solventar cualquier situación que fuera ajena al rubro deportivo.</p>
-          <p>Derivado de todo lo anteriormente expuesto, doy el consentimiento para que participe de manera activa en los torneos que La Liga de Basquet organiza, así como que asumo cualquier tipo de responsabilidad que llegará a ocurrir durante el desarrollo del torneo, tanto dentro como fuera de la cancha.</p>
-          <p>San Pedro Garza García, Nuevo León a 2026</p>
-        </div>
+        <div class="insc-menor-carta">${CARTA_MENORES_HTML}</div>
         <div class="insc-campo" style="margin-bottom:12px;">
           <label for="iJgTutorNombre">Nombre del padre, madre o tutor que autoriza <span class="req">*</span></label>
           <input type="text" id="iJgTutorNombre" maxlength="80" placeholder="Nombre completo" autocomplete="off">
@@ -9385,6 +9533,18 @@ function quitarFotoJugador(){
   document.getElementById("iJgFotoQuitar").style.display = "none";
 }
 
+/* La carta responsiva de menores, una sola vez: la usan el alta de la liga y
+   el alta del invitado del 3x3 (9 nov), y tiene que decir lo mismo en las dos. */
+const CARTA_MENORES_HTML = `
+          <p><strong>A QUIEN CORRESPONDA.</strong><br>Presente:</p>
+          <p>Por medio de la presente y para todos los efectos legales conducentes, libero de cualquier responsabilidad, civil, penal, económica, médica y de cualquier otra índole a los socios, personal, trabajadores y comité organizador de La Liga de Basquet, lo anterior derivado de la participación voluntaria de mi hij@ en los torneos organizados por La Liga de Basquet.</p>
+          <p>Por lo cual, personalmente asumo la total responsabilidad económica, médica, legal, material y de cualquier otra índole por su participación en el torneo de basquetbol. A partir del consentimiento en el presente instrumento, soy totalmente responsable de cualquier accidente, lesión, muerte o riña que pudiera suscitarse antes, durante y después de su participación en el torneo.</p>
+          <p>Asimismo, acepto las condiciones y sanciones que el comité organizador disponga para el correcto desarrollo del torneo, teniendo claro desde este momento que las decisiones que tome el comité organizador serán inapelables.</p>
+          <p>Estoy consciente que La Liga de Basquet ofrece servicios de esparcimiento deportivo en el área de basquetbol y que el comportamiento de mi hij@ será ejemplar tanto dentro como fuera de la cancha, en caso contrario, se procederá a aplicar los lineamientos internos del torneo y si en su caso fuera, estoy notificado por este medio, que se utilizará los medios municipales o estatales para solventar cualquier situación que fuera ajena al rubro deportivo.</p>
+          <p>Derivado de todo lo anteriormente expuesto, doy el consentimiento para que participe de manera activa en los torneos que La Liga de Basquet organiza, así como que asumo cualquier tipo de responsabilidad que llegará a ocurrir durante el desarrollo del torneo, tanto dentro como fuera de la cancha.</p>
+          <p>San Pedro Garza García, Nuevo León a 2026</p>
+        `;
+
 /* ---- Alta de menores de edad ----
    Si la fecha de nacimiento indica menos de 18 años, se muestra el bloque
    de la carta responsiva + INE del padre/madre/tutor, y esos campos pasan
@@ -9418,13 +9578,22 @@ let _ineFrente = "";
 let _ineReverso = "";
 
 function procesarIne(input, lado){
+  comprimirIne(input, "iJgMsg", dataUri => {
+      if(lado === "frente"){ _ineFrente = dataUri; } else { _ineReverso = dataUri; }
+      const prev = document.getElementById(lado === "frente" ? "iJgIneFrentePreview" : "iJgIneReversoPreview");
+      prev.innerHTML = '<img src="' + dataUri + '" alt="INE ' + lado + '">';
+      prev.classList.add("lista");
+      document.getElementById(lado === "frente" ? "iJgIneFrenteQuitar" : "iJgIneReversoQuitar").style.display = "inline-block";
+  });
+}
+/* La compresión de la INE, aparte, para que el invitado del 3x3 la use igual. */
+function comprimirIne(input, msgId, listo){
   const archivo = input.files && input.files[0];
   input.value = "";
   if(!archivo) return;
   if(!/^image\//.test(archivo.type)){
-    return mostrarMsgInsc("iJgMsg","err","Ese archivo no es una imagen.");
+    return mostrarMsgInsc(msgId,"err","Ese archivo no es una imagen.");
   }
-
   const lector = new FileReader();
   lector.onload = ()=>{
     const img = new Image();
@@ -9444,13 +9613,9 @@ function procesarIne(input, lado){
         dataUri = canvas.toDataURL("image/jpeg", calidad);
       }
 
-      if(lado === "frente"){ _ineFrente = dataUri; } else { _ineReverso = dataUri; }
-      const prev = document.getElementById(lado === "frente" ? "iJgIneFrentePreview" : "iJgIneReversoPreview");
-      prev.innerHTML = '<img src="' + dataUri + '" alt="INE ' + lado + '">';
-      prev.classList.add("lista");
-      document.getElementById(lado === "frente" ? "iJgIneFrenteQuitar" : "iJgIneReversoQuitar").style.display = "inline-block";
+      listo(dataUri);
     };
-    img.onerror = ()=>mostrarMsgInsc("iJgMsg","err","No se pudo leer la imagen. Intenta con otra.");
+    img.onerror = ()=>mostrarMsgInsc(msgId,"err","No se pudo leer la imagen. Intenta con otra.");
     img.src = lector.result;
   };
   lector.readAsDataURL(archivo);
