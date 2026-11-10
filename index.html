@@ -2563,6 +2563,67 @@
     .po-ronda-final .po-seed.po-seed-vacio{background:#333;color:#999;}
     .po-ronda-final .po-eq + .po-eq{border-top-color:#333;}
   }
+/* ---------- Marcador en vivo (10 nov 2026) ----------
+   Va arriba del rol en el inicio y solo existe mientras la mesa está
+   capturando un partido. Mauricio pidió que a la vista quede SOLO el
+   marcador, los equipos y el cuarto; los parciales y los puntos por
+   jugador se abren con un toque. El punto late para que se entienda
+   "ahorita". En computadora caben varias tarjetas lado a lado. */
+/* align-items:start: si una tarjeta abre su detalle, las de al lado no se
+   estiran a su alto. min(100%,340px): en un teléfono angosto (320 px) la
+   columna no se sale de la pantalla. */
+.vivo-zona{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;margin:0 0 18px;align-items:start;}
+.vivo-zona[hidden]{display:none;}
+.vivo-tarjeta{background:linear-gradient(160deg,#1c1c1c 0%,#000 70%);color:#fff;border-radius:18px;
+  overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.18);position:relative;}
+.vivo-tarjeta::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,var(--loss),var(--orange));}
+.vivo-cabeza{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 0;
+  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.vivo-sello{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 8px;border-radius:999px;
+  background:rgba(217,48,37,.16);color:#ff6b5f;font-weight:800;}
+.vivo-punto{width:8px;height:8px;border-radius:50%;background:var(--loss);animation:vivoLate 1.6s infinite;}
+@keyframes vivoLate{0%{box-shadow:0 0 0 0 rgba(217,48,37,.75);}70%{box-shadow:0 0 0 8px rgba(217,48,37,0);}100%{box-shadow:0 0 0 0 rgba(217,48,37,0);}}
+@media (prefers-reduced-motion: reduce){.vivo-punto{animation:none;}}
+.vivo-cat{color:var(--on-dark-soft);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vivo-marcador{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:16px 16px 18px;}
+.vivo-eq{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center;}
+/* overflow-wrap:break-word y no "anywhere": EXBORREGUITAS se partía a la
+   mitad ("EXBORREGUI/TAS"). Ahora solo se parte entre palabras, y los
+   nombres largos bajan de tamaño (vivo-largo) para caber en un teléfono. */
+.vivo-nombre{font-weight:800;font-size:13px;letter-spacing:.02em;line-height:1.2;overflow-wrap:break-word;
+  color:#e9e9e9;min-height:2.4em;display:flex;align-items:center;justify-content:center;max-width:100%;}
+.vivo-nombre.vivo-largo{font-size:11px;letter-spacing:0;}
+.vivo-pts{font-size:46px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
+.vivo-gana .vivo-pts{color:var(--orange);}
+.vivo-centro{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2.4em;width:64px;}
+.vivo-cuarto{display:flex;flex-direction:column;align-items:center;line-height:1.05;text-align:center;color:#fff;}
+.vivo-cuarto b{font-size:22px;font-weight:900;}
+.vivo-cuarto small{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--on-dark-soft);}
+.vivo-hace{font-size:10.5px;color:var(--on-dark-soft);white-space:nowrap;}
+.vivo-abrir{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:0;cursor:pointer;
+  background:rgba(255,255,255,.06);color:var(--on-dark-soft);font:inherit;font-size:12px;font-weight:700;
+  padding:11px 16px;border-top:1px solid rgba(255,255,255,.08);transition:background .15s,color .15s;}
+.vivo-abrir:hover{background:rgba(255,255,255,.1);color:#fff;}
+.vivo-abrir:focus-visible{outline:2px solid var(--orange);outline-offset:-2px;}
+.vivo-flecha{transition:transform .2s;}
+.vivo-abierta .vivo-flecha{transform:rotate(180deg);}
+.vivo-detalle{padding:4px 16px 16px;background:rgba(255,255,255,.03);}
+.vivo-parciales{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:8px;}
+.vivo-parciales th,.vivo-parciales td{padding:7px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
+.vivo-parciales th{color:var(--on-dark-soft);font-weight:700;font-size:11px;}
+.vivo-parciales td:first-child,.vivo-parciales th:first-child{text-align:left;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}
+.vivo-parciales td:last-child{font-weight:900;}
+.vivo-parciales .vivo-ahora{color:var(--orange);font-weight:800;}
+.vivo-jug{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;}
+.vivo-jug h4{margin:0 0 6px;font-size:10.5px;letter-spacing:.08em;color:var(--on-dark-soft);font-weight:800;overflow-wrap:anywhere;}
+.vivo-jug ol{list-style:none;margin:0;padding:0;font-size:12.5px;}
+.vivo-jug li{display:flex;align-items:baseline;gap:6px;padding:3px 0;}
+.vivo-jug li span:first-child{color:var(--on-dark-soft);min-width:24px;font-size:11px;font-variant-numeric:tabular-nums;}
+.vivo-jug li span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere;}
+.vivo-jug li b{font-variant-numeric:tabular-nums;}
+.vivo-nadie{color:var(--on-dark-soft);font-size:12px;}
+@media (max-width:420px){.vivo-pts{font-size:40px;}.vivo-jug{grid-template-columns:1fr;gap:12px;}}
 </style>
 </head>
 <body>
@@ -2682,6 +2743,10 @@
 <main>
 
   <section class="view active" id="view-inicio">
+
+    <!-- Marcador en vivo: lo llena pintarEnVivo() solo mientras la mesa
+         está capturando. Sin partido en curso no ocupa nada. -->
+    <div class="vivo-zona" id="enVivo" hidden aria-live="polite"></div>
 
     <!-- El inicio ya no es la inscripción: ahora lo primero que ve la gente
          es CUÁNDO juega. La inscripción sigue viva en su propia pestaña. -->
@@ -10403,10 +10468,195 @@ function renderSponsors(){
   track.innerHTML = SPONSORS_DEMO.map(badge).join("") + SPONSORS_DEMO.map(badge).join("");
 }
 
+/* ============================================================
+   MARCADOR EN VIVO (10 nov 2026)
+
+   La tablet de la mesa manda una foto del partido cada 20 s (ver la hoja
+   digital en admin.html) y aquí se pide cada 30 s.
+
+   Cuidado con Google: atiende unas 30 llamadas a la vez para TODO (mesa,
+   Admin y página juntos), y cada una tarda ~2 s. Con 100 personas viendo
+   se ocupan ~7; con 400, se llena. Por eso esto pregunta lo mínimo:
+   - solo el día que hay partidos, de 30 min antes del primero a 2.5 h
+     después del último (eso se calcula aquí, sin preguntarle a nadie);
+   - nunca con la pestaña escondida (celular bloqueado, otra app);
+   - si Google no contesta, espera el doble cada vez, hasta 2 min, para
+     hacerse a un lado en vez de seguir empujando.
+   El backend lleva la cuenta de cuántos están viendo (VIVO_PICO). Si un día
+   se acerca a 200, toca sacar esto a otro servicio (ver PENDIENTES).
+
+   "?vivo=1" en la URL se salta la ventana de horario: sirve para probar.
+   ============================================================ */
+const VIVO_CADA_MS = 30000;
+const VIVO_ESPERA_MAX_MS = 120000;
+const VIVO_SIN_PARTIDOS_MS = 15000;   // revisar el horario otra vez (sin red, no cuesta)
+/* "abiertos": los partidos cuyo detalle abrió quien está viendo. Se guarda
+   aparte porque la tarjeta se vuelve a pintar cada 30 s; sin esto el detalle
+   se cerraría solo mientras lo estás leyendo. */
+const VIVO = { reloj: null, espera: VIVO_CADA_MS, datos: [], recibido: 0, pidiendo: false, abiertos: new Set() };
+
+function vivoMinutos(hora){
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hora || "").trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+function vivoVentanaAbierta(ahora){
+  if(/[?&]vivo=1(&|$)/.test(location.search)) return true;
+  ahora = ahora || new Date();
+  const hoy = hoyISO();
+  const mins = (ROL || []).filter(p=>p.fecha === hoy).map(p=>vivoMinutos(p.hora)).filter(m=>m !== null);
+  if(!mins.length) return false;
+  const ya = ahora.getHours() * 60 + ahora.getMinutes();
+  return ya >= Math.min(...mins) - 30 && ya <= Math.max(...mins) + 150;
+}
+
+/* Por <script> (JSONP), igual que leerDelSheet: así no hay CORS. */
+function pedirEnVivo(){
+  return new Promise(resolve=>{
+    const nombre = "__ligaVivo" + Date.now() + Math.floor(Math.random()*1000);
+    const script = document.createElement("script");
+    let listo = false;
+    const fin = (r)=>{
+      if(listo) return;
+      listo = true;
+      clearTimeout(t);
+      try{ delete window[nombre]; }catch(e){ window[nombre] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+      resolve(r && r.ok ? r : null);
+    };
+    const t = setTimeout(()=>fin(null), 12000);
+    window[nombre] = fin;
+    script.onerror = ()=>fin(null);
+    script.src = CONFIG.appsScriptUrl + "?vivo=1&callback=" + nombre;
+    document.head.appendChild(script);
+  });
+}
+
+function vivoProgramar(ms){
+  clearTimeout(VIVO.reloj);
+  VIVO.reloj = setTimeout(vivoPreguntar, ms);
+}
+
+function vivoPreguntar(){
+  VIVO.reloj = null;
+  if(document.hidden) return;              // al volver, visibilitychange pregunta
+  if(!CONFIG.appsScriptUrl || !vivoVentanaAbierta()){
+    if(VIVO.datos.length){ VIVO.datos = []; pintarEnVivo(); }
+    vivoProgramar(VIVO_SIN_PARTIDOS_MS);
+    return;
+  }
+  if(VIVO.pidiendo) return;
+  VIVO.pidiendo = true;
+  pedirEnVivo().then(r=>{
+    VIVO.pidiendo = false;
+    if(r){
+      VIVO.datos = Array.isArray(r.vivo) ? r.vivo : [];
+      VIVO.recibido = Date.now();
+      VIVO.espera = VIVO_CADA_MS;
+    }else{
+      VIVO.espera = Math.min(VIVO.espera * 2, VIVO_ESPERA_MAX_MS);
+    }
+    pintarEnVivo();
+    if(!document.hidden) vivoProgramar(VIVO.espera);
+  });
+}
+
+function vivoHaceTexto(p){
+  const seg = Math.round((p.hace || 0) + (Date.now() - VIVO.recibido) / 1000);
+  if(seg < 60) return "hace " + Math.max(seg, 1) + " s";
+  return "hace " + Math.round(seg / 60) + " min";
+}
+
+function vivoTarjetaHTML(p){
+  const e = esc3x3;
+  const periodos = Array.isArray(p.periodos) ? p.periodos : [];
+  const cuarto = Number(p.cuarto || 0);
+  const pl = Number(p.ptsLocal || 0), pv = Number(p.ptsVisit || 0);
+  const pc = (p.porCuarto || {});
+  const abierta = VIVO.abiertos.has(String(p.id));
+  /* Un cuarto que no se ha jugado sale con guion, no con 0: con 0 parecería
+     que el equipo no anotó. */
+  const celda = (lado, i) => (i + 1 > cuarto) ? "–" : String((pc[lado] || [])[i] || 0);
+  const fila = (lado, nombre, tot) => `<tr><td>${e(nombre)}</td>` +
+    periodos.map((_, i)=>`<td${i + 1 === cuarto ? ' class="vivo-ahora"' : ""}>${celda(lado, i)}</td>`).join("") +
+    `<td>${tot}</td></tr>`;
+  const jugadores = (lado, nombre) => {
+    const lista = ((p.jugadores || {})[lado] || []).filter(j=>Number(j.p) > 0)
+      .sort((a, b)=>Number(b.p) - Number(a.p));
+    return `<div><h4>${e(nombre)}</h4>` + (lista.length
+      ? `<ol>${lista.map(j=>`<li><span>${j.j ? "#" + e(j.j) : ""}</span><span>${e(String(j.n || "").toUpperCase())}</span><b>${Number(j.p)}</b></li>`).join("")}</ol>`
+      : `<div class="vivo-nadie">Sin puntos todavía</div>`) + `</div>`;
+  };
+  const equipo = (nombre, pts, gana) =>
+    `<div class="vivo-eq${gana ? " vivo-gana" : ""}"><span class="vivo-nombre${String(nombre || "").length > 10 ? " vivo-largo" : ""}">${e(nombre)}</span><span class="vivo-pts">${pts}</span></div>`;
+  /* "3º cuarto" se pinta como un 3º grande con "cuarto" chico abajo: así
+     cabe en el centro sin quitarle espacio a los nombres. */
+  const m = /^(\d+º)\s+(.+)$/.exec(String(p.periodo || ""));
+  const periodo = m ? `<b>${e(m[1])}</b><small>${e(m[2])}</small>` : `<small>${e(p.periodo)}</small>`;
+  return `<article class="vivo-tarjeta${abierta ? " vivo-abierta" : ""}">
+    <div class="vivo-cabeza">
+      <span class="vivo-sello"><span class="vivo-punto" aria-hidden="true"></span>En vivo</span>
+      <span class="vivo-cat">${e(p.categoria)}</span>
+    </div>
+    <div class="vivo-marcador">
+      ${equipo(p.local, pl, pl > pv)}
+      <div class="vivo-centro">
+        <span class="vivo-cuarto">${periodo}</span>
+        <span class="vivo-hace" data-vivo-id="${e(p.id)}">${vivoHaceTexto(p)}</span>
+      </div>
+      ${equipo(p.visit, pv, pv > pl)}
+    </div>
+    <button type="button" class="vivo-abrir" aria-expanded="${abierta}" onclick="vivoDetalle('${e(escaparComilla(String(p.id)))}')">
+      ${abierta ? "Ocultar detalle" : "Ver parciales y anotadores"} <span class="vivo-flecha" aria-hidden="true">▾</span>
+    </button>
+    ${abierta ? `<div class="vivo-detalle">
+      <table class="vivo-parciales" aria-label="Puntos por cuarto">
+        <tr><th></th>${periodos.map(x=>`<th>${e(x)}</th>`).join("")}<th>T</th></tr>
+        ${fila("local", p.local, pl)}${fila("visit", p.visit, pv)}
+      </table>
+      <div class="vivo-jug">${jugadores("local", p.local)}${jugadores("visit", p.visit)}</div>
+    </div>` : ""}
+  </article>`;
+}
+
+/* Abrir o cerrar el detalle se pinta al momento con lo que ya llegó; no
+   le pregunta nada a Google. */
+function vivoDetalle(id){
+  if(VIVO.abiertos.has(id)) VIVO.abiertos.delete(id); else VIVO.abiertos.add(id);
+  pintarEnVivo();
+}
+
+function pintarEnVivo(){
+  const zona = document.getElementById("enVivo");
+  if(!zona) return;
+  if(!VIVO.datos.length){ zona.hidden = true; zona.innerHTML = ""; return; }
+  zona.innerHTML = VIVO.datos.map(vivoTarjetaHTML).join("");
+  zona.hidden = false;
+}
+
+function iniciarEnVivo(){
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden){ clearTimeout(VIVO.reloj); VIVO.reloj = null; return; }
+    VIVO.espera = VIVO_CADA_MS;
+    vivoPreguntar();
+  });
+  // El "hace 12 s" avanza solo, sin volver a preguntar.
+  setInterval(()=>{
+    if(document.hidden || !VIVO.datos.length) return;
+    VIVO.datos.forEach(p=>{
+      const el = document.querySelector('.vivo-hace[data-vivo-id="' + CSS.escape(String(p.id)) + '"]');
+      if(el) el.textContent = vivoHaceTexto(p);
+    });
+  }, 5000);
+  // Se da tiempo a que llegue el rol: sin él no se sabe si hoy hay partidos.
+  vivoProgramar(4000);
+}
+
 iniciarAnalitica();
 prepararInstalar();
 aplicarModoSoloInicio();
 init();
+iniciarEnVivo();
 renderSponsors();
 </script>
 </body>

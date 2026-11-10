@@ -7721,6 +7721,90 @@ function hdGuardarRespaldo(){
     localStorage.setItem(hdClaveRespaldo(HD.esPrueba), texto);
   }
   catch(e){ console.warn("No se pudo respaldar la hoja digital:", e); }
+  /* Toda acción de la mesa pasa por aquí, así que aquí también se avisa
+     que hay algo nuevo para el marcador en vivo de la página. */
+  hdVivoMarcar();
+}
+
+/* ---------- Marcador en vivo para la página (10 nov 2026) ----------
+   Mauricio pidió que la página muestre el partido mientras se juega.
+
+   La regla 1 de la hoja digital sigue en pie: la mesa NUNCA espera al
+   servidor. Por eso esto va aparte de postAppsScript (que reintenta hasta
+   15 s): cada 20 s, si algo cambió, sale una foto chiquita del partido y
+   no se espera la respuesta. Si falla, se queda marcado y lo cubre la
+   siguiente. Aunque nada cambie, cada 2 min sale otra para que el partido
+   no caduque en la página durante un medio tiempo largo (el backend lo da
+   por terminado a los 15 min sin noticias).
+
+   Los partidos de prueba no salen nunca: la gente los vería como reales. */
+const HD_VIVO_CADA_MS = 20000;
+const HD_VIVO_LATIDO_MS = 120000;
+let HD_VIVO_SUCIO = false, HD_VIVO_ULTIMO = 0, HD_VIVO_RELOJ = null, HD_VIVO_MANDANDO = false;
+
+/* "vivoTerminado" existe porque Reabrir le quita el cerrado a un partido
+   ya guardado para corregirlo: sin esto, volvería a salir EN VIVO. */
+function hdVivoActivo(){
+  return !!HD && !HD.esPrueba && !!HD.clave && hdYaInicio() &&
+         !HD.cerrado && !HD.marcadorGuardado && !HD.vivoTerminado;
+}
+
+function hdVivoFoto(){
+  const periodos = hdPeriodosJugados(HD);
+  const lado = l => HD.jugadores[l].filter(hdAsistio)
+    .map(j=>({ n: j.nombre, j: String(j.jersey || ""), p: hdPuntosJugador(j) }));
+  return {
+    partido: HD.clave, categoria: HD.categoria, local: HD.local, visit: HD.visit,
+    periodo: HD.cuarto ? hdNombrePeriodo(HD.cuarto) : "Por empezar",
+    cuarto: Number(HD.cuarto || 0),
+    ptsLocal: hdTotal(HD, "local"), ptsVisit: hdTotal(HD, "visit"),
+    periodos: periodos.map(c=>hdNombreCorto(c)),
+    porCuarto: { local: periodos.map(c=>hdPuntosCuarto(HD,"local",c)),
+                 visit: periodos.map(c=>hdPuntosCuarto(HD,"visit",c)) },
+    jugadores: { local: lado("local"), visit: lado("visit") }
+  };
+}
+
+/* Sale con la credencial de quien está en la tablet (Mauricio o el staff
+   de mesa), igual que postAppsScript. keepalive deja que el aviso de
+   "terminado" salga aunque la pestaña se cierre justo después. */
+async function hdVivoMandar(datos){
+  if(!CONFIG.appsScriptUrl) return false;
+  const payload = Object.assign({ action: "marcadorEnVivo" }, datos);
+  if(STAFF) payload.claveStaff = STAFF.clave; else payload.clave = CONFIG.adminPassword;
+  try{
+    const res = await fetch(CONFIG.appsScriptUrl, {
+      method: "POST", keepalive: true,
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify(payload)
+    });
+    const d = JSON.parse((await res.text() || "").trim());
+    return !!(d && d.ok && (!d.vivo || d.vivo.guardado !== false));
+  }catch(e){ return false; }
+}
+
+function hdVivoTic(){
+  if(!hdVivoActivo() || HD_VIVO_MANDANDO) return;
+  const ahora = Date.now();
+  if(!HD_VIVO_SUCIO && ahora - HD_VIVO_ULTIMO < HD_VIVO_LATIDO_MS) return;
+  HD_VIVO_SUCIO = false;
+  HD_VIVO_MANDANDO = true;
+  HD_VIVO_ULTIMO = ahora;
+  hdVivoMandar(hdVivoFoto())
+    .then(ok=>{ if(!ok) HD_VIVO_SUCIO = true; })
+    .finally(()=>{ HD_VIVO_MANDANDO = false; });
+}
+
+function hdVivoMarcar(){
+  HD_VIVO_SUCIO = true;
+  if(!HD_VIVO_RELOJ) HD_VIVO_RELOJ = setInterval(hdVivoTic, HD_VIVO_CADA_MS);
+}
+
+/* Quita el partido de la página: al guardarlo o al descartarlo. */
+function hdVivoTerminar(p){
+  if(!p || p.esPrueba || !p.clave) return;
+  p.vivoTerminado = true;
+  hdVivoMandar({ partido: p.clave, terminado: true });
 }
 
 function hdLeerRespaldo(clave){
@@ -9484,6 +9568,7 @@ function hdBorrarPartido(){
   if(!HD) return;
   if(!confirm("¿Descartar todo lo capturado de " + HD.local + " vs " + HD.visit + "?\n\nEsto no se puede deshacer.")) return;
   try{ localStorage.removeItem(hdClaveRespaldo(HD.esPrueba)); }catch(e){}
+  hdVivoTerminar(HD);
   hdApagarReloj();
   HD = null;
   HD_CAMBIO = null;
@@ -9675,6 +9760,7 @@ async function hdFinalizar(){
          puntos y darle Finalizar otra vez. La cédula no sale hasta entonces. */
       HD.marcadorGuardado = true;
       HD.cedulaPendiente = true;
+      hdVivoTerminar(HD);
       hdGuardarRespaldo();
       hdRender();
       if(btnMsg) btnMsg.textContent = "Marcador guardado. Falta asignar puntos.";
@@ -9689,6 +9775,7 @@ async function hdFinalizar(){
 
     HD.cerrado = true;
     HD.cedulaPendiente = false;
+    hdVivoTerminar(HD);
     hdApagarReloj();
     hdGuardarRespaldo();
     hdRender();
