@@ -2138,6 +2138,11 @@
     .ficha-marca{font-size:20px; font-weight:900; min-width:78px; text-align:right;}
     .ficha-marca.ficha-sin{font-size:13px; font-weight:600;}
     .ficha-vacia{color:var(--text-soft); font-size:13px; padding:4px 0;}
+    /* Un partido jugado se puede tocar y abre su estadística (11 nov 2026). */
+    .ficha-fila.ficha-clic{cursor:pointer; transition:background .15s;}
+    .ficha-fila.ficha-clic:hover{background:#ebebeb;}
+    .ficha-fila.ficha-clic:focus-visible{outline:2px solid var(--orange); outline-offset:2px;}
+    .ficha-flecha{color:var(--text-soft); font-size:20px; line-height:1; margin-left:-4px;}
     .ficha-tabla{width:100%; border-collapse:collapse; font-size:13px;}
     .ficha-tabla th{
       text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
@@ -4384,8 +4389,9 @@ function dueloDeEseDia(equipo, fecha, jornada){
     const esLocal = nombreEquipo(r.local) === eq;
     const propios = esLocal ? r.ptsLocal : r.ptsVisitante;
     const ajenos  = esLocal ? r.ptsVisitante : r.ptsLocal;
+    // "res" es el renglón de Resultados: con él la ficha abre la estadística.
     return { rival: esLocal ? r.visitante : r.local, propios, ajenos,
-             gano: propios > ajenos, hayMarcador: true };
+             gano: propios > ajenos, hayMarcador: true, res: r };
   }
   const m = ROL.find(x=>x.fecha === fecha &&
     (nombreEquipo(x.local) === eq || nombreEquipo(x.visitante) === eq));
@@ -4553,13 +4559,26 @@ function fichaEquipoHTML(equipo){
       const estado = d.hayMarcador
         ? `<span class="${d.gano ? "ficha-gano" : "ficha-perdio"}">${d.gano ? "Ganado" : "Perdido"}</span>`
         : `<span class="ficha-sin">Jugado</span>`;
-      return `<div class="ficha-fila">
+      /* Mauricio (11 nov 2026): tocar un partido de la ficha y ver qué pasó:
+         quién jugó, sus puntos, el parcial y el link del video. Abre la
+         misma ventana que "Ver estadística" en Resultados. La fecha que va
+         es la del rol, que es la que identifica el partido (ver
+         verEstadistica: un equipo puede jugar dos veces en una semana). */
+      const ref = d.res ? JSON.stringify({ semana: d.res.jornada, fecha: d.res.fecha || m.fecha,
+                                           local: d.res.local, visit: d.res.visitante })
+                            .replace(/"/g, "&quot;").replace(/'/g, "&#39;") : "";   // JOE'S con apóstrofo recto
+      const clic = ref
+        ? ` ficha-clic" role="button" tabindex="0" onclick='verEstadistica(${ref})'
+             onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();verEstadistica(${ref});}'
+             title="Ver la estadística del partido"`
+        : `"`;
+      return `<div class="ficha-fila${clic}>
         <div class="ficha-fila-izq">
           <div class="ficha-rival">${d.rival || ""}</div>
           <div class="ficha-estado">${estado} · ${instancia(m)}</div>
         </div>
         <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
-        ${marcador}
+        ${marcador}${ref ? `<span class="ficha-flecha" aria-hidden="true">›</span>` : ""}
       </div>`;
     }).join("");
   }
@@ -4892,8 +4911,23 @@ function verEstadistica(ref){
   sub.textContent = ((ced && ced.fecha) || "") +
                     ((ced && ced.categoria) ? " · " + ced.categoria : "");
 
-  if(!stats.length){
-    caja.innerHTML = '<div class="empty-state">Todavía no hay estadística de este partido.</div>';
+  /* El video sale aunque todavía no haya estadística: antes solo salía con
+     ella, y un partido con link pero sin cédula no lo enseñaba. */
+  const video = (ced && ced.link)
+    ? `<a class="res-btn res-btn-yt" style="display:inline-block;margin-top:6px;"
+         href="${ced.link}" target="_blank" rel="noopener">▶ Ver el partido en YouTube</a>`
+    : "";
+  /* Un 20-0 es un partido ganado por default: no se jugó y no hay cédula.
+     Con "Todavía no hay estadística" parecía que faltaba capturarla (eran
+     los 14 partidos sin estadística al revisar todas las fichas, 11 nov). */
+  const porDefault = res && !stats.length &&
+    ((Number(res.ptsLocal) === 20 && Number(res.ptsVisitante) === 0) ||
+     (Number(res.ptsLocal) === 0 && Number(res.ptsVisitante) === 20));
+  if(porDefault){
+    const ganoDefault = Number(res.ptsLocal) === 20 ? ref.local : ref.visit;
+    caja.innerHTML = `<div class="empty-state">Partido ganado por default por ${ganoDefault}: no se jugó, así que no hay estadística.</div>` + video;
+  }else if(!stats.length){
+    caja.innerHTML = '<div class="empty-state">Todavía no hay estadística de este partido.</div>' + video;
   }else{
     // La estrella es del máximo anotador del equipo que ganó, igual que en el correo.
     const ganador = res
@@ -4941,11 +4975,7 @@ function verEstadistica(ref){
           <tr><td>${ref.local}</td>${pcL.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcL.reduce((a,b)=>a+b,0)}</td></tr>
           <tr><td>${ref.visit}</td>${pcV.map(n=>`<td>${n}</td>`).join("")}<td class="stat-total">${pcV.reduce((a,b)=>a+b,0)}</td></tr>
         </table>
-      </div>` +
-      (ced && ced.link
-        ? `<a class="res-btn res-btn-yt" style="display:inline-block;margin-top:6px;"
-             href="${ced.link}" target="_blank" rel="noopener">▶ Ver el partido en YouTube</a>`
-        : "");
+      </div>` + video;
   }
 
   document.getElementById("statModal").classList.add("open");
