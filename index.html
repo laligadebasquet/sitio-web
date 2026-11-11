@@ -1664,6 +1664,10 @@
   .po-final-tit{font-size:13px;font-weight:900;text-align:center;padding:10px 8px 4px;letter-spacing:.5px;text-transform:uppercase;}
   .po-final .po-cuando{background:transparent;border:none;text-align:center;padding:0 8px 8px;}
   .po-final .po-eq + .po-eq{border-top-color:#333;}
+  /* La final va sobre negro, pero .po-nom trae color:var(--text) (negro)
+     y los nombres no se veían: Mauricio los tuvo que seleccionar para
+     leerlos (11 nov 2026). El que gana sigue en naranja (.po-gana manda). */
+  .po-final .po-nom{color:#fff;}
   .po-final .po-nom.po-pend{color:#bbb;}
   .po-final .po-seed.po-seed-vacio{background:#333;color:#999;}
   /* Las líneas. Izquierda: salen por la derecha de cada partido. */
@@ -2559,6 +2563,7 @@
     .po-ronda .po-partido{margin-bottom:8px;}
     .po-ronda-final .po-partido{background:var(--navy);border:2px solid var(--orange);}
     .po-ronda-final .po-cuando{background:transparent;border-bottom-color:#333;}
+    .po-ronda-final .po-nom{color:#fff;}   /* igual que .po-final: sobre negro */
     .po-ronda-final .po-nom.po-pend{color:#bbb;}
     .po-ronda-final .po-seed.po-seed-vacio{background:#333;color:#999;}
     .po-ronda-final .po-eq + .po-eq{border-top-color:#333;}
