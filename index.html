@@ -2142,7 +2142,12 @@
     .ficha-fila.ficha-clic{cursor:pointer; transition:background .15s;}
     .ficha-fila.ficha-clic:hover{background:#ebebeb;}
     .ficha-fila.ficha-clic:focus-visible{outline:2px solid var(--orange); outline-offset:2px;}
-    .ficha-flecha{color:var(--text-soft); font-size:20px; line-height:1; margin-left:-4px;}
+    /* Mauricio (11 nov): la flechita no decía que se podía tocar. Un botón
+       azul con texto sí. Toda la fila sigue abriendo la estadística. */
+    .ficha-ver{display:inline-flex; align-items:center; gap:5px; margin-top:6px; padding:4px 11px;
+      border-radius:999px; background:#1a73e8; color:#fff; font-size:11px; font-weight:800;
+      letter-spacing:.02em; white-space:nowrap;}
+    .ficha-fila.ficha-clic:hover .ficha-ver{background:#1559b8;}
     .ficha-tabla{width:100%; border-collapse:collapse; font-size:13px;}
     .ficha-tabla th{
       text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
@@ -4576,9 +4581,10 @@ function fichaEquipoHTML(equipo){
         <div class="ficha-fila-izq">
           <div class="ficha-rival">${d.rival || ""}</div>
           <div class="ficha-estado">${estado} · ${instancia(m)}</div>
+          ${ref ? `<span class="ficha-ver">📊 Ver estadística</span>` : ""}
         </div>
         <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
-        ${marcador}${ref ? `<span class="ficha-flecha" aria-hidden="true">›</span>` : ""}
+        ${marcador}
       </div>`;
     }).join("");
   }
