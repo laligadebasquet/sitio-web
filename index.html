@@ -2565,65 +2565,75 @@
   }
 /* ---------- Marcador en vivo (10 nov 2026) ----------
    Va arriba del rol en el inicio y solo existe mientras la mesa está
-   capturando un partido. Mauricio pidió que a la vista quede SOLO el
-   marcador, los equipos y el cuarto; los parciales y los puntos por
-   jugador se abren con un toque. El punto late para que se entienda
-   "ahorita". En computadora caben varias tarjetas lado a lado. */
-/* align-items:start: si una tarjeta abre su detalle, las de al lado no se
-   estiran a su alto. min(100%,340px): en un teléfono angosto (320 px) la
-   columna no se sale de la pantalla. */
-.vivo-zona{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;margin:0 0 18px;align-items:start;}
+   capturando un partido.
+
+   El 11 nov Mauricio mandó de ejemplo el marcador de Google y pidió que se
+   viera "más natural, menos AI": nada de degradados, brillos ni pastillas.
+   Tarjeta plana, líneas finas, números grandes en peso normal y el marcador
+   en UNA hilera (40 - 38) con el nombre abajo de cada número. La tabla de
+   parciales va a la vista, como en el ejemplo; los anotadores, con un toque.
+   Ese mismo día ajustó: el encabezado como estaba antes (pastilla EN VIVO y
+   la categoría a la derecha), el cuarto entre los dos marcadores, los
+   nombres ARRIBA del número, y en naranja el que va ganando y el cuarto que
+   se juega.
+   Los equipos todavía no tienen logo (la próxima temporada sí): el nombre
+   ocupa ese lugar, y .vivo-eq ya está armado para recibir una imagen arriba
+   del nombre. */
+.vivo-zona{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:16px;margin:0 0 18px;align-items:start;}
 .vivo-zona[hidden]{display:none;}
-.vivo-tarjeta{background:linear-gradient(160deg,#1c1c1c 0%,#000 70%);color:#fff;border-radius:18px;
-  overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.18);position:relative;}
-.vivo-tarjeta::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
-  background:linear-gradient(90deg,var(--loss),var(--orange));}
-.vivo-cabeza{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 0;
+.vivo-tarjeta{background:#202124;color:#e8eaed;border-radius:12px;padding:18px 20px 6px;}
+.vivo-cabeza{display:flex;align-items:center;justify-content:space-between;gap:10px;
   font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .vivo-sello{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 8px;border-radius:999px;
   background:rgba(217,48,37,.16);color:#ff6b5f;font-weight:800;}
 .vivo-punto{width:8px;height:8px;border-radius:50%;background:var(--loss);animation:vivoLate 1.6s infinite;}
 @keyframes vivoLate{0%{box-shadow:0 0 0 0 rgba(217,48,37,.75);}70%{box-shadow:0 0 0 8px rgba(217,48,37,0);}100%{box-shadow:0 0 0 0 rgba(217,48,37,0);}}
 @media (prefers-reduced-motion: reduce){.vivo-punto{animation:none;}}
-.vivo-cat{color:var(--on-dark-soft);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.vivo-marcador{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:16px 16px 18px;}
-.vivo-eq{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center;}
-/* overflow-wrap:break-word y no "anywhere": EXBORREGUITAS se partía a la
-   mitad ("EXBORREGUI/TAS"). Ahora solo se parte entre palabras, y los
-   nombres largos bajan de tamaño (vivo-largo) para caber en un teléfono. */
-.vivo-nombre{font-weight:800;font-size:13px;letter-spacing:.02em;line-height:1.2;overflow-wrap:break-word;
-  color:#e9e9e9;min-height:2.4em;display:flex;align-items:center;justify-content:center;max-width:100%;}
-.vivo-nombre.vivo-largo{font-size:11px;letter-spacing:0;}
-.vivo-pts{font-size:46px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:#fff;}
+.vivo-cat{color:#9aa0a6;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* 11 nov: Mauricio veía vacío el espacio entre el encabezado y el
+   marcador. Se quitó el margen de arriba y la línea en blanco que se le
+   reservaba a los nombres cortos (KOYU); los números se siguen alineando
+   entre sí porque la hilera se acomoda por abajo (align-items:end). */
+.vivo-marcador{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:8px;margin:14px 0 14px;}
+.vivo-eq{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center;}
+/* Solo se parte entre palabras (EXBORREGUITAS se partía a la mitad), y
+   los nombres largos bajan de tamaño para caber en un teléfono. */
+.vivo-nombre{font-size:15px;font-weight:500;line-height:1.25;color:#e8eaed;overflow-wrap:break-word;max-width:100%;}
+.vivo-nombre.vivo-largo{font-size:12.5px;}
+.vivo-pts{font-size:48px;font-weight:400;line-height:1;font-variant-numeric:tabular-nums;color:#e8eaed;}
 .vivo-gana .vivo-pts{color:var(--orange);}
-.vivo-centro{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2.4em;width:64px;}
-.vivo-cuarto{display:flex;flex-direction:column;align-items:center;line-height:1.05;text-align:center;color:#fff;}
-.vivo-cuarto b{font-size:22px;font-weight:900;}
-.vivo-cuarto small{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--on-dark-soft);}
-.vivo-hace{font-size:10.5px;color:var(--on-dark-soft);white-space:nowrap;}
-.vivo-abrir{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:0;cursor:pointer;
-  background:rgba(255,255,255,.06);color:var(--on-dark-soft);font:inherit;font-size:12px;font-weight:700;
-  padding:11px 16px;border-top:1px solid rgba(255,255,255,.08);transition:background .15s,color .15s;}
-.vivo-abrir:hover{background:rgba(255,255,255,.1);color:#fff;}
-.vivo-abrir:focus-visible{outline:2px solid var(--orange);outline-offset:-2px;}
+.vivo-centro{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;padding-bottom:2px;}
+.vivo-cuarto{display:flex;flex-direction:column;align-items:center;line-height:1.05;text-align:center;color:var(--orange);}
+.vivo-cuarto b{font-size:22px;font-weight:700;}
+.vivo-cuarto small{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.vivo-hace{font-size:10.5px;color:#9aa0a6;white-space:nowrap;}
+.vivo-parciales{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;border-top:1px solid #3c4043;}
+.vivo-parciales th,.vivo-parciales td{padding:7px 0;text-align:center;width:34px;}
+.vivo-parciales th{color:#9aa0a6;font-weight:400;padding-top:12px;}
+.vivo-parciales td:first-child,.vivo-parciales th:first-child{text-align:left;width:auto;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vivo-parciales td{color:#e8eaed;}
+.vivo-parciales .vivo-ahora{color:var(--orange);font-weight:600;}
+.vivo-abrir{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-top:1px solid #3c4043;
+  background:none;color:#9aa0a6;font:inherit;font-size:13.5px;padding:12px 0 10px;margin-top:8px;cursor:pointer;}
+.vivo-abrir:hover{color:#e8eaed;}
+.vivo-abrir:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px;border-radius:4px;}
 .vivo-flecha{transition:transform .2s;}
 .vivo-abierta .vivo-flecha{transform:rotate(180deg);}
-.vivo-detalle{padding:4px 16px 16px;background:rgba(255,255,255,.03);}
-.vivo-parciales{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:8px;}
-.vivo-parciales th,.vivo-parciales td{padding:7px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
-.vivo-parciales th{color:var(--on-dark-soft);font-weight:700;font-size:11px;}
-.vivo-parciales td:first-child,.vivo-parciales th:first-child{text-align:left;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}
-.vivo-parciales td:last-child{font-weight:900;}
-.vivo-parciales .vivo-ahora{color:var(--orange);font-weight:800;}
-.vivo-jug{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;}
-.vivo-jug h4{margin:0 0 6px;font-size:10.5px;letter-spacing:.08em;color:var(--on-dark-soft);font-weight:800;overflow-wrap:anywhere;}
-.vivo-jug ol{list-style:none;margin:0;padding:0;font-size:12.5px;}
-.vivo-jug li{display:flex;align-items:baseline;gap:6px;padding:3px 0;}
-.vivo-jug li span:first-child{color:var(--on-dark-soft);min-width:24px;font-size:11px;font-variant-numeric:tabular-nums;}
-.vivo-jug li span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere;}
-.vivo-jug li b{font-variant-numeric:tabular-nums;}
-.vivo-nadie{color:var(--on-dark-soft);font-size:12px;}
-@media (max-width:420px){.vivo-pts{font-size:40px;}.vivo-jug{grid-template-columns:1fr;gap:12px;}}
+.vivo-jug{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:2px 0 12px;}
+.vivo-jug h4{margin:0 0 6px;font-size:13px;color:#9aa0a6;font-weight:400;overflow-wrap:break-word;}
+.vivo-jug ol{list-style:none;margin:0;padding:0;font-size:14px;}
+.vivo-jug li{display:flex;align-items:baseline;gap:8px;padding:4px 0;}
+.vivo-jug li span:first-child{color:#9aa0a6;min-width:26px;font-size:13px;font-variant-numeric:tabular-nums;}
+.vivo-jug li span:nth-child(2){flex:1;min-width:0;overflow-wrap:break-word;}
+.vivo-jug li b{font-weight:500;font-variant-numeric:tabular-nums;}
+.vivo-nadie{color:#9aa0a6;font-size:13px;}
+@media (max-width:420px){
+  .vivo-tarjeta{padding:16px 16px 4px;}
+  .vivo-pts{font-size:42px;}
+  .vivo-nombre{font-size:14px;}
+  .vivo-nombre.vivo-largo{font-size:11.5px;}
+  .vivo-jug{grid-template-columns:1fr;gap:12px;}
+}
 </style>
 </head>
 <body>
@@ -10575,7 +10585,8 @@ function vivoTarjetaHTML(p){
   const pc = (p.porCuarto || {});
   const abierta = VIVO.abiertos.has(String(p.id));
   /* Un cuarto que no se ha jugado sale con guion, no con 0: con 0 parecería
-     que el equipo no anotó. */
+     que el equipo no anotó. "C1" se enseña como "1", igual que en el
+     ejemplo; los tiempos extra se quedan como TE. */
   const celda = (lado, i) => (i + 1 > cuarto) ? "–" : String((pc[lado] || [])[i] || 0);
   const fila = (lado, nombre, tot) => `<tr><td>${e(nombre)}</td>` +
     periodos.map((_, i)=>`<td${i + 1 === cuarto ? ' class="vivo-ahora"' : ""}>${celda(lado, i)}</td>`).join("") +
@@ -10587,10 +10598,11 @@ function vivoTarjetaHTML(p){
       ? `<ol>${lista.map(j=>`<li><span>${j.j ? "#" + e(j.j) : ""}</span><span>${e(String(j.n || "").toUpperCase())}</span><b>${Number(j.p)}</b></li>`).join("")}</ol>`
       : `<div class="vivo-nadie">Sin puntos todavía</div>`) + `</div>`;
   };
+  // Aquí irá el logo arriba del nombre cuando los equipos lo tengan.
   const equipo = (nombre, pts, gana) =>
     `<div class="vivo-eq${gana ? " vivo-gana" : ""}"><span class="vivo-nombre${String(nombre || "").length > 10 ? " vivo-largo" : ""}">${e(nombre)}</span><span class="vivo-pts">${pts}</span></div>`;
   /* "3º cuarto" se pinta como un 3º grande con "cuarto" chico abajo: así
-     cabe en el centro sin quitarle espacio a los nombres. */
+     cabe entre los dos marcadores sin quitarle espacio a los nombres. */
   const m = /^(\d+º)\s+(.+)$/.exec(String(p.periodo || ""));
   const periodo = m ? `<b>${e(m[1])}</b><small>${e(m[2])}</small>` : `<small>${e(p.periodo)}</small>`;
   return `<article class="vivo-tarjeta${abierta ? " vivo-abierta" : ""}">
@@ -10606,16 +10618,14 @@ function vivoTarjetaHTML(p){
       </div>
       ${equipo(p.visit, pv, pv > pl)}
     </div>
+    <table class="vivo-parciales" aria-label="Puntos por cuarto">
+      <tr><th>Equipo</th>${periodos.map(x=>`<th>${e(String(x).replace(/^C(\d)$/, "$1"))}</th>`).join("")}<th>T</th></tr>
+      ${fila("local", p.local, pl)}${fila("visit", p.visit, pv)}
+    </table>
     <button type="button" class="vivo-abrir" aria-expanded="${abierta}" onclick="vivoDetalle('${e(escaparComilla(String(p.id)))}')">
-      ${abierta ? "Ocultar detalle" : "Ver parciales y anotadores"} <span class="vivo-flecha" aria-hidden="true">▾</span>
+      <span>${abierta ? "Ocultar anotadores" : "Ver anotadores"}</span><span class="vivo-flecha" aria-hidden="true">▾</span>
     </button>
-    ${abierta ? `<div class="vivo-detalle">
-      <table class="vivo-parciales" aria-label="Puntos por cuarto">
-        <tr><th></th>${periodos.map(x=>`<th>${e(x)}</th>`).join("")}<th>T</th></tr>
-        ${fila("local", p.local, pl)}${fila("visit", p.visit, pv)}
-      </table>
-      <div class="vivo-jug">${jugadores("local", p.local)}${jugadores("visit", p.visit)}</div>
-    </div>` : ""}
+    ${abierta ? `<div class="vivo-jug">${jugadores("local", p.local)}${jugadores("visit", p.visit)}</div>` : ""}
   </article>`;
 }
 
