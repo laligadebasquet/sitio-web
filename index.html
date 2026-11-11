@@ -4503,7 +4503,14 @@ function fichaEquipoHTML(equipo){
     .filter(m => m.fecha && m.fecha < hoyISO())
     .sort((a,b)=> String(b.fecha).localeCompare(String(a.fecha)));
 
-  const proximos = ROL
+  /* Los partidos de playoffs que todavía no tienen renglón en el Sheet
+     (como la final) viven solo en el cuadro. Sin sumarlos, UNOS decía "Sin
+     partidos programados" teniendo la final del 21 nov (Mauricio, 11 nov
+     2026). playoffsParaInicio ya pone al equipo que avanzó en cuanto se
+     sabe, así que la ficha lo enseña conforme cada equipo pasa de ronda. */
+  let deCuadro = [];
+  try{ deCuadro = playoffsParaInicio(); }catch(e){ deCuadro = []; }
+  const proximos = ROL.concat(deCuadro)
     .filter(m => (nombreEquipo(m.local) === eq || nombreEquipo(m.visitante) === eq))
     .filter(m => m.fecha && m.fecha >= hoyISO())
     .sort((a,b)=> String(a.fecha).localeCompare(String(b.fecha)) ||
@@ -4522,7 +4529,7 @@ function fichaEquipoHTML(equipo){
      regular o de qué instancia de playoffs (repechaje, cuartos, semifinal,
      final). La ronda sale de rondaDePartido, el mismo dato del cuadro. */
   const instancia = m => {
-    const ronda = rondaDePartido(m);
+    const ronda = m.ronda || rondaDePartido(m);
     return ronda
       ? `<span class="ficha-instancia ficha-po">${ronda}</span>`
       : `<span class="ficha-instancia">Temporada regular</span>`;
@@ -4567,7 +4574,7 @@ function fichaEquipoHTML(equipo){
       const rival = nombreEquipo(m.local) === eq ? m.visitante : m.local;
       return `<div class="ficha-fila">
         <div class="ficha-fila-izq"><div class="ficha-rival">${rival}</div>
-          <div class="ficha-estado">${rondaDePartido(m) ? instancia(m) : `<span class="ficha-sin">Semana ${m.jornada}</span>`}</div></div>
+          <div class="ficha-estado">${(m.ronda || rondaDePartido(m)) ? instancia(m) : `<span class="ficha-sin">Semana ${m.jornada}</span>`}</div></div>
         <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
         <span class="ficha-marca ficha-sin">—</span>
       </div>`;
