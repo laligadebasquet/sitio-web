@@ -2128,6 +2128,10 @@
     .ficha-gano{color:var(--win); font-weight:700;}
     .ficha-perdio{color:var(--loss); font-weight:700;}
     .ficha-sin{color:var(--text-soft);}
+    /* La instancia de cada partido en la ficha del equipo (11 nov 2026):
+       temporada regular en gris, playoffs en naranja para que se distingan. */
+    .ficha-instancia{color:var(--text-soft);font-weight:600;}
+    .ficha-instancia.ficha-po{color:var(--orange-dark);font-weight:800;}
     .ficha-fecha{font-size:11px; color:var(--text-soft); text-align:right; line-height:1.4;
       white-space:nowrap;}
     .ficha-fecha span{font-weight:700; color:var(--text);}
@@ -4514,6 +4518,16 @@ function fichaEquipoHTML(equipo){
       <button class="ficha-cerrar" onclick="cerrarFicha()" title="Cerrar">✕</button>
     </div>`;
 
+  /* Mauricio (11 nov 2026): en cada partido de la ficha, si fue de temporada
+     regular o de qué instancia de playoffs (repechaje, cuartos, semifinal,
+     final). La ronda sale de rondaDePartido, el mismo dato del cuadro. */
+  const instancia = m => {
+    const ronda = rondaDePartido(m);
+    return ronda
+      ? `<span class="ficha-instancia ficha-po">${ronda}</span>`
+      : `<span class="ficha-instancia">Temporada regular</span>`;
+  };
+
   // --- Últimos partidos ---
   html += `<div class="ficha-bloque"><h3 class="ficha-h3">Últimos partidos jugados</h3>`;
   if(!jugados.length){
@@ -4535,7 +4549,7 @@ function fichaEquipoHTML(equipo){
       return `<div class="ficha-fila">
         <div class="ficha-fila-izq">
           <div class="ficha-rival">${d.rival || ""}</div>
-          <div class="ficha-estado">${estado}</div>
+          <div class="ficha-estado">${estado} · ${instancia(m)}</div>
         </div>
         <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
         ${marcador}
@@ -4553,7 +4567,7 @@ function fichaEquipoHTML(equipo){
       const rival = nombreEquipo(m.local) === eq ? m.visitante : m.local;
       return `<div class="ficha-fila">
         <div class="ficha-fila-izq"><div class="ficha-rival">${rival}</div>
-          <div class="ficha-estado"><span class="ficha-sin">Semana ${m.jornada}</span></div></div>
+          <div class="ficha-estado">${rondaDePartido(m) ? instancia(m) : `<span class="ficha-sin">Semana ${m.jornada}</span>`}</div></div>
         <div class="ficha-fecha">${fechaCorta(m.fecha)}<br><span>${horaBonita(m.hora)}</span></div>
         <span class="ficha-marca ficha-sin">—</span>
       </div>`;
