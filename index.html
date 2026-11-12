@@ -2636,7 +2636,11 @@
 .vivo-flecha{transition:transform .2s;}
 .vivo-abierta .vivo-flecha{transform:rotate(180deg);}
 .vivo-jug{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:2px 0 12px;}
-.vivo-jug h4{margin:0 0 6px;font-size:13px;color:#9aa0a6;font-weight:400;overflow-wrap:break-word;}
+/* "Pts" arriba de la columna de puntos de cada anotador: sin él no se
+   sabía qué eran esos números (Mauricio, 10 y 12 nov 2026). */
+.vivo-jug h4{margin:0 0 6px;font-size:13px;color:#9aa0a6;font-weight:400;overflow-wrap:break-word;
+  display:flex;justify-content:space-between;gap:8px;}
+.vivo-jug h4 small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;flex:none;}
 .vivo-jug ol{list-style:none;margin:0;padding:0;font-size:14px;}
 .vivo-jug li{display:flex;align-items:baseline;gap:8px;padding:4px 0;}
 .vivo-jug li span:first-child{color:#9aa0a6;min-width:26px;font-size:13px;font-variant-numeric:tabular-nums;}
@@ -10652,7 +10656,7 @@ function vivoTarjetaHTML(p){
   const jugadores = (lado, nombre) => {
     const lista = ((p.jugadores || {})[lado] || []).filter(j=>Number(j.p) > 0)
       .sort((a, b)=>Number(b.p) - Number(a.p));
-    return `<div><h4>${e(nombre)}</h4>` + (lista.length
+    return `<div><h4><span>${e(nombre)}</span>${lista.length ? "<small>Pts</small>" : ""}</h4>` + (lista.length
       ? `<ol>${lista.map(j=>`<li><span>${j.j ? "#" + e(j.j) : ""}</span><span>${e(String(j.n || "").toUpperCase())}</span><b>${Number(j.p)}</b></li>`).join("")}</ol>`
       : `<div class="vivo-nadie">Sin puntos todavía</div>`) + `</div>`;
   };
