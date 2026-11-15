@@ -8187,7 +8187,8 @@ function irAReglamento(cat){
    ============================================================ */
 /* Mismos valores que T3_FIN_ETAPA_LIGA_ y T3_CIERRE_ del Apps Script. */
 const T3_FIN_ETAPA_LIGA = "2026-11-06";
-const T3_CIERRE = "2026-11-15";
+// Era el dom 15; Mauricio lo movió al jue 19 (15 nov 2026).
+const T3_CIERRE = "2026-11-19";
 const T3_FIN_TORNEO = "2026-12-03";
 const T3_CATEGORIAS = ["Femenil A","Varonil A","Femenil B","Varonil B"];
 const T3_MAX_JUGADORES = 4, T3_MIN_JUGADORES = 3, T3_MAX_A_EN_B = 1;
@@ -8799,7 +8800,7 @@ function pintarEtapa3x3(){
   el.className = "t3-tope" + (T3.etapa === "cerrada" ? " cerrada" : "");
   el.innerHTML = T3.etapa === "cerrada"
     ? "Las inscripciones del 3x3 ya cerraron. Dudas: WhatsApp 81 1781 7451"
-    : "<b>Inscripciones hasta el domingo 15 de noviembre</b><span>Cupo limitado por categoría</span>";
+    : "<b>Inscripciones hasta el jueves 19 de noviembre</b><span>Cupo limitado por categoría</span>";
   const form = document.getElementById("t3Form");
   if(form) form.style.display = T3.etapa === "cerrada" ? "none" : "";
 }
