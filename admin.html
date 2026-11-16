@@ -13264,14 +13264,24 @@ async function c3x3Accion(modo, rama){
     // Sin el permiso de activadores no se puede programar (16 nov 2026).
     const sinPermiso = c.permiso === false
       ? '<br><span style="color:#e0a63c;">Falta el permiso para programar: en el editor de Apps Script elige <b>autorizarCorreo3x3</b>, dale Ejecutar y acepta.</span>' : "";
-    const salio = c.fin ? "<b>Ya salió</b>: " + c.enviados + " correos (" + new Date(c.fin).toLocaleString("es-MX") + ")." : "";
-    estado.innerHTML =
-      (salio || (c.programado
-        ? '<b style="color:#3fb950;">Programado</b> para el ' + c.cuando + "."
-        : '<b style="color:#e0a63c;">No programado.</b> Hora prevista: ' + c.cuando + ".")) +
-      "<br>Lo recibirían <b>" + (k.correos || 0) + "</b> correos (" + (k.varonil || 0) + " varonil, " + (k.femenil || 0) + " femenil)." +
-      "<br>Se quedan fuera: " + (k.yaInscritos || 0) + " ya inscritos en el 3x3, " + (k.repetidos || 0) +
-      " correos repetidos, " + (k.sinCorreo || 0) + " sin correo válido, " + (k.sinCategoria || 0) + " sin categoría." +
+    /* Resend gratis deja 100 al día: sale en varios días, ~190 cada uno
+       (95 por Resend y 95 por el Gmail de Mauricio), primero la A. */
+    const avance = c.enviados
+      ? "<br>Van <b>" + c.enviados + "</b> enviados (" + (c.porResend || 0) + " por Resend, " + (c.porGmail || 0) + " por tu Gmail)" +
+        (c.ultimo ? ", el último el " + new Date(c.ultimo).toLocaleString("es-MX") : "") + "." : "";
+    const cabeza = c.fin
+      ? '<b style="color:#3fb950;">Ya salió a todos</b>: ' + c.enviados + " correos."
+      : c.programado
+        ? '<b style="color:#3fb950;">Programado</b>: ' + (c.enviados ? "el siguiente envío sale mañana a las " + String(c.cuando).split(" ")[1] : "el " + c.cuando) +
+          ", hasta " + (c.porDia || 190) + " por día, primero categoría A."
+        : '<b style="color:#e0a63c;">No programado.</b> Hora prevista: ' + c.cuando + ".";
+    estado.innerHTML = cabeza + avance +
+      "<br>Lo reciben <b>" + (k.correos || 0) + "</b> correos: " + (k.catA || 0) + " de categoría A y " + (k.catB || 0) + " de B (" +
+        (k.varonil || 0) + " varonil, " + (k.femenil || 0) + " femenil)." +
+      (c.pendientes != null && !c.fin ? " Faltan <b>" + c.pendientes + "</b>." : "") +
+      "<br>Se quedan fuera: " + (k.excluidos || 0) + " de CLAVADILLAS, WE THE SOUTH y PISTONS, " + (k.yaInscritos || 0) +
+      " ya inscritos en el 3x3, " + (k.repetidos || 0) + " correos repetidos, " + (k.sinCorreo || 0) + " sin correo válido, " +
+      (k.sinCategoria || 0) + " sin categoría." +
       sinPermiso +
       ((c.errores || []).length ? '<br><span style="color:#f85149;">' + c.errores.join("<br>").replace(/</g, "&lt;") + "</span>" : "");
     document.getElementById("c3x3Programar").style.display = c.programado || c.fin ? "none" : "";
