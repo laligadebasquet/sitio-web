@@ -13261,6 +13261,9 @@ async function c3x3Accion(modo, rama){
       return;
     }
     const k = c.cuenta || {};
+    // Sin el permiso de activadores no se puede programar (16 nov 2026).
+    const sinPermiso = c.permiso === false
+      ? '<br><span style="color:#e0a63c;">Falta el permiso para programar: en el editor de Apps Script elige <b>autorizarCorreo3x3</b>, dale Ejecutar y acepta.</span>' : "";
     const salio = c.fin ? "<b>Ya salió</b>: " + c.enviados + " correos (" + new Date(c.fin).toLocaleString("es-MX") + ")." : "";
     estado.innerHTML =
       (salio || (c.programado
@@ -13269,6 +13272,7 @@ async function c3x3Accion(modo, rama){
       "<br>Lo recibirían <b>" + (k.correos || 0) + "</b> correos (" + (k.varonil || 0) + " varonil, " + (k.femenil || 0) + " femenil)." +
       "<br>Se quedan fuera: " + (k.yaInscritos || 0) + " ya inscritos en el 3x3, " + (k.repetidos || 0) +
       " correos repetidos, " + (k.sinCorreo || 0) + " sin correo válido, " + (k.sinCategoria || 0) + " sin categoría." +
+      sinPermiso +
       ((c.errores || []).length ? '<br><span style="color:#f85149;">' + c.errores.join("<br>").replace(/</g, "&lt;") + "</span>" : "");
     document.getElementById("c3x3Programar").style.display = c.programado || c.fin ? "none" : "";
     document.getElementById("c3x3Cancelar").style.display = c.programado && !c.fin ? "" : "none";
