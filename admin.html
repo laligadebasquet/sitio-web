@@ -2632,6 +2632,22 @@
         <button class="btn-sec" id="pruebaPlayoffsBtn" onclick="probarCorreosPlayoffs()">Mandar prueba de playoffs</button>
         <span id="pruebaPlayoffsAviso" style="margin-left:8px;font-size:13px;color:var(--text-soft);"></span>
       </div>
+      <!-- Correo del 3x3 a los jugadores de la temporada (16 nov 2026).
+           Sale UNA vez, a la hora que dice el servidor, y no a quien ya esta
+           en un equipo del 3x3. Va aparte de la lista de abajo porque no se
+           dispara por nada que pase en la liga: es un envio programado. -->
+      <div id="c3x3Caja" style="margin:0 0 16px;padding:14px 16px;border:1px solid var(--line, #333);border-radius:10px;">
+        <div style="font-weight:800;margin-bottom:6px;">Correo del 3x3 a los jugadores</div>
+        <div id="c3x3Estado" style="font-size:14px;line-height:1.6;color:var(--text-soft);">Cargando…</div>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+          <input type="email" id="c3x3PruebaCorreo" value="maurici0liver27@gmail.com" aria-label="Correo para la prueba del 3x3" style="max-width:240px;margin:0;">
+          <button class="btn-sec" onclick="c3x3Accion('prueba','Varonil')">Prueba varonil</button>
+          <button class="btn-sec" onclick="c3x3Accion('prueba','Femenil')">Prueba femenil</button>
+          <button class="btn-sec" id="c3x3Programar" onclick="c3x3Accion('programar')">Programar envío</button>
+          <button class="btn-sec" id="c3x3Cancelar" onclick="c3x3Accion('cancelar')">Cancelar envío</button>
+        </div>
+        <div id="c3x3Aviso" style="margin-top:6px;font-size:13px;color:var(--text-soft);"></div>
+      </div>
       <div class="correos-layout">
         <div class="correos-lista" id="correosLista"></div>
         <div class="correos-detalle" id="correosDetalle"></div>
@@ -13213,6 +13229,54 @@ async function renderCorreos(){
      se atora ahí, que no se lleve al editor de correos, que es lo que la
      gente vino a usar. */
   try{ cargarPatrosAdmin(); }catch(e){ console.warn("patrocinadores:", e); }
+  /* El correo del 3x3 tampoco debe tumbar el editor si algo falla. */
+  try{ if(!C3X3_LEIDO){ C3X3_LEIDO = true; c3x3Accion("estado"); } }catch(e){ console.warn("correo 3x3:", e); }
+}
+
+/* ------------------------------------------------------------
+   CORREO DEL 3x3 A LOS JUGADORES (16 nov 2026)
+   ------------------------------------------------------------
+   Mauricio lo quiso programado (lunes 16, 11:30 am) y a todos los jugadores
+   de la temporada que no estén ya en un equipo del 3x3. Aquí se ve cuántos
+   lo van a recibir, se manda una prueba y se programa o cancela. El texto y
+   la hora viven en el servidor (correo3x3Jugadores en AppsScript_Liga.gs):
+   así el activador y lo que se ve aquí no se pueden desfasar. */
+let C3X3_LEIDO = false;
+async function c3x3Accion(modo, rama){
+  const estado = document.getElementById("c3x3Estado");
+  const aviso = document.getElementById("c3x3Aviso");
+  if(!estado) return;
+  const payload = { action: "correo3x3Jugadores", modo, clave: CONFIG.adminPassword };
+  if(modo === "prueba"){
+    payload.rama = rama;
+    payload.correo = document.getElementById("c3x3PruebaCorreo").value.trim();
+  }
+  if(modo === "cancelar" && !confirm("¿Cancelar el envío programado del correo del 3x3?")) return;
+  aviso.textContent = modo === "estado" ? "" : "Un momento…";
+  try{
+    const r = await postAppsScript(payload);
+    const c = r.correo3x3 || {};
+    if(modo === "prueba"){
+      aviso.textContent = "Prueba " + (c.rama || "").toLowerCase() + " enviada a " + c.prueba + ".";
+      return;
+    }
+    const k = c.cuenta || {};
+    const salio = c.fin ? "<b>Ya salió</b>: " + c.enviados + " correos (" + new Date(c.fin).toLocaleString("es-MX") + ")." : "";
+    estado.innerHTML =
+      (salio || (c.programado
+        ? '<b style="color:#3fb950;">Programado</b> para el ' + c.cuando + "."
+        : '<b style="color:#e0a63c;">No programado.</b> Hora prevista: ' + c.cuando + ".")) +
+      "<br>Lo recibirían <b>" + (k.correos || 0) + "</b> correos (" + (k.varonil || 0) + " varonil, " + (k.femenil || 0) + " femenil)." +
+      "<br>Se quedan fuera: " + (k.yaInscritos || 0) + " ya inscritos en el 3x3, " + (k.repetidos || 0) +
+      " correos repetidos, " + (k.sinCorreo || 0) + " sin correo válido, " + (k.sinCategoria || 0) + " sin categoría." +
+      ((c.errores || []).length ? '<br><span style="color:#f85149;">' + c.errores.join("<br>").replace(/</g, "&lt;") + "</span>" : "");
+    document.getElementById("c3x3Programar").style.display = c.programado || c.fin ? "none" : "";
+    document.getElementById("c3x3Cancelar").style.display = c.programado && !c.fin ? "" : "none";
+    aviso.textContent = modo === "programar" ? "Listo, quedó programado." : modo === "cancelar" ? "Cancelado." : "";
+  }catch(e){
+    aviso.textContent = "No se pudo: " + e.message;
+    if(modo === "estado") estado.textContent = "No se pudo leer el estado.";
+  }
 }
 
 function abrirCorreo(id){
