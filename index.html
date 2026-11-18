@@ -8753,7 +8753,7 @@ function armarFormulario3x3(){
       <button type="button" class="t3-info-btn" onclick="abrirInfo3x3('reglas')">Reglas</button>
     </div>
     <div id="t3Form">
-      <p class="t3-reglas-cortas">Equipos de <b>mínimo 3 y máximo 4 integrantes</b>: júntate con quien quieras de cualquier equipo de la liga.*<br>
+      <p class="t3-reglas-cortas">Equipos de <b>mínimo 3 y máximo 4 integrantes</b>: júntate con quien quieras, de la liga o de fuera: nadie tiene que estar inscrito en la liga, ni siquiera el capitán.*<br>
         <small>*En categoría B solo puede jugar 1 jugador de categoría A.</small></p>
       <div class="insc-campo">
         <label for="t3Nombre">Nombre del equipo <span class="req">*</span></label>
@@ -8933,7 +8933,7 @@ function pintarJugadores3x3(){
   const excedidos = fuerzaDe3x3(T3.cat) === "B" && enA > T3_MAX_A_EN_B;
   document.getElementById("t3Cuenta").textContent = "· " + T3.jugadores.length + " de " + T3_MAX_JUGADORES;
   el.innerHTML = !T3.jugadores.length
-    ? `<div class="t3-vacio">${T3.cat ? "Agrega de 3 a 4 jugadores, tú incluido. Busca a cada uno por su nombre." : "Primero escoge la categoría."}</div>`
+    ? `<div class="t3-vacio">${T3.cat ? "Agrega de 3 a 4 jugadores, tú incluido. Si están en la liga, búscalos por su nombre; si no, usa los botones de abajo." : "Primero escoge la categoría."}</div>`
     : T3.jugadores.map((j, i) => `
       <div class="t3-jug">
         <div class="t3-ini">${j.foto ? `<img src="${j.foto}" alt="">` : esc3x3(inicial3x3(j.nombre))}</div>
@@ -9012,6 +9012,12 @@ function agregar3x3(clave){
    Y si el CAPITÁN no está en la liga (Mauricio, 9 nov: un equipo de cuatro
    de fuera tiene que poder entrar), llena aquí su propia alta, con el mismo
    bloque que el invitado; si es menor, el mismo proceso que la liga. */
+/* 18 nov 2026: Mauricio aclaro que el equipo puede ser de cuatro personas
+   de fuera, sin nadie inscrito en la liga, capitan incluido. Eso ya se podia
+   desde el 9 nov, pero el texto decia "de cualquier equipo de la liga" y el
+   alta del capitan de fuera era un enlace chiquito: la gente entendia que el
+   capitan tenia que estar inscrito. Ahora el texto lo dice y el alta del
+   capitan es boton, igual que el de jugador nuevo. */
 function pintarNuevo3x3(){
   const el = document.getElementById("t3NuevoCaja");
   if(!el) return;
@@ -9022,7 +9028,7 @@ function pintarNuevo3x3(){
   const hayCapFuera = T3.jugadores.some(j => j.nuevo);
   el.innerHTML = `<button type="button" class="t3-chico" style="margin-top:10px;" onclick="invitar3x3()">+ Jugador que no está en la liga</button>
     <div class="t3-jug-sub" style="margin-top:4px;">Al inscribir te damos un link para que se lo mandes y él mismo llene sus datos.</div>
-    ${hayCapFuera ? "" : `<button type="button" class="t3-link" style="margin-top:10px;" onclick="abrirCapFuera3x3()">¿Eres el capitán y no estás en la liga? Regístrate aquí</button>`}`;
+    ${hayCapFuera ? "" : `<button type="button" class="t3-chico cap" style="margin-top:10px;" onclick="abrirCapFuera3x3()">+ Soy el capitán y no estoy en la liga</button>`}`;
 }
 function invitar3x3(){
   if(T3.jugadores.length >= T3_MAX_JUGADORES) return;
