@@ -8189,6 +8189,7 @@ function irAReglamento(cat){
 const T3_FIN_ETAPA_LIGA = "2026-11-06";
 // Era el dom 15; Mauricio lo movió al jue 19 (15 nov 2026).
 const T3_CIERRE = "2026-11-19";
+const T3_TARJETA_OCULTA = true;   // la tarjeta del 3x3 ya no sale en el inicio (19 nov)
 const T3_FIN_TORNEO = "2026-12-03";
 const T3_CATEGORIAS = ["Femenil A","Varonil A","Femenil B","Varonil B"];
 const T3_MAX_JUGADORES = 4, T3_MIN_JUGADORES = 3, T3_MAX_A_EN_B = 1;
@@ -8464,7 +8465,10 @@ function prepararTarjeta3x3(){
   const tarjeta = document.getElementById("t3Tarjeta");
   if(!tarjeta) return;
   const hoy = hoyClave3x3();
-  if(hoy > T3_FIN_TORNEO){
+  /* 19 nov 2026: Mauricio la mando esconder del inicio el ultimo dia de
+     inscripciones. El link directo (?view=3x3) y la pestana Inscripcion ›
+     Torneo 3x3 siguen funcionando para quien ya lo tiene. */
+  if(T3_TARJETA_OCULTA || hoy > T3_FIN_TORNEO){
     tarjeta.remove();
     document.getElementById("inicioTira").classList.remove("con-3x3");
     return;
