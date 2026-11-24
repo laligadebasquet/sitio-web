@@ -2982,6 +2982,59 @@ function intentarAcceso(){
   entrarComoAdmin();
 }
 
+/* ============================================================
+   BLOQUEO POR INACTIVIDAD (23 nov 2026)
+
+   Antes el Admin nunca se cerraba: la tablet de la mesa o una compu
+   olvidada abierta era, para quien la agarrara, el acceso completo de
+   Mauricio (o del staff que entro). Revision de seguridad del 9 nov,
+   punto 5.
+
+   A los 30 minutos sin tocar nada vuelve a salir la pantalla de la clave.
+   No se recarga ni se borra nada: lo que estaba en pantalla sigue debajo
+   y al poner la clave se regresa ahi mismo. 30 minutos y no menos porque
+   entre partido y partido la mesa puede pasar un buen rato sin tocar la
+   tablet, y que se bloquee a media captura seria peor que el riesgo.
+
+   La clave se olvida de la memoria al bloquearse: si alguien quitara la
+   pantalla de la clave a mano, lo que intente guardar no pasaria.
+   ============================================================ */
+const BLOQUEO_MIN = 30;
+const BLOQUEO = { adentro: false, ultimo: Date.now(), reloj: null };
+
+function bloqueoActividad(){ BLOQUEO.ultimo = Date.now(); }
+
+/* Se llama al entrar con la clave. Devuelve true si era un desbloqueo (ya
+   estaba adentro), para no volver a cargar todo. */
+function bloqueoDesbloquear(){
+  const yaEstaba = BLOQUEO.adentro;
+  BLOQUEO.adentro = true;
+  BLOQUEO.ultimo = Date.now();
+  if(!BLOQUEO.reloj) BLOQUEO.reloj = setInterval(bloqueoRevisar, 30 * 1000);
+  return yaEstaba;
+}
+
+function bloqueoRevisar(){
+  if(!BLOQUEO.adentro) return;
+  if(Date.now() - BLOQUEO.ultimo < BLOQUEO_MIN * 60 * 1000) return;
+  const ov = document.getElementById("lockOverlay");
+  if(ov.style.display !== "none") return;   // ya esta bloqueada
+  CONFIG.adminPassword = "";
+  if(STAFF) STAFF.clave = "";
+  const err = document.getElementById("lockError");
+  err.textContent = "Se bloqueó por " + BLOQUEO_MIN + " minutos sin uso. Escribe la clave para seguir donde estabas.";
+  err.style.display = "block";
+  ov.style.display = "";
+  document.getElementById("lockInput").focus();
+}
+
+/* Cualquier toque, tecla o scroll cuenta como uso. Tambien al volver a la
+   pestana: si se quedo en segundo plano, el reloj del setInterval pudo
+   haberse dormido y hay que revisar en cuanto se vea. */
+["pointerdown", "keydown", "wheel", "touchstart"].forEach(ev =>
+  document.addEventListener(ev, bloqueoActividad, { passive: true, capture: true }));
+document.addEventListener("visibilitychange", () => { if(!document.hidden) bloqueoRevisar(); });
+
 /* Igual que la puerta del staff: quien sabe si la clave es buena es Google,
    no esta página. Solo si contesta que sí se guarda la clave (en memoria,
    nada más mientras esté abierta la pestaña) para las demás acciones. */
@@ -3000,6 +3053,10 @@ async function entrarComoAdmin(){
     CONFIG.adminPassword = clave;
     caja.value = "";
     document.getElementById("lockOverlay").style.display = "none";
+    /* Si ya estaba adentro y solo se habia bloqueado por inactividad, se
+       regresa a donde estaba: volver a cargar todo borraria lo que tenga a
+       medias en pantalla (la hoja digital, un formulario). */
+    if(bloqueoDesbloquear()) return;
     initData();
   }catch(e){
     err.textContent = /no autorizado/i.test(e.message)
@@ -3025,9 +3082,16 @@ async function entrarComoStaff(){
     /* La clave se manda a Google, que es quien la conoce. Si es de alguien,
        contesta su nombre y sus pestañas. */
     const r = await postAppsScript({ action: "entrarStaff", claveStaff: clave });
+    /* Bloqueada por inactividad: solo la misma persona la reabre. Si otra
+       entrara aqui heredaria la pantalla (y lo capturado) a nombre de quien
+       se fue; que recargue y entre con lo suyo. */
+    if(BLOQUEO.adentro && STAFF && r.staff.nombre !== STAFF.nombre){
+      throw new Error("Esta sesión es de " + STAFF.nombre + ". Para entrar con otra clave, recarga la página.");
+    }
     STAFF = { clave: clave, nombre: r.staff.nombre, permisos: r.staff.permisos || [] };
     caja.value = "";
     document.getElementById("lockOverlay").style.display = "none";
+    if(bloqueoDesbloquear()) return;
     aplicarModoStaff();
     initData();
   }catch(e){
@@ -5581,6 +5645,12 @@ function fotoRolCargarLector(){
   return new Promise((resolve, reject)=>{
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js";
+    /* Huella oficial de cdnjs (23 nov 2026). Si alguien cambiara el archivo
+       en cdnjs, su codigo correria dentro del Admin con la clave de
+       Mauricio en memoria; con la huella el navegador se niega a correrlo.
+       Si se sube de version, hay que poner la huella nueva o no carga. */
+    s.integrity = "sha512-nodtkMdJZK6MzKRMeGK/MrIcuXdbnHzPaBHuZhNYJTL+uB4KszN88EXfwXDny2z/Ce6ooCUPHiPzFAqdBK0B1A==";
+    s.crossOrigin = "anonymous";
     s.onload = ()=>resolve();
     s.onerror = ()=>reject(new Error("No se pudo bajar el lector de imágenes. ¿Hay internet?"));
     document.head.appendChild(s);
@@ -13965,6 +14035,9 @@ function pdfCargarLibreria(){
   return new Promise((resolve, reject)=>{
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    /* Huella oficial de cdnjs, por lo mismo que la de Tesseract. */
+    s.integrity = "sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==";
+    s.crossOrigin = "anonymous";
     s.onload = ()=>resolve();
     s.onerror = ()=>reject(new Error("No se pudo bajar el generador de PDF. ¿Hay internet?"));
     document.head.appendChild(s);
