@@ -634,6 +634,20 @@
      de 30 px y el dedo le atina al de al lado. */
   .modal-box.enc-caja{max-width:520px;max-height:92vh;}
   .enc-cuerpo{padding:18px 20px 22px;}
+  /* Reinscripción (24 nov 2026): el capitán confirma su equipo y cada
+     jugador toca su nombre. Los nombres son botones grandes porque se abre
+     desde el link de WhatsApp, en el celular. */
+  .rei-lista{display:grid;gap:8px;margin:6px 0 16px;}
+  .rei-jug{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;
+    padding:13px 14px;border:1.5px solid var(--border, #E2E2E2);border-radius:10px;background:#fff;
+    font:inherit;font-weight:800;font-size:14px;color:var(--text, #111);cursor:pointer;}
+  .rei-jug:hover:not(:disabled){border-color:var(--orange, #F37228);}
+  .rei-jug:disabled{cursor:default;background:var(--gray-bg);color:var(--text-soft);}
+  .rei-jug .rei-ok{font-size:12px;font-weight:700;color:#1E8E3E;}
+  .rei-link{font-size:13px;word-break:break-all;background:var(--gray-bg);border-radius:8px;padding:10px 12px;margin:8px 0 12px;}
+  .rei-foto{display:flex;align-items:center;gap:12px;margin:4px 0 14px;}
+  .rei-foto img{width:64px;height:64px;border-radius:50%;object-fit:cover;}
+  .rei-nota{font-size:13px;color:var(--text-soft);line-height:1.5;margin:0 0 14px;}
   .enc-anonima{font-size:13px;color:var(--text-soft);background:var(--gray-bg);border-radius:8px;
     padding:10px 12px;margin:0 0 18px;line-height:1.5;}
   .enc-notas{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
@@ -2984,6 +2998,22 @@
       <button class="modal-close" onclick="cerrarEncuesta()" aria-label="Cerrar">✕</button>
     </div>
     <div class="enc-cuerpo" id="encCuerpo"></div>
+  </div>
+</div>
+
+<!-- Reinscripción (24 nov 2026). ?view=reinscribir&llave=… es el link del
+     correo del capitán; ?view=equipo&codigo=… es el link del equipo que él
+     reparte por WhatsApp. Las dos se abren encima del inicio. -->
+<div class="modal-overlay" id="reiModal" onclick="if(event.target===this) cerrarReinscripcion()">
+  <div class="modal-box enc-caja" role="dialog" aria-modal="true" aria-labelledby="reiTitulo">
+    <div class="modal-header">
+      <div>
+        <h3 id="reiTitulo">Reinscripción</h3>
+        <span id="reiSub"></span>
+      </div>
+      <button class="modal-close" onclick="cerrarReinscripcion()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="enc-cuerpo" id="reiCuerpo"></div>
   </div>
 </div>
 
@@ -8619,6 +8649,7 @@ document.addEventListener("keydown", e => {
   const info = document.getElementById("t3InfoModal");
   if(info && info.classList.contains("open")) cerrarInfo3x3(); else cerrar3x3();
   cerrarEncuesta();
+  cerrarReinscripcion();
 });
 
 /* Lo que se abre con los botones Horarios, Premios y Reglas (Mauricio,
@@ -9369,6 +9400,186 @@ function otroEquipo3x3(){
   armarFormulario3x3(); pintarEtapa3x3(); pintarJugadores3x3();
 }
 
+/* ============================================================
+   REINSCRIPCIÓN (24 nov 2026)
+
+   Mauricio: al capitán le llega un correo con su link; reinscribe al
+   equipo y le sale el link del equipo, que reparte. Cada jugador lo abre,
+   toca su nombre y, si quiere, cambia su foto. Nada más: no se le pide
+   volver a llenar nada. Si es menor con la carta vencida, el tutor la
+   acepta ahí mismo.
+   ============================================================ */
+const REI = { codigo: "", jugadores: [], elegido: null, foto: "" };
+const reiEsc = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function cerrarReinscripcion(){ document.getElementById("reiModal").classList.remove("open"); }
+function reiPintar(titulo, sub, cuerpo){
+  document.getElementById("reiTitulo").textContent = titulo;
+  document.getElementById("reiSub").textContent = sub || "";
+  document.getElementById("reiCuerpo").innerHTML = cuerpo;
+  document.getElementById("reiModal").classList.add("open");
+}
+function reiMsg(tipo, texto){
+  const m = document.getElementById("reiMsg");
+  if(!m) return;
+  m.className = "insc-msg " + tipo;
+  m.textContent = texto;
+}
+
+/* ---- el capitán ---- */
+async function abrirReinscribir(llave){
+  reiPintar("Reinscripción", "", '<p class="rei-nota">Cargando los datos de tu equipo…</p>');
+  try{
+    const r = (await enviarAlSheet({ action: "datosReinscripcion", llave })).reinscripcion;
+    if(r.reinscrito) return reiListo(r.equipo, r.codigo);
+    const cat = /femenil/i.test(r.categoria) ? "femenil" : "varonil";
+    const campo = (id, etiqueta, valor, tipo) => `
+      <div class="insc-campo"><label for="${id}">${etiqueta} <span class="req">*</span></label>
+        <input type="${tipo || "text"}" id="${id}" maxlength="80" value="${reiEsc(valor)}" autocomplete="off"></div>`;
+    reiPintar(r.equipo, r.categoria + " · Temporada " + r.temporadaNueva, `
+      <p class="rei-nota">Tu lugar está apartado. Revisa que los datos estén bien, acepta el reglamento y listo.</p>
+      ${campo("reiCap", "Capitán", r.capitan)}
+      ${campo("reiCapTel", "Teléfono del capitán", r.telCapitan, "tel")}
+      ${campo("reiSubCap", "Sub-capitán", r.subCapitan)}
+      ${campo("reiSubTel", "Teléfono del sub-capitán", r.telSubCapitan, "tel")}
+      ${campo("reiCorreo", "Correo de contacto", r.correo, "email")}
+      <div class="insc-campo"><label for="reiMenores">¿Hay menores de edad en el equipo? <span class="req">*</span></label>
+        <select id="reiMenores"><option${r.menoresEdad === "Sí" ? "" : " selected"}>No</option><option${r.menoresEdad === "Sí" ? " selected" : ""}>Sí</option></select></div>
+      <label class="insc-aviso-check">
+        <input type="checkbox" id="reiReglamento">
+        <span>Leí y acepto el <a href="?view=reglamento&cat=${cat}" target="_blank" rel="noopener">reglamento de la temporada</a>. <span class="req">*</span></span>
+      </label>
+      <button class="insc-btn" id="reiBtn" onclick="enviarReinscribir('${reiEsc(llave)}')">REINSCRIBIR A ${reiEsc(r.equipo)}</button>
+      <div class="insc-msg" id="reiMsg"></div>`);
+  }catch(err){
+    reiPintar("Reinscripción", "", `<div class="insc-msg err" style="display:block">${reiEsc(err.message)}</div>`);
+  }
+}
+
+async function enviarReinscribir(llave){
+  const v = id => document.getElementById(id).value.trim();
+  if(!v("reiCap") || !v("reiSubCap")) return reiMsg("err", "Falta el nombre del capitán o del sub-capitán.");
+  if(!v("reiCapTel") || !v("reiSubTel")) return reiMsg("err", "Faltan los teléfonos.");
+  if(!correoTieneFormatoValido(v("reiCorreo"))) return reiMsg("err", "Ese correo no parece válido. Revísalo bien.");
+  if(!document.getElementById("reiReglamento").checked) return reiMsg("err", "Falta aceptar el reglamento.");
+  const btn = document.getElementById("reiBtn");
+  btn.disabled = true;
+  reiMsg("info", "Reinscribiendo…");
+  try{
+    const r = (await enviarAlSheet({ action: "reinscribirEquipo", llave,
+      capitan: v("reiCap"), telCapitan: v("reiCapTel"), subCapitan: v("reiSubCap"), telSubCapitan: v("reiSubTel"),
+      correo: v("reiCorreo"), menoresEdad: v("reiMenores"), reglamentoAceptado: true })).reinscripcion;
+    reiListo(r.equipo, r.codigo);
+  }catch(err){
+    btn.disabled = false;
+    reiMsg("err", err.message);
+  }
+}
+
+function reiListo(equipo, codigo){
+  const link = location.origin + location.pathname + "?view=equipo&codigo=" + codigo;
+  const texto = "Ya reinscribí a " + String(equipo).toUpperCase() + ". Entra a este link, toca tu nombre y confirma para quedar en el equipo: " + link;
+  reiPintar("¡Listo! 🏀", String(equipo).toUpperCase() + " ya está reinscrito", `
+    <p class="rei-nota"><b>Ahora cada jugador tiene que confirmar.</b> Mándales este link: cada quien toca su nombre y, si quiere, cambia su foto. Solo los que confirmen quedan en el equipo.</p>
+    <div class="rei-link">${reiEsc(link)}</div>
+    <a class="insc-btn" style="display:block;text-align:center;text-decoration:none;" href="https://wa.me/?text=${encodeURIComponent(texto)}" target="_blank" rel="noopener">MANDAR POR WHATSAPP</a>
+    <p class="rei-nota" style="margin-top:14px;">Tú también confirma: abre el link y toca tu nombre. También te lo mandamos por correo.</p>`);
+}
+
+/* ---- cada jugador ---- */
+async function abrirEquipoReinscripcion(codigo){
+  REI.codigo = String(codigo || "").toUpperCase();
+  reiPintar("Tu equipo", "", '<p class="rei-nota">Cargando tu equipo…</p>');
+  try{
+    const r = (await enviarAlSheet({ action: "rosterReinscripcion", codigo: REI.codigo })).roster;
+    REI.jugadores = r.jugadores;
+    const botones = r.jugadores.map((j, i) => `
+      <button class="rei-jug" ${j.confirmado ? "disabled" : ""} onclick="reiElegir(${i})">
+        <span>${reiEsc(j.nombre)}</span>${j.confirmado ? '<span class="rei-ok">✓ CONFIRMADO</span>' : "<span>›</span>"}
+      </button>`).join("");
+    reiPintar(r.equipo, r.categoria + " · Temporada " + r.temporada, `
+      <p class="rei-nota">Toca tu nombre para quedar en el equipo esta temporada.</p>
+      <div class="rei-lista">${botones || '<p class="rei-nota">Todavía no hay jugadores de la temporada pasada.</p>'}</div>
+      <p class="rei-nota">¿No estás en la lista? <a href="?view=inscripcion&tab=jugador&codigo=${encodeURIComponent(REI.codigo)}">Date de alta aquí</a> con el código <b>${reiEsc(REI.codigo)}</b>.</p>`);
+  }catch(err){
+    reiPintar("Tu equipo", "", `<div class="insc-msg err" style="display:block">${reiEsc(err.message)}</div>`);
+  }
+}
+
+function reiElegir(i){
+  REI.elegido = REI.jugadores[i];
+  REI.foto = "";
+  document.getElementById("reiCuerpo").innerHTML = `
+    <p class="rei-nota">¿Eres <b>${reiEsc(REI.elegido.nombre)}</b>?</p>
+    <div class="insc-campo">
+      <label>Foto <span style="font-weight:400;">(opcional: solo si quieres cambiarla)</span></label>
+      <div class="rei-foto"><span id="reiFotoPrev">📷</span>
+        <input type="file" accept="image/*" onchange="reiFotoElegida(this)"></div>
+    </div>
+    <div id="reiCarta"></div>
+    <button class="insc-btn" id="reiBtn" onclick="reiConfirmar()">SÍ, CONFIRMAR</button>
+    <button class="insc-btn" style="background:transparent;color:var(--text-soft);margin-top:8px;" onclick="abrirEquipoReinscripcion(REI.codigo)">No soy yo</button>
+    <div class="insc-msg" id="reiMsg"></div>`;
+}
+
+/* La misma receta que la foto del alta (procesarFotoJugador): recorte
+   cuadrado, 320 px y JPEG de menos de ~45 mil caracteres. */
+function reiFotoElegida(input){
+  const archivo = input.files && input.files[0];
+  if(!archivo || !/^image\//.test(archivo.type)) return reiMsg("err", "Ese archivo no es una imagen.");
+  const lector = new FileReader();
+  lector.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const lado = Math.min(img.width, img.height), destino = Math.min(320, lado);
+      const c = document.createElement("canvas");
+      c.width = c.height = destino;
+      c.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, destino, destino);
+      let q = 0.8, uri = c.toDataURL("image/jpeg", q);
+      while(uri.length > 45000 && q > 0.3){ q -= 0.1; uri = c.toDataURL("image/jpeg", q); }
+      REI.foto = uri;
+      document.getElementById("reiFotoPrev").innerHTML = '<img src="' + uri + '" alt="Tu foto nueva">';
+    };
+    img.onerror = () => reiMsg("err", "No se pudo leer la imagen. Intenta con otra.");
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+async function reiConfirmar(){
+  const btn = document.getElementById("reiBtn");
+  const tutor = document.getElementById("reiTutor");
+  const carta = document.getElementById("reiCartaOk");
+  if(tutor && (!tutor.value.trim() || !carta.checked)) return reiMsg("err", "Falta el nombre del tutor y aceptar la carta responsiva.");
+  btn.disabled = true;
+  reiMsg("info", "Confirmando…");
+  try{
+    const r = (await enviarAlSheet({ action: "confirmarJugador", codigo: REI.codigo, id: REI.elegido.id,
+      foto: REI.foto || "", tutorNombre: tutor ? tutor.value.trim() : "", cartaResponsivaAceptada: !!(carta && carta.checked) })).confirmacion;
+    if(r.necesitaCarta){
+      btn.disabled = false;
+      document.getElementById("reiCarta").innerHTML = `
+        <div class="insc-menor-block">
+          <p class="insc-menor-titulo">⚠️ Menor de edad — su carta responsiva ya venció</p>
+          <div class="insc-menor-carta">${CARTA_MENORES_HTML}</div>
+          <div class="insc-campo" style="margin-bottom:12px;">
+            <label for="reiTutor">Nombre del padre, madre o tutor que autoriza <span class="req">*</span></label>
+            <input type="text" id="reiTutor" maxlength="80" autocomplete="off"></div>
+          <label class="insc-aviso-check"><input type="checkbox" id="reiCartaOk">
+            <span>Como padre, madre o tutor, acepto la carta responsiva. <span class="req">*</span></span></label>
+        </div>`;
+      return reiMsg("info", "Para confirmar, el padre, madre o tutor tiene que aceptar la carta otra vez (dura un año).");
+    }
+    document.getElementById("reiCuerpo").innerHTML = `
+      <div class="enc-gracias"><b class="enc-gracias-titulo">¡Listo, ${reiEsc(REI.elegido.nombre)}! 🏀</b>
+        <p class="rei-nota">Ya quedaste en el equipo. Te mandamos tu credencial de la temporada a tu correo.</p></div>
+      <button class="insc-btn" onclick="abrirEquipoReinscripcion(REI.codigo)">VER MI EQUIPO</button>`;
+  }catch(err){
+    btn.disabled = false;
+    reiMsg("err", err.message);
+  }
+}
+
 function aplicarDeepLink(){
   const params = new URLSearchParams(location.search);
   const view = params.get("view");
@@ -9383,6 +9594,16 @@ function aplicarDeepLink(){
     // &invitacion=LLAVE: el link que el capitán le manda a su invitado.
     const llave = params.get("invitacion");
     if(llave) abrirInvitacion3x3(llave); else abrir3x3();
+    return;
+  }
+  // ?view=reinscribir&llave=… (correo del capitán) y ?view=equipo&codigo=…
+  // (el link del equipo que él reparte). Ver REINSCRIPCIÓN.
+  if(view === "reinscribir"){
+    abrirReinscribir(params.get("llave") || "");
+    return;
+  }
+  if(view === "equipo"){
+    abrirEquipoReinscripcion(params.get("codigo") || "");
     return;
   }
   // ?view=encuesta — el link del mensaje de fin de temporada.
@@ -9406,6 +9627,11 @@ function aplicarDeepLink(){
   if(view === "inscripcion"){
     const tab = params.get("tab") === "jugador" ? "jugador" : params.get("tab") === "3x3" ? "3x3" : "equipo";
     renderInscripcion(tab);
+    // &codigo=…: viene del link del equipo (reinscripción) para un jugador
+    // nuevo; el código ya va escrito y el equipo se confirma solo.
+    const cod = params.get("codigo");
+    const caja = document.getElementById("iJgCodigo");
+    if(tab === "jugador" && cod && caja){ caja.value = cod.toUpperCase(); verificarCodigoEquipoUI(); }
   }
 }
 
