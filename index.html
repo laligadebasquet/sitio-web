@@ -3218,7 +3218,7 @@ const CONFIG = {
 
   nombreLiga: "LA LIGA DE BASQUET",
   subtituloLiga: "GANTE SAN PEDRO",
-  nombreTorneo: "Temporada Agosto 2026",
+  nombreTorneo: "Temporada Enero 2027",
   // URL del Web App de Apps Script (la misma que usa el Admin).
   // Es lo que permite que los formularios de inscripción escriban al Google Sheet.
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbyli-ZsXTYA6felhpvlBX7CFOrPaW-_DieSupKALbAulsdAMM4ajBU_jea_okdZcQNL/exec",
@@ -7942,7 +7942,7 @@ function abrirEjemploCredencial(){
                     <div class="id-card-liga-sub">${CONFIG.subtituloLiga}</div>
                   </div>
                 </div>
-                <div class="id-card-categoria id-card-categoria-small">TEMPORADA AGOSTO 2026</div>
+                <div class="id-card-categoria id-card-categoria-small">TEMPORADA ENERO 2027</div>
               </div>
               <div class="id-card-front-body">
                 <div class="id-card-photo-box" style="color:var(--text-soft);">${SILUETA_JUGADOR_SVG}</div>
@@ -9500,7 +9500,8 @@ async function abrirEquipoReinscripcion(codigo){
     reiPintar(r.equipo, r.categoria + " · Temporada " + r.temporada, `
       <p class="rei-nota">Toca tu nombre para quedar en el equipo esta temporada.</p>
       <div class="rei-lista">${botones || '<p class="rei-nota">Todavía no hay jugadores de la temporada pasada.</p>'}</div>
-      <p class="rei-nota">¿No estás en la lista? <a href="?view=inscripcion&tab=jugador&codigo=${encodeURIComponent(REI.codigo)}">Date de alta aquí</a> con el código <b>${reiEsc(REI.codigo)}</b>.</p>`);
+      <a class="insc-btn" style="display:block;text-align:center;text-decoration:none;background:transparent;color:var(--text, #111);border:1.5px solid var(--border, #E2E2E2);"
+         href="?view=inscripcion&tab=jugador&codigo=${encodeURIComponent(REI.codigo)}">NO APAREZCO · DARME DE ALTA</a>`);
   }catch(err){
     reiPintar("Tu equipo", "", `<div class="insc-msg err" style="display:block">${reiEsc(err.message)}</div>`);
   }
@@ -9516,6 +9517,9 @@ function reiElegir(i){
       <div class="rei-foto"><span id="reiFotoPrev">📷</span>
         <input type="file" accept="image/*" onchange="reiFotoElegida(this)"></div>
     </div>
+    <div class="insc-campo">
+      <label for="reiCel">Tu celular (WhatsApp) <span class="req">*</span></label>
+      <input type="tel" id="reiCel" maxlength="20" placeholder="81 1234 5678" autocomplete="tel"></div>
     <div id="reiCarta"></div>
     <button class="insc-btn" id="reiBtn" onclick="reiConfirmar()">SÍ, CONFIRMAR</button>
     <button class="insc-btn" style="background:transparent;color:var(--text-soft);margin-top:8px;" onclick="abrirEquipoReinscripcion(REI.codigo)">No soy yo</button>
@@ -9550,12 +9554,14 @@ async function reiConfirmar(){
   const btn = document.getElementById("reiBtn");
   const tutor = document.getElementById("reiTutor");
   const carta = document.getElementById("reiCartaOk");
+  const celular = celular10(document.getElementById("reiCel").value);
+  if(!celular) return reiMsg("err", "Escribe tu celular a 10 dígitos.");
   if(tutor && (!tutor.value.trim() || !carta.checked)) return reiMsg("err", "Falta el nombre del tutor y aceptar la carta responsiva.");
   btn.disabled = true;
   reiMsg("info", "Confirmando…");
   try{
     const r = (await enviarAlSheet({ action: "confirmarJugador", codigo: REI.codigo, id: REI.elegido.id,
-      foto: REI.foto || "", tutorNombre: tutor ? tutor.value.trim() : "", cartaResponsivaAceptada: !!(carta && carta.checked) })).confirmacion;
+      foto: REI.foto || "", celular, tutorNombre: tutor ? tutor.value.trim() : "", cartaResponsivaAceptada: !!(carta && carta.checked) })).confirmacion;
     if(r.necesitaCarta){
       btn.disabled = false;
       document.getElementById("reiCarta").innerHTML = `
@@ -9630,8 +9636,7 @@ function aplicarDeepLink(){
     // &codigo=…: viene del link del equipo (reinscripción) para un jugador
     // nuevo; el código ya va escrito y el equipo se confirma solo.
     const cod = params.get("codigo");
-    const caja = document.getElementById("iJgCodigo");
-    if(tab === "jugador" && cod && caja){ caja.value = cod.toUpperCase(); verificarCodigoEquipoUI(); }
+    if(tab === "jugador" && cod){ CODIGO_DE_LINK = cod.toUpperCase(); aplicarCodigoDeLink(); }
   }
 }
 
@@ -9658,6 +9663,7 @@ function renderInscripcion(categoriaTab){
   // El formulario se acaba de rearmar: el select vuelve a estar vacío, así
   // que el link de FORMAS DE PAGO tiene que quedar escondido otra vez.
   if(tab === "equipo") sincronizarLinkPagos();
+  if(tab === "jugador") aplicarCodigoDeLink();
 }
 
 function opcionesCategoria(){
@@ -9676,6 +9682,30 @@ function refrescarFormJugador(){
   if(inscripcionTab !== "jugador") return;
   const caja = document.querySelector("#inscEquipoCaja");
   if(caja) caja.innerHTML = formJugadorHTML();
+  aplicarCodigoDeLink();
+}
+
+/* Jugador nuevo que llega desde el link del equipo (25 nov 2026). Mauricio:
+   "si tengo ese link es único, ya sé de qué equipo es". El código va
+   escondido y solo se ve BIENVENIDO AL EQUIPO. Se vuelve a aplicar cada vez
+   que el formulario se rearma (al llegar los datos del Sheet se rearma, y
+   antes eso borraba el código y el jugador tenía que escribirlo). */
+let CODIGO_DE_LINK = "";
+function aplicarCodigoDeLink(){
+  const caja = document.getElementById("iJgCodigo");
+  if(!CODIGO_DE_LINK || !caja) return;
+  caja.value = CODIGO_DE_LINK;
+  const campo = document.getElementById("iJgCodigoCampo");
+  if(campo) campo.querySelectorAll("label, input, .ayuda").forEach(el => el.style.display = "none");
+  verificarCodigoEquipoUI();
+}
+
+/* 10 dígitos, sin espacios. "+52 81…" y "521 81…" también sirven. */
+function celular10(v){
+  let d = String(v || "").replace(/\D/g, "");
+  if(d.length === 13 && d.startsWith("521")) d = d.slice(3);
+  if(d.length === 12 && d.startsWith("52")) d = d.slice(2);
+  return d.length === 10 ? d : "";
 }
 
 function refrescarFormEquipo(){
@@ -9691,8 +9721,8 @@ function formEquipoHTML(){
     <div class="insc-form">
       <div class="insc-cerradas">
         <div class="insc-cerradas-titulo">Inscripciones cerradas</div>
-        <p>Por ahora la temporada Agosto 2026 está en curso. La fecha de inicio
-           del siguiente torneo la publicaremos en noviembre 2026.</p>
+        <p>Por ahora la inscripción de equipos nuevos está cerrada. La
+           Temporada Enero 2027 arranca el lunes 18 de enero.</p>
         <p><a class="insc-wa" href="https://wa.me/528117817451" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
             <path d="M17.5 14.4c-.3-.2-1.8-.9-2-1-.3-.1-.5-.2-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.7-.9-2.9-1.6-4-3.6-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.3 5.2 4.6 1.9.8 2.7.9 3.7.8.6-.1 1.8-.7 2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4zM12 2.2C6.6 2.2 2.2 6.6 2.2 12c0 1.7.5 3.4 1.3 4.8L2.1 21.9l5.2-1.4c1.4.8 3 1.2 4.7 1.2 5.4 0 9.8-4.4 9.8-9.8S17.4 2.2 12 2.2zm0 17.8c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-3-1.3-4.6C3.6 7.4 7.4 3.6 12 3.6S20.4 7.4 20.4 12 16.6 20 12 20z"></path>
@@ -9861,7 +9891,13 @@ function formJugadorHTML(){
         <input type="email" id="iJgCorreo" maxlength="80" placeholder="correo@ejemplo.com" autocomplete="off">
         <div class="ayuda">Te compartiremos tu credencial de partido, rol, puntos anotados, link de partido, y más información.</div>
       </div>
+      <!-- Celular (25 nov 2026): Mauricio quiere poder mandar avisos y la
+           cédula por WhatsApp. -->
       <div class="insc-campo">
+        <label for="iJgCelular">Celular (WhatsApp) <span class="req">*</span></label>
+        <input type="tel" id="iJgCelular" maxlength="20" placeholder="81 1234 5678" autocomplete="tel">
+      </div>
+      <div class="insc-campo" id="iJgCodigoCampo">
         <label for="iJgCodigo">Código de tu equipo <span class="req">*</span></label>
         <input type="text" id="iJgCodigo" class="insc-input-codigo" maxlength="8"
                placeholder="EJ. 7K3PXA" autocomplete="off"
@@ -10388,6 +10424,8 @@ async function enviarAltaJugador(){
     document.getElementById("iJgCorreo").value = sugJg;
     correo = sugJg;
   }
+  const celular = celular10(document.getElementById("iJgCelular").value);
+  if(!celular) return mostrarMsgInsc("iJgMsg","err","Escribe tu celular a 10 dígitos.");
   if(!codigo) return mostrarMsgInsc("iJgMsg","err","Escribe el código de tu equipo.");
   if(!_equipoResuelto || _equipoResuelto.codigo !== codigo){
     await verificarCodigoEquipoUI();
@@ -10425,7 +10463,7 @@ async function enviarAltaJugador(){
     const data = await enviarAlSheet({
       action: "altaJugador",
       nombre: nombrePila, apellido, fechaNacimiento,
-      correo, codigo, foto: _fotoJugador,
+      correo, celular, codigo, foto: _fotoJugador,
       menorDeEdad,
       tutorNombre: menorDeEdad ? tutorNombre : "",
       cartaResponsivaAceptada: menorDeEdad ? true : false,
@@ -10444,6 +10482,7 @@ async function enviarAltaJugador(){
     document.getElementById("iJgApellido").value = "";
     document.getElementById("iJgFechaNac").value = "";
     document.getElementById("iJgCorreo").value = "";
+    document.getElementById("iJgCelular").value = "";
     document.getElementById("iJgCodigo").value = "";
     document.getElementById("iJgCodigoAyuda").className = "ayuda";
     document.getElementById("iJgCodigoAyuda").textContent = "Tu capitán/subcapitán lo compartió por el medio que se comunican.";
