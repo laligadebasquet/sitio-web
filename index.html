@@ -645,6 +645,29 @@
   .rei-jug:disabled{cursor:default;background:var(--gray-bg);color:var(--text-soft);}
   .rei-jug .rei-ok{font-size:12px;font-weight:700;color:#1E8E3E;}
   .rei-link{font-size:13px;word-break:break-all;background:var(--gray-bg);border-radius:8px;padding:10px 12px;margin:8px 0 12px;}
+  /* Pantalla "Próximamente" (25 nov 2026): tapa toda la página entre
+     temporadas. Ver PROXIMAMENTE en el script. */
+  #proxPantalla{display:none;position:fixed;inset:0;z-index:2000;background:#000;color:#fff;overflow-y:auto;
+    font-family:'Montserrat',Arial,sans-serif;}
+  #proxPantalla.open{display:flex;}
+  .prox{margin:auto;display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 20px;box-sizing:border-box;}
+  .prox-logo{width:min(46vw,220px);aspect-ratio:1;position:relative;margin-bottom:34px;}
+  .prox-logo img{width:100%;height:100%;animation:proxGirar 9s linear infinite;border-radius:50%;clip-path:circle(42% at 50% 50%);}
+  .prox-logo::before{content:"";position:absolute;inset:12%;border-radius:50%;box-shadow:0 0 60px rgba(243,114,40,.35);}
+  @keyframes proxGirar{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .prox-logo img{animation-duration:40s;} }
+  .prox-liga{font-weight:800;font-size:clamp(20px,5.6vw,30px);letter-spacing:.06em;line-height:1;}
+  .prox-sub{font-weight:400;font-size:clamp(10px,2.6vw,12px);letter-spacing:.42em;margin-top:8px;opacity:.85;}
+  .prox-linea{width:56px;height:3px;background:#F37228;margin:28px auto;border-radius:2px;}
+  .prox-titulo{font-weight:900;font-size:clamp(30px,9vw,56px);line-height:1.02;letter-spacing:-.01em;}
+  .prox-titulo span{color:#F37228;}
+  .prox-fecha{font-weight:600;font-size:clamp(14px,3.8vw,18px);margin-top:16px;opacity:.9;}
+  .prox-cuenta{display:flex;gap:10px;justify-content:center;margin-top:26px;}
+  .prox-cuenta div{background:#111;border:1px solid #262626;border-radius:12px;padding:12px 10px;min-width:64px;}
+  .prox-cuenta b{display:block;font-weight:900;font-size:26px;color:#F37228;}
+  .prox-cuenta small{font-size:10px;letter-spacing:.18em;opacity:.7;}
+  .prox-pie{margin-top:34px;font-size:13px;opacity:.75;line-height:1.7;}
+  .prox-pie a{color:#fff;font-weight:700;text-decoration:none;border-bottom:1px solid #F37228;}
   .rei-link-fila{display:flex;align-items:center;gap:10px;}
   .rei-link-fila span{flex:1;min-width:0;}
   .rei-copiar{flex:none;width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border, #E2E2E2);
@@ -3009,6 +3032,21 @@
 <!-- Reinscripción (24 nov 2026). ?view=reinscribir&llave=… es el link del
      correo del capitán; ?view=equipo&codigo=… es el link del equipo que él
      reparte por WhatsApp. Las dos se abren encima del inicio. -->
+<!-- Próximamente (25 nov 2026). Ver PROXIMAMENTE en el script. -->
+<div id="proxPantalla" role="dialog" aria-modal="true" aria-label="Próximamente Temporada Enero 2027">
+  <div class="prox">
+    <div class="prox-logo"><img src="icono-512.png" alt="La Liga de Basquet"></div>
+    <div class="prox-liga">LA LIGA DE BASQUET</div>
+    <div class="prox-sub">GANTE SAN PEDRO</div>
+    <div class="prox-linea"></div>
+    <div class="prox-titulo">PRÓXIMAMENTE<br><span>TEMPORADA ENERO 2027</span></div>
+    <div class="prox-fecha">Arrancamos el lunes 18 de enero</div>
+    <div class="prox-cuenta" id="proxCuenta"></div>
+    <div class="prox-pie">Síguenos en <a href="https://www.instagram.com/laligadebasquet/" target="_blank" rel="noopener">@laligadebasquet</a><br>
+      ¿Dudas? WhatsApp <a href="https://wa.me/528117817451" target="_blank" rel="noopener">81 1781 7451</a></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="reiModal" onclick="if(event.target===this) cerrarReinscripcion()">
   <div class="modal-box enc-caja" role="dialog" aria-modal="true" aria-labelledby="reiTitulo">
     <div class="modal-header">
@@ -3224,6 +3262,9 @@ const CONFIG = {
   nombreLiga: "LA LIGA DE BASQUET",
   subtituloLiga: "GANTE SAN PEDRO",
   nombreTorneo: "Temporada Enero 2027",
+  /* Pantalla "Próximamente" encima de todo (Mauricio, 25 nov 2026). Se
+     quita cuando él diga: poner false y subir. */
+  proximamente: true,
   // URL del Web App de Apps Script (la misma que usa el Admin).
   // Es lo que permite que los formularios de inscripción escriban al Google Sheet.
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbyli-ZsXTYA6felhpvlBX7CFOrPaW-_DieSupKALbAulsdAMM4ajBU_jea_okdZcQNL/exec",
@@ -3737,6 +3778,7 @@ async function init(){
   renderInscripcion();
   renderPatrocinadores();
   prepararTarjeta3x3();
+  aplicarProximamente();
   aplicarDeepLink();
 
   if(!CONFIG.leerEnVivo || !CONFIG.appsScriptUrl){
@@ -9402,7 +9444,10 @@ function otroEquipo3x3(){
 const REI = { codigo: "", jugadores: [], elegido: null, foto: "" };
 const reiEsc = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function cerrarReinscripcion(){ document.getElementById("reiModal").classList.remove("open"); }
+function cerrarReinscripcion(){
+  document.getElementById("reiModal").classList.remove("open");
+  mostrarProximamente();   // entre temporadas, de ahí no se pasa al resto
+}
 function reiPintar(titulo, sub, cuerpo){
   document.getElementById("reiTitulo").textContent = titulo;
   document.getElementById("reiSub").textContent = sub || "";
@@ -9625,6 +9670,42 @@ async function reiConfirmar(){
     btn.disabled = false;
     reiMsg("err", err.message);
   }
+}
+
+/* ============================================================
+   PRÓXIMAMENTE (25 nov 2026)
+
+   Mauricio: entre temporadas la página no enseña nada, solo "Próximamente
+   Temporada Enero 2027" con el logo girando. Pero los links que la liga
+   manda tienen que seguir funcionando, o la reinscripción se frena: el del
+   capitán (reinscribir), el del equipo (equipo), el alta de jugador
+   (inscripcion), el reglamento, la ventana de pagos y la encuesta de fin
+   de temporada (encuesta). Al cerrar la ventana
+   de la reinscripción vuelve a salir esta pantalla.
+   ============================================================ */
+const PROX_LINKS_LIBRES = ["reinscribir", "equipo", "inscripcion", "reglamento", "pagos", "encuesta"];
+const PROX_ARRANQUE = new Date(2027, 0, 18, 0, 0, 0);
+let proxReloj = null;
+function proxPintarCuenta(){
+  let s = Math.max(0, (PROX_ARRANQUE - new Date()) / 1000);
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60);
+  document.getElementById("proxCuenta").innerHTML =
+    [[d, "DÍAS"], [h, "HORAS"], [m, "MIN"]].map(([n, t]) => `<div><b>${n}</b><small>${t}</small></div>`).join("");
+}
+function mostrarProximamente(){
+  if(!CONFIG.proximamente) return;
+  document.getElementById("proxPantalla").classList.add("open");
+  document.body.style.overflow = "hidden";
+  proxPintarCuenta();
+  if(!proxReloj) proxReloj = setInterval(proxPintarCuenta, 30000);
+}
+function aplicarProximamente(){
+  if(!CONFIG.proximamente) return;
+  const view = new URLSearchParams(location.search).get("view");
+  if(PROX_LINKS_LIBRES.indexOf(view) !== -1) return;
+  mostrarProximamente();
 }
 
 function aplicarDeepLink(){
