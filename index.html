@@ -9536,8 +9536,9 @@ function reiElegir(i){
         <input type="file" accept="image/*" onchange="reiFotoElegida(this)"></div>
     </div>
     <div class="insc-campo">
-      <label for="reiCel">Tu celular (WhatsApp) <span class="req">*</span></label>
-      <input type="tel" id="reiCel" maxlength="20" placeholder="81 1234 5678" autocomplete="tel"></div>
+      <label for="reiCel">Tu celular (WhatsApp)</label>
+      <input type="tel" id="reiCel" maxlength="20" placeholder="81 1234 5678" autocomplete="tel">
+      <div class="ayuda">Opcional. Si lo pones, la información de la liga te llegará por WhatsApp. Si no, te seguirá llegando por correo.</div></div>
     <div id="reiCarta"></div>
     <button class="insc-btn" id="reiBtn" onclick="reiConfirmar()">SÍ, CONFIRMAR</button>
     <button class="insc-btn" style="background:transparent;color:var(--text-soft);margin-top:8px;" onclick="abrirEquipoReinscripcion(REI.codigo)">No soy yo</button>
@@ -9572,8 +9573,9 @@ async function reiConfirmar(){
   const btn = document.getElementById("reiBtn");
   const tutor = document.getElementById("reiTutor");
   const carta = document.getElementById("reiCartaOk");
-  const celular = celular10(document.getElementById("reiCel").value);
-  if(!celular) return reiMsg("err", "Escribe tu celular a 10 dígitos.");
+  const celTxt = document.getElementById("reiCel").value.trim();
+  const celular = celular10(celTxt);
+  if(celTxt && !celular) return reiMsg("err", "Ese celular no tiene 10 dígitos. Revísalo o déjalo vacío.");
   if(tutor && (!tutor.value.trim() || !carta.checked)) return reiMsg("err", "Falta el nombre del tutor y aceptar la carta responsiva.");
   btn.disabled = true;
   reiMsg("info", "Confirmando…");
@@ -9912,8 +9914,9 @@ function formJugadorHTML(){
       <!-- Celular (25 nov 2026): Mauricio quiere poder mandar avisos y la
            cédula por WhatsApp. -->
       <div class="insc-campo">
-        <label for="iJgCelular">Celular (WhatsApp) <span class="req">*</span></label>
+        <label for="iJgCelular">Celular (WhatsApp)</label>
         <input type="tel" id="iJgCelular" maxlength="20" placeholder="81 1234 5678" autocomplete="tel">
+        <div class="ayuda">Opcional. Si lo pones, la información de la liga te llegará por WhatsApp. Si no, te seguirá llegando por correo.</div>
       </div>
       <div class="insc-campo" id="iJgCodigoCampo">
         <label for="iJgCodigo">Código de tu equipo <span class="req">*</span></label>
@@ -10442,8 +10445,10 @@ async function enviarAltaJugador(){
     document.getElementById("iJgCorreo").value = sugJg;
     correo = sugJg;
   }
-  const celular = celular10(document.getElementById("iJgCelular").value);
-  if(!celular) return mostrarMsgInsc("iJgMsg","err","Escribe tu celular a 10 dígitos.");
+  // Opcional (Mauricio, 25 nov 2026); si lo escriben, que sean 10 dígitos.
+  const celTxt = document.getElementById("iJgCelular").value.trim();
+  const celular = celular10(celTxt);
+  if(celTxt && !celular) return mostrarMsgInsc("iJgMsg","err","Ese celular no tiene 10 dígitos. Revísalo o déjalo vacío.");
   if(!codigo) return mostrarMsgInsc("iJgMsg","err","Escribe el código de tu equipo.");
   if(!_equipoResuelto || _equipoResuelto.codigo !== codigo){
     await verificarCodigoEquipoUI();
