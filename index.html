@@ -645,6 +645,11 @@
   .rei-jug:disabled{cursor:default;background:var(--gray-bg);color:var(--text-soft);}
   .rei-jug .rei-ok{font-size:12px;font-weight:700;color:#1E8E3E;}
   .rei-link{font-size:13px;word-break:break-all;background:var(--gray-bg);border-radius:8px;padding:10px 12px;margin:8px 0 12px;}
+  .rei-link-fila{display:flex;align-items:center;gap:10px;}
+  .rei-link-fila span{flex:1;min-width:0;}
+  .rei-copiar{flex:none;width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border, #E2E2E2);
+    background:#fff;color:var(--text, #111);display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;}
+  .rei-copiar:hover{border-color:var(--orange, #F37228);}
   .rei-foto{display:flex;align-items:center;gap:12px;margin:4px 0 14px;}
   .rei-foto img{width:64px;height:64px;border-radius:50%;object-fit:cover;}
   .rei-nota{font-size:13px;color:var(--text-soft);line-height:1.5;margin:0 0 14px;}
@@ -9481,9 +9486,22 @@ function reiListo(equipo, codigo){
   const texto = "Ya reinscribí a " + String(equipo).toUpperCase() + ". Entra a este link, toca tu nombre y confirma para quedar en el equipo: " + link;
   reiPintar("¡Listo! 🏀", String(equipo).toUpperCase() + " ya está reinscrito", `
     <p class="rei-nota"><b>Ahora cada jugador tiene que confirmar.</b> Mándales este link: cada quien toca su nombre y, si quiere, cambia su foto. Solo los que confirmen quedan en el equipo.</p>
-    <div class="rei-link">${reiEsc(link)}</div>
+    <div class="rei-link rei-link-fila"><span>${reiEsc(link)}</span>
+      <button type="button" class="rei-copiar" aria-label="Copiar link" title="Copiar link" onclick="reiCopiar(this, '${reiEsc(link)}')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </button></div>
     <a class="insc-btn" style="display:block;text-align:center;text-decoration:none;" href="https://wa.me/?text=${encodeURIComponent(texto)}" target="_blank" rel="noopener">MANDAR POR WHATSAPP</a>
     <p class="rei-nota" style="margin-top:14px;">Tú también confirma: abre el link y toca tu nombre. También te lo mandamos por correo.</p>`);
+}
+
+/* El ícono de las dos hojas (Mauricio, 25 nov 2026): copiar sin tener que
+   seleccionar el link con el dedo. */
+function reiCopiar(btn, link){
+  const antes = btn.innerHTML;
+  const listo = () => { btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = antes; }, 1500); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(listo).catch(() => { copiarCodigoFallback(link); listo(); });
+  } else { copiarCodigoFallback(link); listo(); }
 }
 
 /* ---- cada jugador ---- */
