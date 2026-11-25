@@ -7252,11 +7252,11 @@ function construirReglamentoHTML(o){
 
 <h3 class="reglamento-h1">II. Administrativo</h3>
 <p>Cuota de inscripción: $${o.cuota.toLocaleString('es-MX')} MXN.</p>
-<p>La cuota de inscripción incluye el arbitraje de los ocho partidos de la temporada regular.</p>
+<p>La cuota de inscripción incluye arbitraje y mesa de toda la temporada, también la liguilla.</p>
 <p style="font-weight:700;margin-bottom:4px;">Formas de pago</p>
-<ul class="reglamento-list"><li>Forma 1: liquidando antes del primer partido, $${o.forma1.toLocaleString('es-MX')} MXN.</li><li>Forma 2: liquidando antes del tercer partido, $${o.forma2.toLocaleString('es-MX')} MXN.</li><li>Forma 3: liquidando antes del quinto partido, $${o.forma3.toLocaleString('es-MX')} MXN.</li></ul>
-<p>Si se elige la forma 2 o 3, antes de cada partido deberá abonarse un mínimo de $1,500 MXN.</p>
-<p>Si para el quinto partido el equipo no ha liquidado, será dado de baja sin previo aviso.</p>
+<ul class="reglamento-list"><li>Forma 1: liquidando antes del primer partido, $${o.forma1.toLocaleString('es-MX')} MXN.</li><li>Forma 2: liquidando antes del tercer partido, $${o.forma2.toLocaleString('es-MX')} MXN.</li></ul>
+<p>Si se elige la forma 2, antes del primer y del segundo partido deberá abonarse un mínimo de $1,500 MXN cada vez.</p>
+<p>Si antes del tercer partido el equipo no ha liquidado, se da de baja automáticamente.</p>
 <p>Los partidos no inician si los equipos tienen adeudos.</p>
 <p>Formas de pago aceptadas: efectivo en el gimnasio o transferencia bancaria.</p>
 <p>Mauricio Oliver — Banorte — 4189 1434 1115 8077</p>
@@ -7297,8 +7297,9 @@ ${o.incluirOptOutImagen ? '<p>En caso de que algún integrante no desee que su i
 <p style="text-align:center;margin-top:18px;">San Pedro Garza García, Nuevo León.<br>Agosto 2026</p>`;
 }
 
-const REGLAMENTO_VARONIL_HTML = construirReglamentoHTML({ cuota:10000, forma1:9000, forma2:10000, forma3:11000, incluirOptOutImagen:true });
-const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9000, forma1:8000, forma2:9000, forma3:10000, incluirOptOutImagen:false });
+// Temporada Enero 2027: mismo precio en las dos ramas (Mauricio, 23 nov 2026).
+const REGLAMENTO_VARONIL_HTML = construirReglamentoHTML({ cuota:9500, forma1:9000, forma2:9500, incluirOptOutImagen:true });
+const REGLAMENTO_FEMENIL_HTML = construirReglamentoHTML({ cuota:9500, forma1:9000, forma2:9500, incluirOptOutImagen:false });
 
 /* ============================================================
    PATROCINADORES
@@ -8001,30 +8002,23 @@ function cerrarHorarios(){
 }
 
 /* ---------- FORMAS DE PAGO ----------
-   Los costos son DISTINTOS por rama, así que la ventana se arma según la
-   categoría que el capitán ya eligió. Si todavía no elige, no se inventa
-   nada: se le pide que primero seleccione la categoría. Estos montos salen
-   de los PDFs oficiales "FORMAS DE PAGO varonil/femenil" (los mismos que se
-   adjuntan al correo de bienvenida) — si cambian, hay que cambiarlos aquí,
-   en los PDFs del repo y en la sección de Reglamento. */
-const PAGOS_POR_RAMA = {
-  varonil: {
-    cuota: "$10,000 MXN",
-    formas: [
-      { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$9,000" },
-      { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$10,000" },
-      { cuando: "Liquidando antes del <b>quinto</b> partido", monto: "$11,000" }
-    ]
-  },
-  femenil: {
-    cuota: "$9,000 MXN",
-    formas: [
-      { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$8,000" },
-      { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$9,000" },
-      { cuando: "Liquidando antes del <b>quinto</b> partido", monto: "$10,000" }
-    ]
-  }
+   Desde la Temporada Enero 2027 el precio es IGUAL en varonil y femenil y
+   solo hay dos formas (Mauricio, 23 nov 2026): $9,000 liquidando antes del
+   primer partido, $9,500 antes del tercero; si no, el equipo se da de baja.
+   Arbitraje y mesa incluidos, también en la liguilla. Aquí va el precio
+   general: los descuentos de campeón y de equipo fiel los ve cada capitán
+   en su reinscripción (25 nov 2026). Si cambian, cambiar también el
+   reglamento (construirReglamentoHTML) y PRECIO_PRONTO_/PRECIO_NORMAL_ del
+   Apps Script. Se deja la llave por rama por si algún día vuelven a ser
+   distintos. */
+const PAGOS_2027 = {
+  cuota: "$9,500 MXN",
+  formas: [
+    { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$9,000" },
+    { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$9,500" }
+  ]
 };
+const PAGOS_POR_RAMA = { varonil: PAGOS_2027, femenil: PAGOS_2027 };
 
 /* Muestra el link "FORMAS DE PAGO" solo cuando ya hay categoría elegida.
    Se llama desde el onchange del select, al pintar el formulario y después
@@ -8046,25 +8040,16 @@ function abrirPagos(catForzada){
   const sub  = document.getElementById("pagosSubtitulo");
   const body = document.getElementById("pagosBody");
 
-  if(!esFemenil && !esVaronil){
-    sub.textContent = "Primero elige tu categoría";
-    body.innerHTML =
-      '<div class="pagos-aviso">Selecciona primero tu <strong>categoría</strong> en el formulario. ' +
-      'Los costos son distintos en la rama varonil y en la femenil, así que te mostramos ' +
-      'nada más la que te corresponde.</div>';
-    document.getElementById("pagosModal").classList.add("open");
-    return;
-  }
-
+  // Ya no hace falta elegir categoría primero: el precio es el mismo.
   const rama = esFemenil ? "femenil" : "varonil";
   const datos = PAGOS_POR_RAMA[rama];
-  sub.textContent = "Categoría " + cat;
+  sub.textContent = (esFemenil || esVaronil) ? "Categoría " + cat : "Varonil y femenil";
 
   body.innerHTML =
     '<div class="pagos-cuota">' +
       '<div class="pagos-cuota-label">Cuota de inscripción</div>' +
       '<div class="pagos-cuota-monto">' + datos.cuota + '</div>' +
-      '<div class="pagos-cuota-nota">Incluye el arbitraje de los ocho partidos de la temporada regular.</div>' +
+      '<div class="pagos-cuota-nota">Incluye arbitraje y mesa de toda la temporada, también la liguilla.</div>' +
     '</div>' +
     '<p class="pagos-titulo">Formas de pago</p>' +
     '<div class="pagos-formas">' +
@@ -8077,8 +8062,8 @@ function abrirPagos(catForzada){
     '</div>' +
     '<div class="pagos-reglas"><ul>' +
       '<li>La <b>Forma 1</b> se paga en una sola exhibición <b>ANTES</b> del primer partido.</li>' +
-      '<li>Con la <b>Forma 2</b> o <b>3</b>, antes de cada partido hay que abonar mínimo <b>$1,500 MXN</b>.</li>' +
-      '<li>Si para el quinto partido el equipo no ha liquidado, será dado de baja sin previo aviso.</li>' +
+      '<li>Con la <b>Forma 2</b>, antes del primer y del segundo partido hay que abonar mínimo <b>$1,500 MXN</b> cada vez.</li>' +
+      '<li>Si antes del tercer partido el equipo no ha liquidado, se da de baja automáticamente.</li>' +
       '<li>Los partidos no inician si los equipos tienen adeudos.</li>' +
     '</ul></div>' +
     '<p class="pagos-titulo">Dónde pagar</p>' +
@@ -9436,13 +9421,14 @@ async function abrirReinscribir(llave){
   reiPintar("Reinscripción", "", '<p class="rei-nota">Cargando los datos de tu equipo…</p>');
   try{
     const r = (await enviarAlSheet({ action: "datosReinscripcion", llave })).reinscripcion;
-    if(r.reinscrito) return reiListo(r.equipo, r.codigo);
+    if(r.reinscrito) return reiListo(r.equipo, r.codigo, r.cuotas);
     const cat = /femenil/i.test(r.categoria) ? "femenil" : "varonil";
     const campo = (id, etiqueta, valor, tipo) => `
       <div class="insc-campo"><label for="${id}">${etiqueta} <span class="req">*</span></label>
         <input type="${tipo || "text"}" id="${id}" maxlength="80" value="${reiEsc(valor)}" autocomplete="off"></div>`;
     reiPintar(r.equipo, r.categoria + " · Temporada " + r.temporadaNueva, `
       <p class="rei-nota">Tu lugar está apartado. Revisa que los datos estén bien, acepta el reglamento y listo.</p>
+      ${reiCuotaHTML(r.cuotas)}
       ${campo("reiCap", "Capitán", r.capitan)}
       ${campo("reiCapTel", "Teléfono del capitán", r.telCapitan, "tel")}
       ${campo("reiSubCap", "Sub-capitán", r.subCapitan)}
@@ -9474,14 +9460,24 @@ async function enviarReinscribir(llave){
     const r = (await enviarAlSheet({ action: "reinscribirEquipo", llave,
       capitan: v("reiCap"), telCapitan: v("reiCapTel"), subCapitan: v("reiSubCap"), telSubCapitan: v("reiSubTel"),
       correo: v("reiCorreo"), menoresEdad: v("reiMenores"), reglamentoAceptado: true })).reinscripcion;
-    reiListo(r.equipo, r.codigo);
+    reiListo(r.equipo, r.codigo, r.cuotas);
   }catch(err){
     btn.disabled = false;
     reiMsg("err", err.message);
   }
 }
 
-function reiListo(equipo, codigo){
+/* Lo que paga ESTE equipo, ya con su descuento de campeón o de fiel
+   (Mauricio, 25 nov 2026): cada capitán ve solo el suyo. La ventana de
+   pagos enseña el precio general. */
+const reiPesos = n => "$" + Number(n).toLocaleString("es-MX");
+function reiCuotaHTML(c){
+  if(!c || !c.pronto) return "";
+  return `<div class="rei-link" style="margin:4px 0 16px;">Tu inscripción: <b>${reiPesos(c.pronto)}</b> si liquidas antes de tu primer partido,
+    o <b>${reiPesos(c.normal)}</b> antes del tercero. Incluye arbitraje y mesa de toda la temporada, también la liguilla.</div>`;
+}
+
+function reiListo(equipo, codigo, cuotas){
   const link = location.origin + location.pathname + "?view=equipo&codigo=" + codigo;
   const texto = "Ya reinscribí a " + String(equipo).toUpperCase() + ". Entra a este link, toca tu nombre y confirma para quedar en el equipo: " + link;
   reiPintar("¡Listo! 🏀", String(equipo).toUpperCase() + " ya está reinscrito", `
@@ -9491,7 +9487,8 @@ function reiListo(equipo, codigo){
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button></div>
     <a class="insc-btn" style="display:block;text-align:center;text-decoration:none;" href="https://wa.me/?text=${encodeURIComponent(texto)}" target="_blank" rel="noopener">MANDAR POR WHATSAPP</a>
-    <p class="rei-nota" style="margin-top:14px;">Tú también confirma: abre el link y toca tu nombre. También te lo mandamos por correo.</p>`);
+    <p class="rei-nota" style="margin-top:14px;">Tú también confirma: abre el link y toca tu nombre. También te lo mandamos por correo.</p>
+    ${reiCuotaHTML(cuotas)}`);
 }
 
 /* El ícono de las dos hojas (Mauricio, 25 nov 2026): copiar sin tener que
