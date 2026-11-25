@@ -9535,6 +9535,13 @@ function reiElegir(i){
       <div class="rei-foto"><span id="reiFotoPrev">📷</span>
         <input type="file" accept="image/*" onchange="reiFotoElegida(this)"></div>
     </div>
+    ${REI.elegido.pideCorreo ? `
+    <!-- Solo a quien trae el correo de su capitán (25 nov 2026): aquí, en
+         la misma pantalla, para que no sea un paso más. -->
+    <div class="insc-campo">
+      <label for="reiCorreo">Tu correo <span class="req">*</span></label>
+      <input type="email" id="reiCorreo" maxlength="80" placeholder="correo@ejemplo.com" autocomplete="email">
+      <div class="ayuda">El correo que teníamos es el de tu capitán. Escribe el tuyo para que te llegue tu credencial.</div></div>` : ""}
     <div class="insc-campo">
       <label for="reiCel">Tu celular (WhatsApp)</label>
       <input type="tel" id="reiCel" maxlength="20" placeholder="81 1234 5678" autocomplete="tel">
@@ -9573,6 +9580,17 @@ async function reiConfirmar(){
   const btn = document.getElementById("reiBtn");
   const tutor = document.getElementById("reiTutor");
   const carta = document.getElementById("reiCartaOk");
+  const cajaCorreo = document.getElementById("reiCorreo");
+  let correo = cajaCorreo ? cajaCorreo.value.trim() : "";
+  if(cajaCorreo){
+    if(!correo) return reiMsg("err", "Escribe tu correo.");
+    if(!correoTieneFormatoValido(correo)) return reiMsg("err", "Ese correo no parece válido. Revísalo bien.");
+    // Igual que en el alta: "gmial.com" → ¿gmail.com?
+    const sug = sugerenciaDeCorreo(correo);
+    if(sug && confirm("¿Tu correo es " + sug + "?\n\nEscribiste: " + correo + "\n\nAceptar = usar " + sug + "\nCancelar = dejarlo como lo escribiste")){
+      cajaCorreo.value = sug; correo = sug;
+    }
+  }
   const celTxt = document.getElementById("reiCel").value.trim();
   const celular = celular10(celTxt);
   if(celTxt && !celular) return reiMsg("err", "Ese celular no tiene 10 dígitos. Revísalo o déjalo vacío.");
@@ -9581,7 +9599,13 @@ async function reiConfirmar(){
   reiMsg("info", "Confirmando…");
   try{
     const r = (await enviarAlSheet({ action: "confirmarJugador", codigo: REI.codigo, id: REI.elegido.id,
-      foto: REI.foto || "", celular, tutorNombre: tutor ? tutor.value.trim() : "", cartaResponsivaAceptada: !!(carta && carta.checked) })).confirmacion;
+      foto: REI.foto || "", celular, correo, tutorNombre: tutor ? tutor.value.trim() : "", cartaResponsivaAceptada: !!(carta && carta.checked) })).confirmacion;
+    if(r.necesitaCorreo){
+      // No debería pasar (la página ya enseñó el campo), pero por si acaso.
+      btn.disabled = false;
+      REI.elegido.pideCorreo = true;
+      return reiElegir(REI.jugadores.indexOf(REI.elegido));
+    }
     if(r.necesitaCarta){
       btn.disabled = false;
       document.getElementById("reiCarta").innerHTML = `
@@ -10500,7 +10524,10 @@ async function enviarAltaJugador(){
     if(eq) eq.integrantes = (eq.integrantes || 0) + 1;
     _cacheJugadoresQuery = null; _cacheJugadoresSet = null;
     renderJugadores();
-    mostrarMsgInsc("iJgMsg","ok","¡Listo, " + nombre + "! Ya quedaste dado de alta en " + equipo + ". Te mandamos un correo de bienvenida a " + correo + ".");
+    // yaJugo: el servidor lo reconoció de otra temporada (mismo correo, o
+    // mismo nombre y fecha de nacimiento) y le puso su mismo ID de jugador.
+    mostrarMsgInsc("iJgMsg","ok", (data.yaJugo ? "¡Qué gusto verte de nuevo, " : "¡Listo, ") + nombre + "! Ya quedaste dado de alta en " + equipo +
+      (data.yaJugo ? ". Tu historial de temporadas pasadas sigue contigo." : "") + " Te mandamos un correo de bienvenida a " + correo + ".");
     document.getElementById("iJgNombre").value = "";
     document.getElementById("iJgApellido").value = "";
     document.getElementById("iJgFechaNac").value = "";
