@@ -662,10 +662,6 @@
   .prox-titulo{font-weight:900;font-size:clamp(30px,9vw,56px);line-height:1.02;letter-spacing:-.01em;}
   .prox-titulo span{color:#F37228;}
   .prox-fecha{font-weight:600;font-size:clamp(14px,3.8vw,18px);margin-top:16px;opacity:.9;}
-  .prox-cuenta{display:flex;gap:10px;justify-content:center;margin-top:26px;}
-  .prox-cuenta div{background:#111;border:1px solid #262626;border-radius:12px;padding:12px 10px;min-width:64px;}
-  .prox-cuenta b{display:block;font-weight:900;font-size:26px;color:#F37228;}
-  .prox-cuenta small{font-size:10px;letter-spacing:.18em;opacity:.7;}
   .prox-pie{margin-top:34px;font-size:13px;opacity:.75;line-height:1.7;}
   .prox-pie a{color:#fff;font-weight:700;text-decoration:none;border-bottom:1px solid #F37228;}
   .rei-link-fila{display:flex;align-items:center;gap:10px;}
@@ -3041,7 +3037,6 @@
     <div class="prox-linea"></div>
     <div class="prox-titulo">PRÓXIMAMENTE<br><span>TEMPORADA ENERO 2027</span></div>
     <div class="prox-fecha">Arrancamos el lunes 18 de enero</div>
-    <div class="prox-cuenta" id="proxCuenta"></div>
     <div class="prox-pie">Síguenos en <a href="https://www.instagram.com/laligadebasquet/" target="_blank" rel="noopener">@laligadebasquet</a><br>
       ¿Dudas? WhatsApp <a href="https://wa.me/528117817451" target="_blank" rel="noopener">81 1781 7451</a></div>
   </div>
@@ -9684,22 +9679,11 @@ async function reiConfirmar(){
    de la reinscripción vuelve a salir esta pantalla.
    ============================================================ */
 const PROX_LINKS_LIBRES = ["reinscribir", "equipo", "inscripcion", "reglamento", "pagos", "encuesta"];
-const PROX_ARRANQUE = new Date(2027, 0, 18, 0, 0, 0);
-let proxReloj = null;
-function proxPintarCuenta(){
-  let s = Math.max(0, (PROX_ARRANQUE - new Date()) / 1000);
-  const d = Math.floor(s / 86400); s -= d * 86400;
-  const h = Math.floor(s / 3600); s -= h * 3600;
-  const m = Math.floor(s / 60);
-  document.getElementById("proxCuenta").innerHTML =
-    [[d, "DÍAS"], [h, "HORAS"], [m, "MIN"]].map(([n, t]) => `<div><b>${n}</b><small>${t}</small></div>`).join("");
-}
+/* Sin cuenta regresiva: Mauricio la quitó el 25 nov 2026; solo la fecha. */
 function mostrarProximamente(){
   if(!CONFIG.proximamente) return;
   document.getElementById("proxPantalla").classList.add("open");
   document.body.style.overflow = "hidden";
-  proxPintarCuenta();
-  if(!proxReloj) proxReloj = setInterval(proxPintarCuenta, 30000);
 }
 function aplicarProximamente(){
   if(!CONFIG.proximamente) return;
