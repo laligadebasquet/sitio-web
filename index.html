@@ -8068,6 +8068,7 @@ const PAGOS_2027 = {
     { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$9,500" }
   ]
 };
+const TEMPORADA_PAGOS = "Enero 2027";
 const PAGOS_POR_RAMA = { varonil: PAGOS_2027, femenil: PAGOS_2027 };
 
 /* Muestra el link "FORMAS DE PAGO" solo cuando ya hay categoría elegida.
@@ -8093,7 +8094,10 @@ function abrirPagos(catForzada){
   // Ya no hace falta elegir categoría primero: el precio es el mismo.
   const rama = esFemenil ? "femenil" : "varonil";
   const datos = PAGOS_POR_RAMA[rama];
-  sub.textContent = (esFemenil || esVaronil) ? "Categoría " + cat : "Varonil y femenil";
+  /* 28 nov 2026: ya no se distingue la rama (Mauricio): varonil y femenil
+     pagan lo mismo y el link ?view=pagos&cat=varonil decía "Categoría
+     Varonil" arriba. Ahora siempre dice la temporada. */
+  sub.textContent = "Temporada " + TEMPORADA_PAGOS;
 
   body.innerHTML =
     '<div class="pagos-cuota">' +
