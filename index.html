@@ -3137,17 +3137,17 @@
         </div>
         <div class="horarios-cat">
           <div class="horarios-cat-nombre">Categoría B</div>
-          <div class="horarios-cat-dias">Martes, Jueves, Sábado/Domingo</div>
+          <div class="horarios-cat-dias">Martes, Jueves, Sábado</div>
         </div>
       </div>
       <div class="horarios-horas">
         <div class="horarios-hora-bloque">
           <div class="horarios-hora-titulo">Entre semana</div>
-          <div class="horarios-hora-valor">8:10, 9:10, 10:10 pm</div>
+          <div class="horarios-hora-valor">8:15, 9:15, 10:15 pm</div>
         </div>
         <div class="horarios-hora-bloque">
-          <div class="horarios-hora-titulo">Fin de semana</div>
-          <div class="horarios-hora-valor">12 – 5 pm</div>
+          <div class="horarios-hora-titulo">Sábado</div>
+          <div class="horarios-hora-valor">12:10, 1:10, 2:10, 3:10, 4:10, 5:10 pm</div>
         </div>
       </div>
     </div>
@@ -7301,7 +7301,7 @@ function construirReglamentoHTML(o){
 <h3 class="reglamento-h1">II. Administrativo</h3>
 <p>La cuota de inscripción incluye arbitraje y mesa de toda la temporada, también los playoffs.</p>
 <p style="font-weight:700;margin-bottom:4px;">Formas de pago</p>
-<ul class="reglamento-list"><li>Forma 1: liquidando antes del primer partido, $${o.forma1.toLocaleString('es-MX')} MXN.</li><li>Forma 2: liquidando antes del tercer partido, $${o.forma2.toLocaleString('es-MX')} MXN.</li></ul>
+<ul class="reglamento-list"><li>Forma 1: liquidando antes del primer partido, $${o.forma1.toLocaleString('es-MX')} MXN.</li><li>Forma 2: liquidando después del primer partido y antes del tercero, $${o.forma2.toLocaleString('es-MX')} MXN.</li></ul>
 <p>Si se elige la forma 2, antes del primer y del segundo partido deberá abonarse un mínimo de $1,500 MXN por partido.</p>
 <p>Si antes del tercer partido el equipo no ha liquidado, se da de baja automáticamente.</p>
 <p>Los partidos no inician si los equipos tienen adeudos.</p>
@@ -8061,11 +8061,15 @@ function cerrarHorarios(){
    reglamento (construirReglamentoHTML) y PRECIO_PRONTO_/PRECIO_NORMAL_ del
    Apps Script. Se deja la llave por rama por si algún día vuelven a ser
    distintos. */
+/* 28 nov 2026 (Mauricio): el recuadro grande decía "$9,500" y se leía como
+   precio único. Ahora dice "Desde $9,000" y la forma 2 aclara que es si se
+   paga DESPUÉS del primer partido. */
 const PAGOS_2027 = {
-  cuota: "$9,500 MXN",
+  cuota: "Desde $9,000 MXN",
+  nota: "Si liquidas antes del primer partido. Incluye arbitraje y mesa de toda la temporada, también los playoffs.",
   formas: [
     { cuando: "Liquidando antes del <b>primer</b> partido", monto: "$9,000" },
-    { cuando: "Liquidando antes del <b>tercer</b> partido", monto: "$9,500" }
+    { cuando: "Liquidando <b>después del primer</b> y antes del <b>tercer</b> partido", monto: "$9,500" }
   ]
 };
 const TEMPORADA_PAGOS = "Enero 2027";
@@ -8104,7 +8108,7 @@ function abrirPagos(catForzada){
     '<div class="pagos-cuota">' +
       '<div class="pagos-cuota-label">Cuota de inscripción</div>' +
       '<div class="pagos-cuota-monto">' + datos.cuota + '</div>' +
-      '<div class="pagos-cuota-nota">Incluye arbitraje y mesa de toda la temporada, también los playoffs.</div>' +
+      '<div class="pagos-cuota-nota">' + datos.nota + '</div>' +
     '</div>' +
     '<p class="pagos-titulo">Formas de pago</p>' +
     '<div class="pagos-formas">' +
@@ -8117,7 +8121,7 @@ function abrirPagos(catForzada){
     '</div>' +
     '<div class="pagos-reglas"><ul>' +
       '<li>La <b>Forma 1</b> se paga en una sola exhibición <b>ANTES</b> del primer partido.</li>' +
-      '<li>Con la <b>Forma 2</b>, antes del primer y del segundo partido hay que abonar mínimo <b>$1,500 MXN</b> cada vez.</li>' +
+      '<li>Con la <b>Forma 2</b>, antes del primer y del segundo partido hay que abonar mínimo <b>$1,500 MXN</b> por partido.</li>' +
       '<li>Si antes del tercer partido el equipo no ha liquidado, se da de baja automáticamente.</li>' +
       '<li>Los partidos no inician si los equipos tienen adeudos.</li>' +
     '</ul></div>' +
