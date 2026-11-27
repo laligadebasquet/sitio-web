@@ -763,6 +763,17 @@
   /* El nombre cede ancho, pero nunca baja de 110 px: por debajo de eso los
      datos se parten renglón por palabra y no se entiende nada. */
   .hd-jug-info{flex:1 1 92px;min-width:0;}
+  /* Foto junto al nombre antes de empezar (28 nov 2026): la mesa ve la cara
+     sin tocar nada. */
+  .hd-minifoto{width:34px;height:34px;border-radius:50%;object-fit:cover;vertical-align:middle;
+    margin-right:6px;border:1px solid #333;cursor:zoom-in;display:inline-block;background:#222;}
+  .hd-minifoto.vacia{cursor:default;}
+  .hd-sinfoto{display:inline-block;vertical-align:middle;margin-right:6px;padding:2px 6px;border-radius:6px;
+    background:#e23b3b;color:#fff;font-size:10px;font-weight:900;letter-spacing:.4px;}
+  .hd-sup-fila{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
+  .hd-sup-fila label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#aaa;font-weight:700;}
+  .hd-sup-fila select{min-width:150px;}
+  .hd-sup-ya{margin-top:10px;font-size:12px;color:#ff8a8a;font-weight:700;}
   .hd-jug > .hd-btns{flex:0 0 auto;margin-left:auto;}
   .hd-jug:last-child{border-bottom:none;}
   .hd-jug.expulsado{background:rgba(226,59,59,.12);}
@@ -7582,9 +7593,13 @@ function hdSancionados(){
   const salida = [];
   ["local","visit"].forEach(lado=>{
     HD.jugadores[lado].forEach(j=>{
-      if((j.ftf || 0) >= HD_FTF_SANCION){
+      /* j.suplantacion = "jugador" o "capitan": lo marcó la mesa con
+         "Reportar suplantación". Va con su renglón del tabulador ya puesto. */
+      const motivo = j.suplantacion === "jugador" ? "alinear-ausente"
+                   : j.suplantacion === "capitan" ? "suplantacion-capitan" : "";
+      if((j.ftf || 0) >= HD_FTF_SANCION || motivo){
         salida.push({ equipo: HD[lado], jugador: j.nombre, jersey: j.jersey || "",
-                      ftf: j.ftf, fp: j.fp });
+                      ftf: j.ftf, fp: j.fp, motivo });
       }
     });
   });
@@ -8693,6 +8708,102 @@ function hdFotoDe(lado, indice){
    números con calma, y hasta que el partido de verdad empieza aparecen los
    botones. Antes todo salía junto desde el primer segundo.
    ============================================================ */
+/* ============================================================
+   FOTOS EN "ANTES DE EMPEZAR" Y REPORTE DE SUPLANTACIÓN (28 nov 2026)
+
+   El coordinador de Mauricio: no se conoce a todos, y a veces dan en la
+   mesa el nombre de alguien dado de alta que no vino, para que juegue otro
+   en su lugar o para que le cuente la asistencia (y así llegue a los dos
+   partidos que pide playoffs). Antes la foto solo salía si la mesa tocaba
+   el nombre, y casi nadie lo hacía. Ahora sale sola junto a cada nombre, y
+   quien no tiene foto se marca "SIN FOTO" para que la mesa pida la
+   credencial digital.
+   ============================================================ */
+const HD_FOTOS_PEDIDAS = {};
+function hdPedirFotosPrevio(equipo){
+  const clave = nombreEquipo(equipo);
+  if(HD_FOTOS_PEDIDAS[clave] || fotosCargadasDe(equipo)) return;
+  HD_FOTOS_PEDIDAS[clave] = true;
+  /* Al llegar se vuelve a pintar, pero solo si la mesa sigue en la pantalla
+     de antes de empezar: no se le mueve nada a media captura. */
+  cargarFotosDe(equipo).then(llego=>{
+    if(!llego) delete HD_FOTOS_PEDIDAS[clave];
+    if(HD && !hdYaInicio() && !HD.cerrado) hdRender();
+  });
+}
+function hdAltaDe(equipo, nombre){
+  const norm = s => String(s || "").trim().toLowerCase();
+  return (ALTAS_JUGADORES || []).find(a => norm(a.nombre) === norm(nombre) && norm(a.equipo) === norm(equipo))
+      || (ALTAS_JUGADORES || []).find(a => norm(a.nombre) === norm(nombre)) || null;
+}
+function hdMiniFotoHTML(lado, i){
+  const j = HD.jugadores[lado][i];
+  const alta = hdAltaDe(HD[lado], j.nombre);
+  if(alta && alta.foto){
+    return `<img class="hd-minifoto" src="${alta.foto}" alt="Foto de ${j.nombre}" onclick="hdFotoDe('${lado}',${i})">`;
+  }
+  /* Mientras llegan las fotos del equipo no se acusa a nadie de no tenerla. */
+  if(!fotosCargadasDe(HD[lado])) return `<span class="hd-minifoto vacia"></span>`;
+  return `<span class="hd-sinfoto" title="No tiene foto: pide su credencial digital">SIN FOTO</span>`;
+}
+
+/* Reportar suplantación. La mesa escoge el equipo, el jugador cuyo nombre
+   dieron y al capitán. Quedan marcados en la hoja y, al guardar el partido,
+   entran a Sanciones con su renglón del tabulador ya puesto: 2 partidos al
+   jugador y 1 al capitán. La sanción la aplica Juan Pablo (Mauricio). */
+let HD_SUP_LADO = "local";
+function hdSuplantacionHTML(){
+  if(!HD) return "";
+  const ya = [];
+  ["local","visit"].forEach(l => HD.jugadores[l].forEach(j=>{
+    if(j.suplantacion) ya.push(`${j.nombre} (${HD[l]}) · ${j.suplantacion === "capitan" ? "capitán, 1 partido" : "2 partidos"}`);
+  }));
+  const lado = HD_SUP_LADO;
+  const opcs = HD.jugadores[lado].map((j, i)=>`<option value="${i}">${j.nombre}</option>`).join("");
+  return `<div class="card hd-sup">
+    <h3 style="margin:0 0 6px 0;">Reportar suplantación</h3>
+    <p class="hd-previo-nota" style="margin:0 0 10px 0;">Dieron el nombre de alguien que <strong>no está en la cancha</strong>.
+      Sanción: <strong>2 partidos</strong> al jugador y <strong>1</strong> al capitán. La aplica Juan Pablo.</p>
+    <div class="hd-sup-fila">
+      <label>Equipo
+        <select id="hdSupLado" onchange="HD_SUP_LADO=this.value; hdRender();">
+          <option value="local"${lado === "local" ? " selected" : ""}>${HD.local}</option>
+          <option value="visit"${lado === "visit" ? " selected" : ""}>${HD.visit}</option>
+        </select></label>
+      <label>Nombre que dieron
+        <select id="hdSupJugador"><option value="">—</option>${opcs}</select></label>
+      <label>Capitán
+        <select id="hdSupCapitan"><option value="">—</option>${opcs}</select></label>
+      <button class="mini-btn" onclick="hdReportarSuplantacion()">Reportar</button>
+    </div>
+    ${ya.length ? `<div class="hd-sup-ya">Reportados: ${ya.join(" · ")}
+      <button class="mini-btn" onclick="hdQuitarSuplantaciones()">Quitar</button></div>` : ""}
+  </div>`;
+}
+function hdReportarSuplantacion(){
+  if(!HD) return;
+  const lado = HD_SUP_LADO;
+  const ij = document.getElementById("hdSupJugador").value;
+  const ic = document.getElementById("hdSupCapitan").value;
+  if(ij === "") return alert("Escoge el nombre que dieron en la mesa.");
+  if(ic === "") return alert("Escoge al capitán del equipo.");
+  if(ij === ic) return alert("El capitán no puede ser el mismo jugador cuyo nombre dieron.");
+  const j = HD.jugadores[lado][Number(ij)], c = HD.jugadores[lado][Number(ic)];
+  if(!confirm(`Reportar suplantación en ${HD[lado]}:\n\n· ${j.nombre}: 2 partidos de sanción\n· ${c.nombre} (capitán): 1 partido\n\nSe guarda con el partido y Juan Pablo aplica la sanción.`)) return;
+  j.suplantacion = "jugador";
+  c.suplantacion = "capitan";
+  /* No vino: que no se le cuente la asistencia. */
+  if(!hdYaInicio()) j.presente = false;
+  hdGuardarRespaldo();
+  hdRender();
+}
+function hdQuitarSuplantaciones(){
+  if(!HD || !confirm("¿Quitar los reportes de suplantación de este partido?")) return;
+  ["local","visit"].forEach(l => HD.jugadores[l].forEach(j=>{ delete j.suplantacion; }));
+  hdGuardarRespaldo();
+  hdRender();
+}
+
 function hdPrevioHTML(){
   let html = `<div class="card" style="border-left-color:#E8912E;">
     <div class="hd-previo-tit">Antes de empezar</div>
@@ -8770,6 +8881,7 @@ function hdPrevioHTML(){
     }
 
     const repetidos = hdRepetidos(lado);
+    hdPedirFotosPrevio(HD[lado]);
     hdOrdenados(lado).forEach(({j, i})=>{
       const sinNumero = !String(j.jersey || "").trim();
       const vino = hdEsPresente(j);
@@ -8788,6 +8900,7 @@ function hdPrevioHTML(){
         </div>
         <div class="hd-jug-info">
           <div class="hd-jug-nombre">
+            ${hdMiniFotoHTML(lado, i)}
             <span class="hd-nombre-link" onclick="hdFotoDe('${lado}',${i})" title="Ver la foto de ${j.nombre}">${j.nombre}</span>
             ${sancion ? `<span class="hd-sancionado" title="${sancion.est.texto}">🚫 SANCIONADO</span>` : ""}
           </div>
@@ -8797,6 +8910,8 @@ function hdPrevioHTML(){
     html += `</div>`;
   });
   html += `</div>`;
+
+  html += hdSuplantacionHTML();
 
   html += `<div class="card">
     <div class="hd-previo-btns">
@@ -9163,6 +9278,7 @@ function hdRender(){
   html += `</div>`;
 
   html += hdCambioHTML();
+  if(!HD.esPrueba) html += hdSuplantacionHTML();
 
   cont.innerHTML = html;
   if(document.body.classList.contains("hd-pc")) requestAnimationFrame(hdMedirBarra);
@@ -10157,14 +10273,22 @@ const TABULADOR_SANCIONES = [
   { id: "arbitros", texto: "Expulsión por desaprobar o insultar al cuerpo arbitral o a la mesa de control", partidos: 1 },
   { id: "arbitros-repite", texto: "Repetir la acción contra el cuerpo arbitral o la mesa de control", partidos: 3 },
   { id: "arbitros-reincide", texto: "Reincidir nuevamente contra el cuerpo arbitral o la mesa de control", partidos: "TEMPORADA" },
-  { id: "alinear-ausente", texto: "Alinear a un jugador sin que esté presente", partidos: 2 },
+  { id: "alinear-ausente", texto: "Dieron su nombre en la mesa sin que estuviera presente (suplantación)", partidos: 2 },
+  { id: "suplantacion-capitan", texto: "Capitán del equipo que dio en la mesa el nombre de un jugador que no estaba (suplantación)", partidos: 1 },
   { id: "alinear-castigado", texto: "Alinear a un jugador castigado o no elegible para jugar (el equipo pierde el partido por default)", partidos: 3 },
   { id: "agresion-arbitros", texto: "Agredir físicamente al cuerpo arbitral", partidos: "DEFINITIVA" },
   { id: "agresion-rival", texto: "Agredir físicamente a integrantes del equipo contrario o de su porra", partidos: "DEFINITIVA" }
 ];
 /* Para dictaminar hacen falta estas dos versiones (la de Marcelo suma). */
 const SANCIONES_REPORTES_NECESARIOS = ["Juan Pablo", "Francisco"];
-function scFaltanReportes(s){ return SANCIONES_REPORTES_NECESARIOS.filter(n => !scVersiones(s)[n]); }
+/* Suplantación (Mauricio, 28 nov 2026): la reporta la mesa desde la hoja
+   digital y la sanción la aplica Juan Pablo. Esas no esperan a Francisco.
+   La misma regla está en el Apps Script (reportesNecesarios_). */
+const SANCIONES_SUPLANTACION = ["alinear-ausente", "suplantacion-capitan"];
+function scReportesNecesarios(s){
+  return SANCIONES_SUPLANTACION.includes(s.motivo) ? ["Juan Pablo"] : SANCIONES_REPORTES_NECESARIOS;
+}
+function scFaltanReportes(s){ return scReportesNecesarios(s).filter(n => !scVersiones(s)[n]); }
 
 /* Lo que le falta a cada sanción. Las que ya pasaron no esperan nada.
 
