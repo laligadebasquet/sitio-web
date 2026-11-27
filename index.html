@@ -7223,7 +7223,8 @@ function construirReglamentoHTML(o){
 
 <h4 class="reglamento-h2">5. Registro de equipo, refuerzos</h4>
 <p>El capitán o subcapitán deberá inscribir al equipo en nuestra página www.laligadebasquet.com.</p>
-<p>Posterior a esto, a quien inscribió al equipo le aparecerá un código con el cual los integrantes del equipo podrán acceder a la sección de alta de jugadores, en donde cada integrante es responsable de subir su información.</p>
+<!-- Ya no hay código de equipo (Mauricio, 26 nov 2026): el alta es con el link del equipo, como en REINSCRIPCIÓN. -->
+<p>Posterior a esto, a quien inscribió al equipo le aparecerá el link del equipo, que deberá compartir con sus integrantes. Con ese link, quien jugó la temporada anterior solo confirma su nombre, y quien es nuevo se da de alta; cada integrante es responsable de subir su información.</p>
 <p>El límite de jugadores por equipo es de 15.</p>
 <p>Las altas de integrantes se efectuarán durante las primeras tres semanas de partidos.</p>
 <p>Si un jugador no aparece en la cédula, deberá mostrar su credencial digital para que la mesa le permita jugar. Esto aplica también para los refuerzos.</p>
@@ -7298,7 +7299,7 @@ function construirReglamentoHTML(o){
 <p>Si antes del tercer partido el equipo no ha liquidado, se da de baja automáticamente.</p>
 <p>Los partidos no inician si los equipos tienen adeudos.</p>
 <p>Formas de pago aceptadas: efectivo en el gimnasio o transferencia bancaria.</p>
-<p>Mauricio Oliver — Banorte — 4189 1434 1115 8077</p>
+<p>Mauricio Oliver — Mercado Pago — CLABE 722969014730450005</p>
 <p>No habrá reembolso si un equipo se da de baja del torneo.</p>
 
 <h3 class="reglamento-h1">III. Protestas</h3>
@@ -8108,8 +8109,8 @@ function abrirPagos(catForzada){
     '<p class="pagos-titulo">Dónde pagar</p>' +
     '<div class="pagos-metodo">' +
       '<div class="pagos-metodo-nombre">Transferencia bancaria</div>' +
-      '<p><strong>BANORTE</strong></p>' +
-      '<p class="pagos-cuenta">4189 1434 1115 8077</p>' +
+      '<p><strong>MERCADO PAGO</strong> · CLABE</p>' +
+      '<p class="pagos-cuenta">722969014730450005</p>' +
       '<p>A nombre de <strong>Mauricio Oliver</strong></p>' +
       '<p>Manda tu comprobante al <strong>81 1781 7451</strong> o a ' +
         '<strong>control@laligadebasquet.com</strong>.</p>' +
@@ -8703,14 +8704,17 @@ const T3_HORARIOS = {
   "Varonil B": { dias: "Martes 24, jueves 26 de noviembre y martes 1 de diciembre", hora: "9:30 a 10:50 pm",
                  finales: "Semifinales 9:30 y 9:50 pm · Final 10:10 pm" }
 };
+/* 28 nov 2026: la cuenta pasó de Banorte a la CLABE de Mercado Pago de
+   Mauricio (cuenta personal; si un día es persona moral, cambia de CLABE).
+   Va sin espacios para que se copie y pegue tal cual en la app del banco. */
 /* Dónde pagar: los mismos datos del 5x5 (abrirPagos), sin formas de pago:
    en el 3x3 hay un solo costo de inscripción y el arbitraje por partido. */
 const T3_DONDE_PAGAR = `
     <p class="pagos-titulo">Dónde pagar</p>
     <div class="pagos-metodo">
       <div class="pagos-metodo-nombre">Transferencia bancaria</div>
-      <p><strong>BANORTE</strong></p>
-      <p class="pagos-cuenta">4189 1434 1115 8077</p>
+      <p><strong>MERCADO PAGO</strong> · CLABE</p>
+      <p class="pagos-cuenta">722969014730450005</p>
       <p>A nombre de <strong>Mauricio Oliver</strong></p>
       <p>Manda tu comprobante al <strong>81 1781 7451</strong> o a <strong>control@laligadebasquet.com</strong>.</p>
     </div>
