@@ -8074,11 +8074,12 @@ const PAGOS_POR_RAMA = { varonil: PAGOS_2027, femenil: PAGOS_2027 };
 /* Muestra el link "FORMAS DE PAGO" solo cuando ya hay categoría elegida.
    Se llama desde el onchange del select, al pintar el formulario y después
    de limpiarlo tras una inscripción exitosa. */
+/* Antes escondía PAGOS hasta elegir categoría. Desde el 28 nov 2026 el
+   link está siempre a la vista; se deja la función para no romper a quien
+   la llama. */
 function sincronizarLinkPagos(){
-  const sel  = document.getElementById("iEqCategoria");
   const link = document.getElementById("pagosLink");
-  if(!sel || !link) return;
-  link.style.display = sel.value ? "" : "none";
+  if(link) link.style.display = "";
 }
 
 /* catForzada: para abrir esta misma ventana desde fuera del formulario —
@@ -9764,7 +9765,10 @@ function aplicarDeepLink(){
 function renderInscripcion(categoriaTab){
   devolver3x3();
   const el = document.getElementById("view-inscripcion");
-  const tab = categoriaTab || inscripcionTab;
+  /* 28 nov 2026: el torneo 3x3 no se hizo (Mauricio) y se quitó su botón.
+     Si llega un link viejo con &tab=3x3, se abre Inscribir Equipo. */
+  const pedida = categoriaTab || inscripcionTab;
+  const tab = pedida === "3x3" ? "equipo" : pedida;
   inscripcionTab = tab;
   const aviso = CONFIG.appsScriptUrl ? "" :
     `<div class="insc-nota-config">Falta configurar <code>CONFIG.appsScriptUrl</code> en el código de esta página. Puedes ver el formulario, pero todavía no se puede enviar.</div>`;
@@ -9773,7 +9777,6 @@ function renderInscripcion(categoriaTab){
     <div class="insc-toggle">
       <button class="${tab === "equipo" ? "active" : ""}" onclick="renderInscripcion('equipo')">INSCRIBIR EQUIPO</button>
       <button class="${tab === "jugador" ? "active" : ""}" onclick="renderInscripcion('jugador')">ALTA DE JUGADOR</button>
-      <button class="${tab === "3x3" ? "active" : ""}" onclick="renderInscripcion('3x3')">TORNEO 3X3</button>
     </div>
     ${aviso}
     ${tab === "3x3"
@@ -9864,12 +9867,12 @@ function formEquipoHTML(){
              normal de un label) y nunca se abre la ventana. -->
         <div class="insc-label-row">
           <label for="iEqCategoria">Categoría <span class="req">*</span></label>
+          <!-- PAGOS va primero y siempre visible (Mauricio, 28 nov 2026): desde
+               que varonil y femenil cuestan lo mismo ya no hay que esperar a
+               que elijan categoría para enseñar cuánto cuesta. -->
+          <a href="#" class="horarios-link" id="pagosLink"
+             onclick="event.preventDefault(); abrirPagos();">PAGOS</a>
           <a href="#" class="horarios-link" onclick="event.preventDefault(); abrirHorarios();">HORARIOS</a>
-          <!-- Este link nace OCULTO: los costos dependen de la rama, así que
-               no tiene sentido ofrecerlo antes de que elijan categoría.
-               sincronizarLinkPagos() lo muestra/esconde según el select. -->
-          <a href="#" class="horarios-link" id="pagosLink" style="display:none;"
-             onclick="event.preventDefault(); abrirPagos();">FORMAS DE PAGO</a>
         </div>
         <select id="iEqCategoria" onchange="sincronizarLinkPagos()">
           <option value="">Selecciona una categoría</option>
